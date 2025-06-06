@@ -2,6 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import List
 import os
 
@@ -50,9 +51,11 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     from_email: str = ""
     
-    class Config:
-        env_file = "../.env"
-        case_sensitive = False
+    model_config = ConfigDict(
+        env_file="../.env",
+        case_sensitive=False,
+        extra='ignore'  # 忽略額外的環境變數（如 VITE_ 前端變數）
+    )
 
 settings = Settings()
 
