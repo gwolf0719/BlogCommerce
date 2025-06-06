@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}{{ settings.site_name }} - {{ settings.site_description }}{% endblock %}
+
+{% block meta %}
+<meta property="og:title" content="{{ settings.site_name }}">
+<meta property="og:description" content="{{ settings.site_description }}">
+<meta property="og:type" content="website">
+{% endblock %}
+
+{% block content %}
+<div x-data="homeApp()" x-init="loadContent()">
+    <!-- Hero Section -->
+    <section class="relative bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 text-white overflow-hidden min-h-screen flex items-center">
+        <div class="absolute inset-0 bg-black opacity-20"></div>
+        <div class="absolute inset-0">
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/30 to-purple-600/30"></div>
+            <div class="w-full h-full bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+        </div>
+        
+        <div class="relative container mx-auto px-4 py-16 sm:py-20 lg:py-32">
+            <div class="max-w-4xl mx-auto text-center">
+                <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight">
+                    歡迎來到
+                    <br class="sm:hidden">
+                    <span class="bg-gradient-to-r from-yellow-400 to-pink-400 bg-clip-text text-transparent">
+                        {{ settings.site_name }}
+                    </span>
+                </h1>
+                <p class="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-blue-100 leading-relaxed px-2">
+                    {{ settings.site_description }}
+                </p>
+                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4">
+                    <a href="/products" 
+                       class="w-full sm:w-auto bg-white text-blue-600 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-blue-50 transform hover:scale-105 transition-all duration-300 shadow-lg text-center">
+                        探索商品
+                    </a>
+                    <a href="/blog" 
+                       class="w-full sm:w-auto border-2 border-white text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-white hover:text-blue-600 transform hover:scale-105 transition-all duration-300 text-center">
+                        閱讀文章
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scroll indicator -->
+        <div class="absolute bottom-6 sm:bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-12 sm:py-16 lg:py-24 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12 sm:mb-16">
+                <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">為什麼選擇我們？</h2>
+                <p class="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto px-2">我們提供最優質的商品和服務，讓您擁有最佳的購物體驗</p>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-4 sm:mb-6 mx-auto sm:mx-0">
+                        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">精選商品</h3>
+                    <p class="text-gray-600 leading-relaxed text-center sm:text-left">我們精心挑選每一件商品，確保品質與價值</p>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-2xl flex items-center justify-center mb-4 sm:mb-6 mx-auto sm:mx-0">
+                        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 7.89a2 2 0 002.82 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">快速配送</h3>
+                    <p class="text-gray-600 leading-relaxed text-center sm:text-left">快速安全的配送服務，讓您儘快收到心愛的商品</p>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 sm:col-span-2 lg:col-span-1">
+                    <div class="w-12 h-12 sm:w-16 sm:h-16 bg-purple-100 rounded-2xl flex items-center justify-center mb-4 sm:mb-6 mx-auto sm:mx-0">
+                        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">貼心服務</h3>
+                    <p class="text-gray-600 leading-relaxed text-center sm:text-left">專業的客服團隊，隨時為您提供最佳服務</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Products -->
+    <section class="py-12 sm:py-16 lg:py-24 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 sm:mb-12">
+                <div class="text-center lg:text-left w-full lg:w-auto">
+                    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">精選商品</h2>
+                    <p class="text-lg sm:text-xl text-gray-600">發現我們最受歡迎的商品</p>
+                </div>
+                <a href="/products" 
+                   class="mt-4 lg:mt-0 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors mx-auto lg:mx-0 block text-center lg:inline-block">
+                    查看全部
+                </a>
+            </div>
+            
+            <div x-show="productsLoading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-600">載入中...</p>
+            </div>
+            
+            <div x-show="!productsLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+                <template x-for="product in featuredProducts" :key="product.id">
+                    <div class="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
+                        <div class="relative overflow-hidden">
+                            <img :src="product.featured_image || '/static/images/placeholder.jpg'" 
+                                 :alt="product.name"
+                                 class="w-full h-48 sm:h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                            <div x-show="product.sale_price" 
+                                 class="absolute top-3 sm:top-4 left-3 sm:left-4 bg-red-500 text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold">
+                                特價
+                            </div>
+                        </div>
+                        <div class="p-4 sm:p-6">
+                            <h3 class="font-bold text-gray-900 mb-2 line-clamp-2 text-sm sm:text-base" x-text="product.name"></h3>
+                            <p class="text-gray-600 text-xs sm:text-sm mb-4 line-clamp-2" x-text="product.short_description"></p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-1 sm:space-x-2">
+                                    <span x-show="product.sale_price" 
+                                          class="text-lg sm:text-xl font-bold text-red-600" 
+                                          x-text="'$' + product.sale_price.toFixed(2)"></span>
+                                    <span :class="product.sale_price ? 'text-xs sm:text-sm text-gray-500 line-through' : 'text-lg sm:text-xl font-bold text-gray-900'"
+                                          x-text="'$' + product.price.toFixed(2)"></span>
+                                </div>
+                                <button @click="addToCart(product)" 
+                                        class="bg-blue-600 text-white p-2 sm:p-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 9M7 13h10"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </section>
+
+    <!-- Latest Blog Posts -->
+    <section class="py-12 sm:py-16 lg:py-24 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 sm:mb-12">
+                <div class="text-center lg:text-left w-full lg:w-auto">
+                    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">最新文章</h2>
+                    <p class="text-lg sm:text-xl text-gray-600">閱讀我們的最新內容</p>
+                </div>
+                <a href="/blog" 
+                   class="mt-4 lg:mt-0 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors mx-auto lg:mx-0 block text-center lg:inline-block">
+                    查看全部
+                </a>
+            </div>
+            
+            <div x-show="postsLoading" class="text-center py-12">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-600">載入中...</p>
+            </div>
+            
+            <div x-show="!postsLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                <template x-for="post in latestPosts" :key="post.id">
+                    <article class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+                        <div class="relative">
+                            <img :src="post.featured_image || '/static/images/placeholder.jpg'" 
+                                 :alt="post.title"
+                                 class="w-full h-40 sm:h-48 object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                        </div>
+                        <div class="p-4 sm:p-6">
+                            <div class="flex items-center flex-wrap gap-2 mb-3">
+                                <template x-for="category in post.categories" :key="category.id">
+                                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full" x-text="category.name"></span>
+                                </template>
+                            </div>
+                            <h3 class="font-bold text-gray-900 mb-3 line-clamp-2 text-sm sm:text-base" x-text="post.title"></h3>
+                            <p class="text-gray-600 mb-4 line-clamp-3 text-xs sm:text-sm" x-text="post.excerpt"></p>
+                            <div class="flex items-center justify-between">
+                                <time class="text-xs sm:text-sm text-gray-500" x-text="formatDate(post.created_at)"></time>
+                                <a :href="'/blog/' + post.slug" 
+                                   class="text-blue-600 hover:text-blue-800 font-medium text-xs sm:text-sm">
+                                    閱讀更多 →
+                                </a>
+                            </div>
+                        </div>
+                    </article>
+                </template>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter Section -->
+    <section class="py-12 sm:py-16 lg:py-24 bg-blue-600">
+        <div class="container mx-auto px-4">
+            <div class="max-w-2xl mx-auto text-center text-white">
+                <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">訂閱我們的電子報</h2>
+                <p class="text-lg sm:text-xl mb-6 sm:mb-8 text-blue-100">獲取最新商品資訊和獨家優惠</p>
+                <form class="flex flex-col sm:flex-row gap-3 sm:gap-4 max-w-md mx-auto">
+                    <input type="email" 
+                           placeholder="輸入您的電子郵件" 
+                           class="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white">
+                    <button type="submit" 
+                            class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
+                        訂閱
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+function homeApp() {
+    return {
+        featuredProducts: [],
+        latestPosts: [],
+        productsLoading: true,
+        postsLoading: true,
+        
+        async loadContent() {
+            await Promise.all([
+                this.loadFeaturedProducts(),
+                this.loadLatestPosts()
+            ]);
+        },
+        
+        async loadFeaturedProducts() {
+            try {
+                const response = await fetch('/api/products/?featured_only=true&limit=4');
+                if (response.ok) {
+                    this.featuredProducts = await response.json();
+                }
+            } catch (error) {
+                console.error('載入精選商品失敗:', error);
+            } finally {
+                this.productsLoading = false;
+            }
+        },
+        
+        async loadLatestPosts() {
+            try {
+                const response = await fetch('/api/posts/?limit=3');
+                if (response.ok) {
+                    this.latestPosts = await response.json();
+                }
+            } catch (error) {
+                console.error('載入最新文章失敗:', error);
+            } finally {
+                this.postsLoading = false;
+            }
+        },
+        
+        async addToCart(product) {
+            try {
+                const response = await fetch('/api/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        product_id: product.id,
+                        quantity: 1
+                    })
+                });
+                
+                if (response.ok) {
+                    // 更新購物車計數
+                    if (window.updateCartCount) {
+                        window.updateCartCount();
+                    }
+                    this.showNotification('商品已加入購物車！');
+                }
+            } catch (error) {
+                console.error('加入購物車失敗:', error);
+                this.showNotification('加入購物車失敗', 'error');
+            }
+        },
+        
+        formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('zh-TW', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        },
+        
+        showNotification(message, type = 'success') {
+            // 創建通知元素
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // 3秒後移除
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    }
+}
+</script>
+
+<style>
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+{% endblock %} 

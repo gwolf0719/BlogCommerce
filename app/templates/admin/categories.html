@@ -1,0 +1,436 @@
+{% extends "admin/base.html" %}
+
+{% block title %}分類管理 - {{ settings.site_name }}{% endblock %}
+
+{% block content %}
+<div x-data="categoriesApp()" x-init="loadCategories()">
+    <!-- 頁面標題 -->
+    <div class="mb-8">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">分類管理</h1>
+                <p class="text-gray-600">管理部落格和商品分類</p>
+            </div>
+            <button @click="showCreateModal = true" 
+                    class="mt-4 sm:mt-0 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-plus mr-2"></i>
+                新增分類
+            </button>
+        </div>
+    </div>
+
+    <!-- 篩選器 -->
+    <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">搜尋分類名稱</label>
+                <input type="text" x-model="searchName" @input="debouncedSearch()" 
+                       placeholder="輸入分類名稱..." 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">類型</label>
+                <select x-model="typeFilter" @change="loadCategories()" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">全部類型</option>
+                    <option value="blog">部落格分類</option>
+                    <option value="product">商品分類</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">每頁顯示</label>
+                <select x-model="pageSize" @change="loadCategories()" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <option value="10">10 個</option>
+                    <option value="25">25 個</option>
+                    <option value="50">50 個</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 載入中指示器 -->
+    <div x-show="loading" class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p class="mt-2 text-gray-600">載入中...</p>
+    </div>
+
+    <!-- 分類列表 -->
+    <div x-show="!loading" class="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            分類資訊
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            類型
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            使用數量
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            建立時間
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            操作
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <template x-for="category in categories" :key="category.id">
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <div>
+                                    <h3 class="text-sm font-medium text-gray-900" x-text="category.name"></h3>
+                                    <p class="text-sm text-gray-500" x-text="category.description"></p>
+                                    <p class="text-xs text-gray-400 mt-1">
+                                        URL: /<span x-text="category.slug"></span>
+                                    </p>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span :class="category.type === 'blog' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'" 
+                                      class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                                      x-text="category.type === 'blog' ? '部落格' : '商品'">
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                <div x-text="(category.post_count || 0) + (category.product_count || 0)"></div>
+                                <div class="text-xs text-gray-500">
+                                    <span x-show="category.post_count">文章: <span x-text="category.post_count"></span></span>
+                                    <span x-show="category.product_count">商品: <span x-text="category.product_count"></span></span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                <div x-text="formatDate(category.created_at)"></div>
+                                <div class="text-xs text-gray-500" x-text="formatTime(category.created_at)"></div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-2">
+                                    <button @click="editCategory(category)" 
+                                            class="text-indigo-600 hover:text-indigo-900 text-sm">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button @click="deleteCategory(category.id)" 
+                                            class="text-red-600 hover:text-red-900 text-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 空狀態 -->
+        <div x-show="categories.length === 0 && !loading" class="text-center py-12">
+            <i class="fas fa-folder-open text-4xl text-gray-400 mb-4"></i>
+            <p class="text-gray-500 text-lg mb-2">目前沒有分類</p>
+            <p class="text-gray-400 mb-4">建立第一個分類來開始分類管理吧！</p>
+            <button @click="showCreateModal = true" 
+                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                新增分類
+            </button>
+        </div>
+    </div>
+
+    <!-- 分頁 -->
+    <div x-show="totalPages > 1" class="mt-6 flex justify-between items-center">
+        <div class="text-sm text-gray-700">
+            顯示第 <span x-text="(currentPage - 1) * pageSize + 1"></span> 到 
+            <span x-text="Math.min(currentPage * pageSize, total)"></span> 項，
+            共 <span x-text="total"></span> 項
+        </div>
+        <nav class="flex space-x-2">
+            <button @click="goToPage(currentPage - 1)" :disabled="currentPage <= 1"
+                    class="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                上一頁
+            </button>
+            <template x-for="page in getPageNumbers()" :key="page">
+                <button @click="goToPage(page)" 
+                        :class="page === currentPage ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                        class="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        x-text="page">
+                </button>
+            </template>
+            <button @click="goToPage(currentPage + 1)" :disabled="currentPage >= totalPages"
+                    class="px-3 py-2 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                下一頁
+            </button>
+        </nav>
+    </div>
+
+    <!-- 新增/編輯分類模態框 -->
+    <div x-show="showCreateModal || showEditModal" 
+         class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" 
+         @click.self="closeModal()">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900" x-text="showCreateModal ? '新增分類' : '編輯分類'"></h3>
+            </div>
+            
+            <form @submit.prevent="showCreateModal ? createCategory() : updateCategory()">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            分類名稱 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" 
+                               x-model="modalForm.name" 
+                               required
+                               placeholder="輸入分類名稱..."
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            分類描述
+                        </label>
+                        <textarea x-model="modalForm.description" 
+                                  rows="3" 
+                                  placeholder="輸入分類描述..."
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            分類類型 <span class="text-red-500">*</span>
+                        </label>
+                        <select x-model="modalForm.type" 
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">請選擇類型</option>
+                            <option value="blog">部落格分類</option>
+                            <option value="product">商品分類</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" 
+                            @click="closeModal()"
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                        取消
+                    </button>
+                    <button type="submit" 
+                            :disabled="modalSaving"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50">
+                        <span x-show="!modalSaving" x-text="showCreateModal ? '新增' : '更新'"></span>
+                        <span x-show="modalSaving">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>處理中...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function categoriesApp() {
+    return {
+        categories: [],
+        loading: true,
+        searchName: '',
+        typeFilter: '',
+        pageSize: 25,
+        currentPage: 1,
+        total: 0,
+        totalPages: 0,
+        searchTimeout: null,
+        showCreateModal: false,
+        showEditModal: false,
+        modalSaving: false,
+        editingId: null,
+        modalForm: {
+            name: '',
+            description: '',
+            type: ''
+        },
+
+        async loadCategories() {
+            this.loading = true;
+            try {
+                const params = new URLSearchParams({
+                    page: this.currentPage,
+                    limit: this.pageSize,
+                    ...(this.searchName && { name: this.searchName }),
+                    ...(this.typeFilter && { type: this.typeFilter })
+                });
+
+                const response = await fetch(`/api/categories/?${params}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    this.categories = data.items || data;
+                    this.total = data.total || this.categories.length;
+                    this.totalPages = Math.ceil(this.total / this.pageSize);
+                }
+            } catch (error) {
+                console.error('載入分類失敗:', error);
+                this.showToast('載入分類失敗', 'error');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        debouncedSearch() {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                this.currentPage = 1;
+                this.loadCategories();
+            }, 300);
+        },
+
+        editCategory(category) {
+            this.editingId = category.id;
+            this.modalForm = {
+                name: category.name,
+                description: category.description || '',
+                type: category.type
+            };
+            this.showEditModal = true;
+        },
+
+        async createCategory() {
+            this.modalSaving = true;
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/categories/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(this.modalForm)
+                });
+
+                if (response.ok) {
+                    this.showToast('分類已新增', 'success');
+                    this.closeModal();
+                    this.loadCategories();
+                } else {
+                    this.showToast('新增失敗', 'error');
+                }
+            } catch (error) {
+                console.error('新增分類失敗:', error);
+                this.showToast('新增失敗', 'error');
+            } finally {
+                this.modalSaving = false;
+            }
+        },
+
+        async updateCategory() {
+            this.modalSaving = true;
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/categories/${this.editingId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(this.modalForm)
+                });
+
+                if (response.ok) {
+                    this.showToast('分類已更新', 'success');
+                    this.closeModal();
+                    this.loadCategories();
+                } else {
+                    this.showToast('更新失敗', 'error');
+                }
+            } catch (error) {
+                console.error('更新分類失敗:', error);
+                this.showToast('更新失敗', 'error');
+            } finally {
+                this.modalSaving = false;
+            }
+        },
+
+        async deleteCategory(categoryId) {
+            if (!confirm('確定要刪除這個分類嗎？此操作無法復原。')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/categories/${categoryId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    this.showToast('分類已刪除', 'success');
+                    this.loadCategories();
+                } else {
+                    this.showToast('刪除失敗', 'error');
+                }
+            } catch (error) {
+                console.error('刪除分類失敗:', error);
+                this.showToast('刪除失敗', 'error');
+            }
+        },
+
+        closeModal() {
+            this.showCreateModal = false;
+            this.showEditModal = false;
+            this.modalSaving = false;
+            this.editingId = null;
+            this.modalForm = {
+                name: '',
+                description: '',
+                type: ''
+            };
+        },
+
+        goToPage(page) {
+            if (page >= 1 && page <= this.totalPages) {
+                this.currentPage = page;
+                this.loadCategories();
+            }
+        },
+
+        getPageNumbers() {
+            const pages = [];
+            const start = Math.max(1, this.currentPage - 2);
+            const end = Math.min(this.totalPages, this.currentPage + 2);
+            
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+            return pages;
+        },
+
+        formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('zh-TW');
+        },
+
+        formatTime(dateString) {
+            return new Date(dateString).toLocaleTimeString('zh-TW', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        },
+
+        showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg text-white z-50 ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            }`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    }
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title if post else '文章載入中' }} - {{ settings.site_name }}{% endblock %}
+
+{% block meta %}
+<meta name="description" content="{{ post.meta_description or post.excerpt or settings.site_description }}">
+<meta property="og:title" content="{{ post.title if post else settings.site_name }}">
+<meta property="og:description" content="{{ post.meta_description or post.excerpt or settings.site_description }}">
+<meta property="og:image" content="{{ post.featured_image if post else settings.og_image }}">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="{{ post.created_at.isoformat() if post else '' }}">
+<meta property="article:modified_time" content="{{ post.updated_at.isoformat() if post and post.updated_at else '' }}">
+<meta name="twitter:card" content="summary_large_image">
+{% endblock %}
+
+{% block content %}
+<div x-data="postDetailApp()" x-init="loadPost('{{ slug }}')">
+    <!-- 載入中 -->
+    <div x-show="loading" class="flex justify-center items-center py-20">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+
+    <!-- 文章內容 -->
+    <div x-show="!loading && post" class="max-w-4xl mx-auto px-4 py-8">
+        <!-- 文章標題區 -->
+        <header class="mb-8">
+            <div class="text-center">
+                <!-- 分類標籤 -->
+                <div class="mb-4" x-show="post.categories && post.categories.length">
+                    <template x-for="category in post.categories" :key="category.id">
+                        <a :href="'/category/' + category.slug" 
+                           class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm mr-2 hover:bg-blue-200 transition-colors"
+                           x-text="category.name"></a>
+                    </template>
+                </div>
+
+                <!-- 文章標題 -->
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4" x-text="post.title"></h1>
+
+                <!-- 文章摘要 -->
+                <p class="text-lg text-gray-600 mb-6" x-text="post.excerpt" x-show="post.excerpt"></p>
+
+                <!-- 文章資訊 -->
+                <div class="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-6 text-sm text-gray-500">
+                    <div class="flex items-center">
+                        <i class="fas fa-user mr-2"></i>
+                        <span x-text="post.author?.username || '作者'"></span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar mr-2"></i>
+                        <span x-text="formatDate(post.created_at)"></span>
+                    </div>
+                    <div class="flex items-center" x-show="post.reading_time">
+                        <i class="fas fa-clock mr-2"></i>
+                        <span x-text="post.reading_time + ' 分鐘閱讀'"></span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 特色圖片 -->
+        <div class="mb-8" x-show="post.featured_image">
+            <img :src="post.featured_image" 
+                 :alt="post.title" 
+                 class="w-full h-96 object-cover rounded-lg shadow-lg">
+        </div>
+
+        <!-- 文章內容 -->
+        <article class="prose prose-lg max-w-none mb-12">
+            <div x-html="post.content"></div>
+        </article>
+
+        <!-- 標籤 -->
+        <div class="mb-8" x-show="post.tags && post.tags.length">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">標籤</h3>
+            <div class="flex flex-wrap gap-2">
+                <template x-for="tag in post.tags" :key="tag.id">
+                    <a :href="'/tag/' + tag.slug" 
+                       class="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors"
+                       x-text="'#' + tag.name"></a>
+                </template>
+            </div>
+        </div>
+
+        <!-- 分享按鈕 -->
+        <div class="mb-12">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">分享文章</h3>
+            <div class="flex space-x-4">
+                <button @click="shareToFacebook()" 
+                        class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fab fa-facebook-f mr-2"></i>
+                    Facebook
+                </button>
+                <button @click="shareToTwitter()" 
+                        class="flex items-center px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors">
+                    <i class="fab fa-twitter mr-2"></i>
+                    Twitter
+                </button>
+                <button @click="shareToLinkedIn()" 
+                        class="flex items-center px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors">
+                    <i class="fab fa-linkedin-in mr-2"></i>
+                    LinkedIn
+                </button>
+                <button @click="copyLink()" 
+                        class="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-link mr-2"></i>
+                    <span x-text="linkCopied ? '已複製！' : '複製連結'"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 作者資訊 -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-12" x-show="post.author">
+            <div class="flex items-start space-x-4">
+                <img :src="post.author?.avatar || '/static/images/default-avatar.png'" 
+                     :alt="post.author?.username" 
+                     class="w-16 h-16 rounded-full object-cover">
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900" x-text="post.author?.username"></h3>
+                    <p class="text-gray-600" x-text="post.author?.bio || '這位作者還沒有填寫個人簡介。'"></p>
+                    <div class="mt-2 flex space-x-3" x-show="post.author?.social_links">
+                        <a :href="post.author?.social_links?.website" 
+                           x-show="post.author?.social_links?.website"
+                           class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-globe"></i>
+                        </a>
+                        <a :href="post.author?.social_links?.twitter" 
+                           x-show="post.author?.social_links?.twitter"
+                           class="text-gray-500 hover:text-gray-700">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a :href="post.author?.social_links?.linkedin" 
+                           x-show="post.author?.social_links?.linkedin"
+                           class="text-gray-500 hover:text-gray-700">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 相關文章 -->
+        <div class="mb-12" x-show="relatedPosts.length > 0">
+            <h3 class="text-2xl font-bold text-gray-900 mb-6">相關文章</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="relatedPost in relatedPosts" :key="relatedPost.id">
+                    <article class="bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
+                        <a :href="'/blog/' + relatedPost.slug">
+                            <img :src="relatedPost.featured_image || '/static/images/placeholder.jpg'" 
+                                 :alt="relatedPost.title" 
+                                 class="w-full h-48 object-cover">
+                            <div class="p-4">
+                                <h4 class="font-semibold text-gray-900 mb-2 line-clamp-2" x-text="relatedPost.title"></h4>
+                                <p class="text-gray-600 text-sm line-clamp-3" x-text="relatedPost.excerpt"></p>
+                                <div class="mt-3 text-xs text-gray-500">
+                                    <span x-text="formatDate(relatedPost.created_at)"></span>
+                                </div>
+                            </div>
+                        </a>
+                    </article>
+                </template>
+            </div>
+        </div>
+
+        <!-- 導航按鈕 -->
+        <div class="flex justify-between items-center">
+            <a href="/blog" 
+               class="flex items-center text-blue-600 hover:text-blue-800 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>
+                返回文章列表
+            </a>
+            <button @click="scrollToTop()" 
+                    class="flex items-center text-gray-600 hover:text-gray-800 transition-colors">
+                <i class="fas fa-arrow-up mr-2"></i>
+                回到頂部
+            </button>
+        </div>
+    </div>
+
+    <!-- 404 錯誤 -->
+    <div x-show="!loading && !post" class="text-center py-20">
+        <i class="fas fa-file-alt text-6xl text-gray-400 mb-4"></i>
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">文章不存在</h1>
+        <p class="text-gray-600 mb-8">抱歉，您要查看的文章不存在或已被刪除。</p>
+        <a href="/blog" 
+           class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+            瀏覽其他文章
+        </a>
+    </div>
+
+    <!-- 固定的社群分享按鈕 -->
+    <div class="fixed right-4 top-1/2 transform -translate-y-1/2 z-40" x-show="post">
+        <div class="bg-white rounded-lg shadow-lg p-2 space-y-2">
+            <button @click="shareToFacebook()" 
+                    class="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors">
+                <i class="fab fa-facebook-f"></i>
+            </button>
+            <button @click="shareToTwitter()" 
+                    class="w-10 h-10 bg-sky-500 text-white rounded-lg flex items-center justify-center hover:bg-sky-600 transition-colors">
+                <i class="fab fa-twitter"></i>
+            </button>
+            <button @click="shareToLinkedIn()" 
+                    class="w-10 h-10 bg-blue-700 text-white rounded-lg flex items-center justify-center hover:bg-blue-800 transition-colors">
+                <i class="fab fa-linkedin-in"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function postDetailApp() {
+    return {
+        post: null,
+        relatedPosts: [],
+        loading: true,
+        linkCopied: false,
+
+        async loadPost(slug) {
+            this.loading = true;
+            try {
+                // 載入文章詳情
+                const response = await fetch(`/api/posts/slug/${slug}`);
+                if (response.ok) {
+                    this.post = await response.json();
+                    
+                    // 更新頁面標題和元標籤
+                    document.title = `${this.post.title} - {{ settings.site_name }}`;
+                    this.updateMetaTags();
+                    
+                    // 載入相關文章
+                    await this.loadRelatedPosts();
+                } else if (response.status === 404) {
+                    this.post = null;
+                } else {
+                    console.error('載入文章失敗');
+                }
+            } catch (error) {
+                console.error('載入文章錯誤:', error);
+                this.post = null;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async loadRelatedPosts() {
+            if (!this.post) return;
+            
+            try {
+                const response = await fetch(`/api/posts/${this.post.id}/related`);
+                if (response.ok) {
+                    this.relatedPosts = await response.json();
+                }
+            } catch (error) {
+                console.error('載入相關文章失敗:', error);
+            }
+        },
+
+        updateMetaTags() {
+            if (!this.post) return;
+
+            // 更新 meta description
+            const metaDescription = document.querySelector('meta[name="description"]');
+            if (metaDescription) {
+                metaDescription.content = this.post.meta_description || this.post.excerpt || '';
+            }
+
+            // 更新 OG tags
+            const ogTitle = document.querySelector('meta[property="og:title"]');
+            if (ogTitle) {
+                ogTitle.content = this.post.title;
+            }
+
+            const ogDescription = document.querySelector('meta[property="og:description"]');
+            if (ogDescription) {
+                ogDescription.content = this.post.meta_description || this.post.excerpt || '';
+            }
+
+            const ogImage = document.querySelector('meta[property="og:image"]');
+            if (ogImage && this.post.featured_image) {
+                ogImage.content = this.post.featured_image;
+            }
+        },
+
+        shareToFacebook() {
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
+        },
+
+        shareToTwitter() {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(this.post.title);
+            window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=400');
+        },
+
+        shareToLinkedIn() {
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=400');
+        },
+
+        async copyLink() {
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                this.linkCopied = true;
+                setTimeout(() => {
+                    this.linkCopied = false;
+                }, 2000);
+            } catch (error) {
+                console.error('複製連結失敗:', error);
+            }
+        },
+
+        scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        },
+
+        formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('zh-TW', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+    }
+}
+</script>
+{% endblock %} 

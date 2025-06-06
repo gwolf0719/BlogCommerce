@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}商品詳情{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8" x-data="productDetailApp('{{ slug }}')">
+    <!-- 商品詳情 -->
+    <div x-show="product" class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
+            <!-- 商品圖片 -->
+            <div class="space-y-4">
+                <div class="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                    <img :src="product?.featured_image || '/static/images/placeholder-product.jpg'" 
+                         :alt="product?.name"
+                         class="w-full h-full object-cover">
+                </div>
+                
+                <!-- 縮圖列表 -->
+                <div x-show="product?.gallery_images && product.gallery_images.length > 0" 
+                     class="flex space-x-2 overflow-x-auto">
+                    <template x-for="image in product.gallery_images" :key="image">
+                        <img :src="image" 
+                             :alt="product.name"
+                             class="w-16 h-16 object-cover rounded cursor-pointer hover:opacity-75">
+                    </template>
+                </div>
+            </div>
+            
+            <!-- 商品資訊 -->
+            <div class="space-y-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2" x-text="product?.name"></h1>
+                    <p class="text-gray-600" x-text="product?.short_description"></p>
+                </div>
+                
+                <!-- 價格 -->
+                <div class="flex items-center space-x-4">
+                    <span class="text-3xl font-bold text-red-600" 
+                          x-text="product ? 'NT$ ' + product.current_price.toLocaleString() : ''"></span>
+                    <span x-show="product?.is_on_sale" 
+                          class="text-xl text-gray-500 line-through" 
+                          x-text="product ? 'NT$ ' + product.price.toLocaleString() : ''"></span>
+                    <span x-show="product?.is_on_sale" 
+                          class="bg-red-500 text-white px-2 py-1 text-sm rounded">
+                        特價
+                    </span>
+                </div>
+                
+                <!-- 庫存狀態 -->
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-700">庫存狀態：</span>
+                    <span x-show="product?.stock_quantity > 10" class="text-green-600 font-medium">
+                        現貨充足
+                    </span>
+                    <span x-show="product?.stock_quantity > 0 && product.stock_quantity <= 10" 
+                          class="text-yellow-600 font-medium">
+                        庫存不多 (<span x-text="product?.stock_quantity"></span> 件)
+                    </span>
+                    <span x-show="product?.stock_quantity <= 0" class="text-red-600 font-medium">
+                        缺貨中
+                    </span>
+                </div>
+                
+                <!-- 標籤 -->
+                <div x-show="product?.tags && product.tags.length > 0" class="flex flex-wrap gap-2">
+                    <template x-for="tag in product.tags" :key="tag.id">
+                        <span class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
+                              x-text="tag.name">
+                        </span>
+                    </template>
+                </div>
+                
+                <!-- 數量選擇和加入購物車 -->
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-4">
+                        <label class="text-gray-700">數量：</label>
+                        <div class="flex items-center border rounded">
+                            <button @click="quantity = Math.max(1, quantity - 1)" 
+                                    class="px-3 py-2 hover:bg-gray-100">-</button>
+                            <input x-model.number="quantity" 
+                                   type="number" 
+                                   min="1" 
+                                   :max="product?.stock_quantity || 1"
+                                   class="w-16 text-center border-none focus:outline-none">
+                            <button @click="quantity = Math.min(product?.stock_quantity || 1, quantity + 1)" 
+                                    class="px-3 py-2 hover:bg-gray-100">+</button>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-4">
+                        <button @click="addToCart()" 
+                                :disabled="!product || product.stock_quantity <= 0"
+                                class="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors">
+                            <i class="fas fa-cart-plus mr-2"></i>
+                            加入購物車
+                        </button>
+                        <button @click="buyNow()" 
+                                :disabled="!product || product.stock_quantity <= 0"
+                                class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors">
+                            立即購買
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 商品規格 -->
+                <div x-show="product?.sku" class="text-sm text-gray-600">
+                    商品編號：<span x-text="product?.sku"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 商品描述 -->
+        <div class="border-t p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">商品描述</h2>
+            <div class="prose max-w-none">
+                <p x-text="product?.description" class="text-gray-700 leading-relaxed"></p>
+            </div>
+        </div>
+        
+        <!-- 相關商品 -->
+        <div x-show="relatedProducts.length > 0" class="border-t p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">相關商品</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <template x-for="relatedProduct in relatedProducts" :key="relatedProduct.id">
+                    <div class="bg-gray-50 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <img :src="relatedProduct.featured_image || '/static/images/placeholder-product.jpg'" 
+                             :alt="relatedProduct.name"
+                             class="w-full h-32 object-cover rounded mb-2">
+                        <h3 class="font-medium text-gray-900 mb-1" x-text="relatedProduct.name"></h3>
+                        <p class="text-red-600 font-bold" 
+                           x-text="'NT$ ' + relatedProduct.current_price.toLocaleString()"></p>
+                        <a :href="'/product/' + relatedProduct.slug" 
+                           class="mt-2 block text-center bg-blue-600 text-white py-1 px-3 rounded text-sm hover:bg-blue-700">
+                            查看
+                        </a>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 載入中 -->
+    <div x-show="loading" class="text-center py-12">
+        <div class="text-gray-500">載入中...</div>
+    </div>
+    
+    <!-- 商品不存在 -->
+    <div x-show="!loading && !product" class="text-center py-12">
+        <div class="text-gray-400 text-xl mb-4">😞</div>
+        <h3 class="text-xl font-medium text-gray-600 mb-2">商品不存在</h3>
+        <p class="text-gray-500 mb-4">抱歉，找不到您要查看的商品</p>
+        <a href="/products" class="text-blue-600 hover:text-blue-800">回到商品列表</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function productDetailApp(slug) {
+    return {
+        product: null,
+        relatedProducts: [],
+        quantity: 1,
+        loading: true,
+        
+        async init() {
+            await this.loadProduct(slug);
+            if (this.product) {
+                await this.loadRelatedProducts();
+            }
+        },
+        
+        async loadProduct(slug) {
+            try {
+                const response = await fetch(`/api/products/slug/${slug}`);
+                if (response.ok) {
+                    this.product = await response.json();
+                } else {
+                    this.product = null;
+                }
+            } catch (error) {
+                console.error('載入商品失敗:', error);
+                this.product = null;
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        async loadRelatedProducts() {
+            try {
+                const response = await fetch(`/api/products/${this.product.id}/related`);
+                if (response.ok) {
+                    this.relatedProducts = await response.json();
+                }
+            } catch (error) {
+                console.error('載入相關商品失敗:', error);
+            }
+        },
+        
+        addToCart() {
+            if (!this.product || this.product.stock_quantity <= 0) return;
+            
+            // 這裡實作加入購物車功能
+            alert(`已將 ${this.quantity} 件 ${this.product.name} 加入購物車！`);
+        },
+        
+        buyNow() {
+            if (!this.product || this.product.stock_quantity <= 0) return;
+            
+            // 這裡實作立即購買功能
+            window.location.href = `/checkout?product_id=${this.product.id}&quantity=${this.quantity}`;
+        }
+    }
+}
+</script>
+{% endblock %} 

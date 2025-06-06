@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}購物車 - BlogCommerce{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8" x-data="cartApp()">
+    <h1 class="text-3xl font-bold mb-8">購物車</h1>
+    
+    <!-- 購物車內容 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- 購物車商品列表 -->
+        <div class="lg:col-span-2">
+            <div x-show="cart.items.length === 0" class="text-center py-8">
+                <div class="text-gray-500 text-lg mb-4">您的購物車是空的</div>
+                <a href="/products" class="btn btn-primary">開始購物</a>
+            </div>
+            
+            <div x-show="cart.items.length > 0" class="space-y-4">
+                <template x-for="(item, index) in cart.items" :key="item.product_id">
+                    <div class="card flex items-center space-x-4">
+                        <img :src="item.image || '/static/images/placeholder.jpg'" 
+                             :alt="item.product_name" 
+                             class="w-20 h-20 object-cover rounded">
+                        
+                        <div class="flex-1">
+                            <h3 class="font-semibold" x-text="item.product_name"></h3>
+                            <p class="text-gray-600" x-text="'$' + item.product_price"></p>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <button @click="updateQuantity(index, item.quantity - 1)" 
+                                    class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center">
+                                -
+                            </button>
+                            <span class="w-12 text-center" x-text="item.quantity"></span>
+                            <button @click="updateQuantity(index, item.quantity + 1)"
+                                    class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center">
+                                +
+                            </button>
+                        </div>
+                        
+                        <div class="text-right">
+                            <div class="font-semibold" x-text="'$' + item.total_price"></div>
+                            <button @click="removeItem(index)" 
+                                    class="text-red-500 hover:text-red-700 text-sm">
+                                移除
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+        
+        <!-- 訂單摘要 -->
+        <div x-show="cart.items.length > 0" class="lg:col-span-1">
+            <div class="card sticky top-4">
+                <h2 class="text-xl font-semibold mb-4">訂單摘要</h2>
+                
+                <div class="space-y-2 mb-4">
+                    <div class="flex justify-between">
+                        <span>小計</span>
+                        <span x-text="'$' + cart.total_amount"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>運費</span>
+                        <span x-text="shippingFee > 0 ? '$' + shippingFee : '免運費'"></span>
+                    </div>
+                    <hr>
+                    <div class="flex justify-between font-semibold text-lg">
+                        <span>總計</span>
+                        <span x-text="'$' + (parseFloat(cart.total_amount) + shippingFee)"></span>
+                    </div>
+                </div>
+                
+                <div class="text-sm text-gray-600 mb-4" x-show="shippingFee > 0">
+                    滿 $1000 享免運費
+                </div>
+                
+                <button @click="goToCheckout()" 
+                        class="w-full btn btn-primary"
+                        :disabled="cart.items.length === 0">
+                    前往結帳
+                </button>
+                
+                <a href="/products" class="block text-center text-blue-600 hover:text-blue-800 mt-4">
+                    繼續購物
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function cartApp() {
+    return {
+        cart: {
+            items: [],
+            total_items: 0,
+            total_amount: 0
+        },
+        
+        get shippingFee() {
+            return parseFloat(this.cart.total_amount) < 1000 ? 60 : 0;
+        },
+        
+        init() {
+            this.loadCart();
+        },
+        
+        loadCart() {
+            const cartData = localStorage.getItem('cart');
+            if (cartData) {
+                const cartItems = JSON.parse(cartData);
+                this.calculateCart(cartItems);
+            }
+        },
+        
+        async calculateCart(cartItems) {
+            if (cartItems.length === 0) {
+                this.cart = { items: [], total_items: 0, total_amount: 0 };
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/orders/cart/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(cartItems)
+                });
+                
+                if (response.ok) {
+                    this.cart = await response.json();
+                } else {
+                    console.error('計算購物車失敗');
+                }
+            } catch (error) {
+                console.error('載入購物車失敗:', error);
+            }
+        },
+        
+        updateQuantity(index, newQuantity) {
+            if (newQuantity <= 0) {
+                this.removeItem(index);
+                return;
+            }
+            
+            const cartData = JSON.parse(localStorage.getItem('cart') || '[]');
+            cartData[index].quantity = newQuantity;
+            localStorage.setItem('cart', JSON.stringify(cartData));
+            this.calculateCart(cartData);
+        },
+        
+        removeItem(index) {
+            const cartData = JSON.parse(localStorage.getItem('cart') || '[]');
+            cartData.splice(index, 1);
+            localStorage.setItem('cart', JSON.stringify(cartData));
+            this.calculateCart(cartData);
+        },
+        
+        goToCheckout() {
+            if (this.cart.items.length > 0) {
+                window.location.href = '/checkout';
+            }
+        }
+    }
+}
+</script>
+{% endblock %} 
