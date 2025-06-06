@@ -18,18 +18,15 @@ class BaseResponseSchema(BaseSchema):
     updated_at: Optional[datetime] = Field(None, description="更新時間")
     
     @field_serializer('created_at')
-    def serialize_created_at(self, value: datetime) -> str:
+    def serialize_created_at(self, value: datetime, _info) -> str:
         return value.isoformat() if value else None
     
     @field_serializer('updated_at')
-    def serialize_updated_at(self, value: Optional[datetime]) -> Optional[str]:
+    def serialize_updated_at(self, value: Optional[datetime], _info) -> Optional[str]:
         return value.isoformat() if value else None
     
     model_config = ConfigDict(
-        from_attributes=True,
-        json_encoders={
-            datetime: lambda v: v.isoformat() if v else None
-        }
+        from_attributes=True
     )
 
 

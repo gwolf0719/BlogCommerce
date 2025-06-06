@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}隱私政策 - {{ settings.site_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto">
+            <!-- 頁面標題 -->
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 mb-4">隱私政策</h1>
+                <p class="text-xl text-gray-600">保護您的個人資料是我們的責任</p>
+                <p class="text-sm text-gray-500 mt-2">最後更新日期：2024年6月</p>
+            </div>
+
+            <!-- 政策內容 -->
+            <div class="bg-white rounded-lg shadow-sm p-8 space-y-8">
+                
+                <!-- 資料蒐集 -->
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">我們蒐集哪些資料</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">個人識別資料</h3>
+                            <ul class="list-disc list-inside text-gray-700 space-y-1 ml-4">
+                                <li>姓名、電子信箱地址、電話號碼</li>
+                                <li>郵寄地址和帳單地址</li>
+                                <li>會員帳號和密碼（加密處理）</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">交易資料</h3>
+                            <ul class="list-disc list-inside text-gray-700 space-y-1 ml-4">
+                                <li>訂單記錄和購買歷史</li>
+                                <li>付款資訊（僅保存必要資訊，不儲存完整信用卡號）</li>
+                                <li>配送和退貨記錄</li>
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">使用資料</h3>
+                            <ul class="list-disc list-inside text-gray-700 space-y-1 ml-4">
+                                <li>瀏覽記錄和點擊行為</li>
+                                <li>設備資訊（IP地址、瀏覽器類型）</li>
+                                <li>Cookie 和類似技術的資料</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 資料使用目的 -->
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">資料使用目的</h2>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="border rounded-lg p-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-3 flex items-center">
+                                <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                服務提供
+                            </h3>
+                            <ul class="text-gray-700 space-y-1 text-sm">
+                                <li>• 處理您的訂單和付款</li>
+                                <li>• 安排商品配送</li>
+                                <li>• 提供客服支援</li>
+                                <li>• 帳戶管理和維護</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="border rounded-lg p-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-3 flex items-center">
+                                <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                服務改善
+                            </h3>
+                            <ul class="text-gray-700 space-y-1 text-sm">
+                                <li>• 分析使用行為優化網站</li>
+                                <li>• 個人化推薦商品</li>
+                                <li>• 改善購物體驗</li>
+                                <li>• 開發新功能</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="border rounded-lg p-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-3 flex items-center">
+                                <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 7.89a2 2 0 002.82 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                                行銷溝通
+                            </h3>
+                            <ul class="text-gray-700 space-y-1 text-sm">
+                                <li>• 發送訂單相關通知</li>
+                                <li>• 推廣活動資訊（需同意）</li>
+                                <li>• 產品更新通知</li>
+                                <li>• 會員專屬優惠</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="border rounded-lg p-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-3 flex items-center">
+                                <svg class="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                安全維護
+                            </h3>
+                            <ul class="text-gray-700 space-y-1 text-sm">
+                                <li>• 防範詐欺行為</li>
+                                <li>• 確保帳戶安全</li>
+                                <li>• 系統安全監控</li>
+                                <li>• 法律合規要求</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 資料分享 -->
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">資料分享政策</h2>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-4">
+                        <h3 class="text-lg font-semibold text-blue-900 mb-2">我們不會販售您的個人資料</h3>
+                        <p class="text-blue-800">
+                            我們絕不會將您的個人資料販售給第三方。僅在以下必要情況下分享資料：
+                        </p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <span class="w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3"></span>
+                            <div>
+                                <h4 class="font-medium text-gray-900">服務提供商</h4>
+                                <p class="text-gray-700 text-sm">與物流、金流等合作夥伴分享必要資訊以完成服務</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <span class="w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3"></span>
+                            <div>
+                                <h4 class="font-medium text-gray-900">法律要求</h4>
+                                <p class="text-gray-700 text-sm">依法院命令或政府要求提供資料</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <span class="w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3"></span>
+                            <div>
+                                <h4 class="font-medium text-gray-900">業務轉移</h4>
+                                <p class="text-gray-700 text-sm">公司合併或收購時可能轉移相關資料</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 資料保護 -->
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">資料保護措施</h2>
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">SSL 加密</h3>
+                            <p class="text-gray-600 text-sm">所有資料傳輸都使用 SSL 加密保護</p>
+                        </div>
+                        
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">存取控制</h3>
+                            <p class="text-gray-600 text-sm">嚴格限制員工存取個人資料的權限</p>
+                        </div>
+                        
+                        <div class="text-center p-4 bg-purple-50 rounded-lg">
+                            <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-2">定期清理</h3>
+                            <p class="text-gray-600 text-sm">定期刪除不再需要的個人資料</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 您的權利 -->
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">您的權利</h2>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                        <p class="text-yellow-800 mb-4 font-medium">
+                            根據個人資料保護法，您享有以下權利：
+                        </p>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    <span class="text-yellow-800 text-sm">查詢您的個人資料</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    <span class="text-yellow-800 text-sm">要求更正錯誤資料</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    <span class="text-yellow-800 text-sm">要求停止處理資料</span>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    <span class="text-yellow-800 text-sm">要求刪除個人資料</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    <span class="text-yellow-800 text-sm">要求資料可攜性</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    <span class="text-yellow-800 text-sm">撤回同意聲明</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Cookie 政策 -->
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">Cookie 使用</h2>
+                    <div class="space-y-4">
+                        <p class="text-gray-700">
+                            我們使用 Cookie 和類似技術來改善您的瀏覽體驗。Cookie 是儲存在您裝置上的小型文字檔案。
+                        </p>
+                        <div class="grid md:grid-cols-3 gap-4 text-sm">
+                            <div class="border rounded p-3">
+                                <h4 class="font-medium text-gray-900 mb-2">必要 Cookie</h4>
+                                <p class="text-gray-600">維持網站基本功能運作</p>
+                            </div>
+                            <div class="border rounded p-3">
+                                <h4 class="font-medium text-gray-900 mb-2">功能 Cookie</h4>
+                                <p class="text-gray-600">記住您的偏好設定</p>
+                            </div>
+                            <div class="border rounded p-3">
+                                <h4 class="font-medium text-gray-900 mb-2">分析 Cookie</h4>
+                                <p class="text-gray-600">了解網站使用情況</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 聯絡資訊 -->
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">聯絡我們</h2>
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <p class="text-gray-700 mb-4">
+                            如果您對本隱私政策有任何疑問，或希望行使您的個人資料權利，
+                            請透過以下方式聯絡我們：
+                        </p>
+                        <div class="space-y-2 text-gray-700">
+                            <p><strong>電子信箱：</strong> privacy@blogcommerce.com</p>
+                            <p><strong>客服專線：</strong> 0800-123-456</p>
+                            <p><strong>郵寄地址：</strong> 台北市信義區信義路五段 7 號 35 樓</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 返回按鈕 -->
+            <div class="text-center mt-12">
+                <a href="/" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                    返回首頁
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

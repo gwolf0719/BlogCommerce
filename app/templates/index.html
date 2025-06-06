@@ -11,210 +11,283 @@
 {% block content %}
 <div x-data="homeApp()" x-init="loadContent()">
     <!-- Hero Section -->
-    <section class="relative bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 text-white overflow-hidden min-h-screen flex items-center">
-        <div class="absolute inset-0 bg-black opacity-20"></div>
+    <section class="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
+        <!-- 背景裝飾 -->
         <div class="absolute inset-0">
-            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/30 to-purple-600/30"></div>
-            <div class="w-full h-full bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+            <div class="absolute top-0 -left-4 w-72 h-72 bg-primary-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+            <div class="absolute top-0 -right-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+            <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
         </div>
         
-        <div class="relative container mx-auto px-4 py-16 sm:py-20 lg:py-32">
-            <div class="max-w-4xl mx-auto text-center">
-                <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 sm:mb-6 leading-tight">
-                    歡迎來到
-                    <br class="sm:hidden">
-                    <span class="bg-gradient-to-r from-yellow-400 to-pink-400 bg-clip-text text-transparent">
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+            <div class="text-center">
+                <!-- 主標題 -->
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+                    <span class="block">歡迎來到</span>
+                    <span class="block bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
                         {{ settings.site_name }}
                     </span>
                 </h1>
-                <p class="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-blue-100 leading-relaxed px-2">
+                
+                <!-- 描述文字 -->
+                <p class="text-xl sm:text-2xl text-primary-100 mb-10 max-w-3xl mx-auto leading-relaxed">
                     {{ settings.site_description }}
                 </p>
-                <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4">
-                    <a href="/products" 
-                       class="w-full sm:w-auto bg-white text-blue-600 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-blue-50 transform hover:scale-105 transition-all duration-300 shadow-lg text-center">
+                
+                <!-- 行動按鈕 -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="/products" class="inline-flex items-center justify-center px-8 py-4 bg-white text-primary-700 rounded-2xl font-semibold hover:bg-gray-50 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9a2 2 0 012-2z"></path>
+                        </svg>
                         探索商品
                     </a>
-                    <a href="/blog" 
-                       class="w-full sm:w-auto border-2 border-white text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-white hover:text-blue-600 transform hover:scale-105 transition-all duration-300 text-center">
-                        閱讀文章
+                    <a href="/blog" class="inline-flex items-center justify-center px-8 py-4 bg-transparent text-white border-2 border-white rounded-2xl font-semibold hover:bg-white hover:text-primary-700 transition-all duration-300 transform hover:scale-105">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
+                        </svg>
+                        閱讀部落格
                     </a>
                 </div>
             </div>
         </div>
         
-        <!-- Scroll indicator -->
-        <div class="absolute bottom-6 sm:bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- 向下箭頭 -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
             </svg>
         </div>
     </section>
 
     <!-- Features Section -->
-    <section class="py-12 sm:py-16 lg:py-24 bg-gray-50">
-        <div class="container mx-auto px-4">
-            <div class="text-center mb-12 sm:mb-16">
-                <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">為什麼選擇我們？</h2>
-                <p class="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto px-2">我們提供最優質的商品和服務，讓您擁有最佳的購物體驗</p>
+    <section class="py-16 lg:py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">為什麼選擇我們？</h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto">我們致力於提供最優質的產品與服務體驗</p>
             </div>
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-                    <div class="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-4 sm:mb-6 mx-auto sm:mx-0">
-                        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 特色 1 -->
+                <div class="bg-gradient-to-br from-primary-50 to-primary-100 rounded-3xl p-8 text-center group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">精選商品</h3>
-                    <p class="text-gray-600 leading-relaxed text-center sm:text-left">我們精心挑選每一件商品，確保品質與價值</p>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">快速配送</h3>
+                    <p class="text-gray-600 leading-relaxed">24小時內快速出貨，讓您最快時間收到心愛的商品</p>
                 </div>
                 
-                <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-                    <div class="w-12 h-12 sm:w-16 sm:h-16 bg-green-100 rounded-2xl flex items-center justify-center mb-4 sm:mb-6 mx-auto sm:mx-0">
-                        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 7.89a2 2 0 002.82 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                <!-- 特色 2 -->
+                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-3xl p-8 text-center group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">快速配送</h3>
-                    <p class="text-gray-600 leading-relaxed text-center sm:text-left">快速安全的配送服務，讓您儘快收到心愛的商品</p>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">品質保證</h3>
+                    <p class="text-gray-600 leading-relaxed">嚴格的品質控管，確保每個商品都符合最高標準</p>
                 </div>
                 
-                <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 sm:col-span-2 lg:col-span-1">
-                    <div class="w-12 h-12 sm:w-16 sm:h-16 bg-purple-100 rounded-2xl flex items-center justify-center mb-4 sm:mb-6 mx-auto sm:mx-0">
-                        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                <!-- 特色 3 -->
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl p-8 text-center group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">貼心服務</h3>
-                    <p class="text-gray-600 leading-relaxed text-center sm:text-left">專業的客服團隊，隨時為您提供最佳服務</p>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">專業服務</h3>
+                    <p class="text-gray-600 leading-relaxed">專業客服團隊，提供即時且貼心的購物諮詢服務</p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Featured Products -->
-    <section class="py-12 sm:py-16 lg:py-24 bg-white">
-        <div class="container mx-auto px-4">
-            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 sm:mb-12">
-                <div class="text-center lg:text-left w-full lg:w-auto">
-                    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">精選商品</h2>
-                    <p class="text-lg sm:text-xl text-gray-600">發現我們最受歡迎的商品</p>
-                </div>
-                <a href="/products" 
-                   class="mt-4 lg:mt-0 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors mx-auto lg:mx-0 block text-center lg:inline-block">
-                    查看全部
-                </a>
+    <section class="py-16 lg:py-24 bg-gray-50" x-data="{ products: [], loading: true }" x-init="loadFeaturedProducts()">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">精選商品</h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-8">發現我們精心挑選的熱門商品</p>
+                <div class="w-24 h-1 bg-gradient-to-r from-primary-500 to-primary-600 mx-auto rounded-full"></div>
             </div>
             
-            <div x-show="productsLoading" class="text-center py-12">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p class="mt-4 text-gray-600">載入中...</p>
-            </div>
-            
-            <div x-show="!productsLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-                <template x-for="product in featuredProducts" :key="product.id">
-                    <div class="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden">
-                        <div class="relative overflow-hidden">
-                            <img :src="product.featured_image || '/static/images/placeholder.jpg'" 
-                                 :alt="product.name"
-                                 class="w-full h-48 sm:h-64 object-cover group-hover:scale-110 transition-transform duration-500">
-                            <div x-show="product.sale_price" 
-                                 class="absolute top-3 sm:top-4 left-3 sm:left-4 bg-red-500 text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-semibold">
-                                特價
-                            </div>
-                        </div>
-                        <div class="p-4 sm:p-6">
-                            <h3 class="font-bold text-gray-900 mb-2 line-clamp-2 text-sm sm:text-base" x-text="product.name"></h3>
-                            <p class="text-gray-600 text-xs sm:text-sm mb-4 line-clamp-2" x-text="product.short_description"></p>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-1 sm:space-x-2">
-                                    <span x-show="product.sale_price" 
-                                          class="text-lg sm:text-xl font-bold text-red-600" 
-                                          x-text="'$' + product.sale_price.toFixed(2)"></span>
-                                    <span :class="product.sale_price ? 'text-xs sm:text-sm text-gray-500 line-through' : 'text-lg sm:text-xl font-bold text-gray-900'"
-                                          x-text="'$' + product.price.toFixed(2)"></span>
-                                </div>
-                                <button @click="addToCart(product)" 
-                                        class="bg-blue-600 text-white p-2 sm:p-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 9M7 13h10"></path>
-                                    </svg>
-                                </button>
-                            </div>
+            <!-- Loading State -->
+            <div x-show="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <template x-for="i in 4">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-pulse">
+                        <div class="aspect-square bg-gray-200"></div>
+                        <div class="p-6">
+                            <div class="h-4 bg-gray-200 rounded mb-2"></div>
+                            <div class="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
+                            <div class="h-6 bg-gray-200 rounded w-1/2"></div>
                         </div>
                     </div>
                 </template>
+            </div>
+            
+            <!-- Products Grid -->
+            <div x-show="!loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <template x-for="product in products" :key="product.id">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group overflow-hidden">
+                        <!-- 商品圖片 -->
+                        <div class="aspect-square overflow-hidden bg-gray-100 relative">
+                            <img :src="product.featured_image || '/static/images/default-product.jpg'" 
+                                 :alt="product.name"
+                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            
+                            <!-- 折扣標籤 -->
+                            <div x-show="product.sale_price && product.sale_price < product.price" 
+                                 class="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                                折扣
+                            </div>
+                            
+                            <!-- 快速加入購物車 -->
+                            <button @click="addToCart(product.id, 1)" 
+                                    class="absolute bottom-4 right-4 w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-primary-700 transform hover:scale-110">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 9M7 13h10"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- 商品資訊 -->
+                        <div class="p-6">
+                            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200" x-text="product.name"></h3>
+                            <p class="text-gray-600 text-sm mb-4 line-clamp-2" x-text="product.short_description"></p>
+                            
+                            <!-- 價格 -->
+                            <div class="flex items-center space-x-2 mb-4">
+                                <span x-show="product.sale_price && product.sale_price < product.price" 
+                                      class="text-xl font-bold text-red-600" 
+                                      x-text="'NT$ ' + product.sale_price.toLocaleString()"></span>
+                                <span :class="product.sale_price && product.sale_price < product.price ? 'text-sm text-gray-500 line-through' : 'text-xl font-bold text-gray-900'" 
+                                      x-text="'NT$ ' + product.price.toLocaleString()"></span>
+                            </div>
+                            
+                            <!-- 查看詳情按鈕 -->
+                            <a :href="'/products/' + product.slug" 
+                               class="block w-full bg-gray-900 text-white text-center py-3 rounded-xl font-medium hover:bg-primary-600 transition-colors duration-200">
+                                查看詳情
+                            </a>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- 查看更多按鈕 -->
+            <div class="text-center mt-12">
+                <a href="/products" class="inline-flex items-center px-8 py-4 bg-primary-600 text-white rounded-2xl font-semibold hover:bg-primary-700 transition-all duration-300 transform hover:scale-105">
+                    查看所有商品
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                    </svg>
+                </a>
             </div>
         </div>
     </section>
 
     <!-- Latest Blog Posts -->
-    <section class="py-12 sm:py-16 lg:py-24 bg-gray-50">
-        <div class="container mx-auto px-4">
-            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 sm:mb-12">
-                <div class="text-center lg:text-left w-full lg:w-auto">
-                    <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">最新文章</h2>
-                    <p class="text-lg sm:text-xl text-gray-600">閱讀我們的最新內容</p>
-                </div>
-                <a href="/blog" 
-                   class="mt-4 lg:mt-0 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors mx-auto lg:mx-0 block text-center lg:inline-block">
-                    查看全部
-                </a>
+    <section class="py-16 lg:py-24 bg-white" x-data="{ posts: [], loading: true }" x-init="loadLatestPosts()">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">最新文章</h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-8">閱讀我們的最新內容與專業見解</p>
+                <div class="w-24 h-1 bg-gradient-to-r from-primary-500 to-primary-600 mx-auto rounded-full"></div>
             </div>
             
-            <div x-show="postsLoading" class="text-center py-12">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p class="mt-4 text-gray-600">載入中...</p>
-            </div>
-            
-            <div x-show="!postsLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                <template x-for="post in latestPosts" :key="post.id">
-                    <article class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-                        <div class="relative">
-                            <img :src="post.featured_image || '/static/images/placeholder.jpg'" 
-                                 :alt="post.title"
-                                 class="w-full h-40 sm:h-48 object-cover">
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+            <!-- Loading State -->
+            <div x-show="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <template x-for="i in 3">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-pulse">
+                        <div class="aspect-video bg-gray-200"></div>
+                        <div class="p-6">
+                            <div class="h-4 bg-gray-200 rounded mb-2"></div>
+                            <div class="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
+                            <div class="h-20 bg-gray-200 rounded"></div>
                         </div>
-                        <div class="p-4 sm:p-6">
-                            <div class="flex items-center flex-wrap gap-2 mb-3">
-                                <template x-for="category in post.categories" :key="category.id">
-                                    <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full" x-text="category.name"></span>
-                                </template>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- Posts Grid -->
+            <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <template x-for="post in posts" :key="post.id">
+                    <article class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group overflow-hidden">
+                        <!-- 文章圖片 -->
+                        <div class="aspect-video overflow-hidden bg-gray-100 relative">
+                            <img :src="post.featured_image || '/static/images/default-blog.jpg'" 
+                                 :alt="post.title"
+                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            
+                            <!-- 分類標籤 -->
+                            <template x-for="category in post.categories" :key="category.id">
+                                <span class="absolute top-4 left-4 bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium" x-text="category.name"></span>
+                            </template>
+                        </div>
+                        
+                        <!-- 文章內容 -->
+                        <div class="p-6">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200" x-text="post.title"></h3>
+                            <p class="text-gray-600 mb-4 line-clamp-3" x-text="post.excerpt"></p>
+                            
+                            <!-- 作者與時間 -->
+                            <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center">
+                                        <span class="text-white font-medium text-xs" x-text="post.author.charAt(0).toUpperCase()"></span>
+                                    </div>
+                                    <span x-text="post.author"></span>
+                                </div>
+                                <time x-text="new Date(post.published_at).toLocaleDateString('zh-TW')"></time>
                             </div>
-                            <h3 class="font-bold text-gray-900 mb-3 line-clamp-2 text-sm sm:text-base" x-text="post.title"></h3>
-                            <p class="text-gray-600 mb-4 line-clamp-3 text-xs sm:text-sm" x-text="post.excerpt"></p>
-                            <div class="flex items-center justify-between">
-                                <time class="text-xs sm:text-sm text-gray-500" x-text="formatDate(post.created_at)"></time>
-                                <a :href="'/blog/' + post.slug" 
-                                   class="text-blue-600 hover:text-blue-800 font-medium text-xs sm:text-sm">
-                                    閱讀更多 →
-                                </a>
-                            </div>
+                            
+                            <!-- 閱讀更多按鈕 -->
+                            <a :href="'/blog/' + post.slug" 
+                               class="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium transition-colors duration-200">
+                                閱讀更多
+                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                </svg>
+                            </a>
                         </div>
                     </article>
                 </template>
+            </div>
+            
+            <!-- 查看更多按鈕 -->
+            <div class="text-center mt-12">
+                <a href="/blog" class="inline-flex items-center px-8 py-4 bg-primary-600 text-white rounded-2xl font-semibold hover:bg-primary-700 transition-all duration-300 transform hover:scale-105">
+                    查看所有文章
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                    </svg>
+                </a>
             </div>
         </div>
     </section>
 
     <!-- Newsletter Section -->
-    <section class="py-12 sm:py-16 lg:py-24 bg-blue-600">
-        <div class="container mx-auto px-4">
-            <div class="max-w-2xl mx-auto text-center text-white">
-                <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">訂閱我們的電子報</h2>
-                <p class="text-lg sm:text-xl mb-6 sm:mb-8 text-blue-100">獲取最新商品資訊和獨家優惠</p>
-                <form class="flex flex-col sm:flex-row gap-3 sm:gap-4 max-w-md mx-auto">
-                    <input type="email" 
-                           placeholder="輸入您的電子郵件" 
-                           class="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white">
-                    <button type="submit" 
-                            class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
-                        訂閱
-                    </button>
-                </form>
-            </div>
+    <section class="py-16 lg:py-24 bg-gradient-to-br from-primary-600 to-primary-800">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl lg:text-4xl font-bold text-white mb-4">訂閱我們的最新消息</h2>
+            <p class="text-xl text-primary-100 mb-10 max-w-2xl mx-auto">獲得第一手的產品資訊與優惠活動通知</p>
+            
+            <form class="flex flex-col sm:flex-row gap-4 max-w-md mx-auto" @submit.prevent="subscribe()">
+                <input type="email" 
+                       placeholder="輸入您的電子郵件" 
+                       class="flex-1 px-6 py-4 rounded-2xl border-0 focus:ring-2 focus:ring-primary-300 focus:outline-none text-gray-900 placeholder-gray-500"
+                       x-model="email"
+                       required>
+                <button type="submit" 
+                        class="px-8 py-4 bg-white text-primary-700 rounded-2xl font-semibold hover:bg-gray-50 transition-all duration-300 transform hover:scale-105 whitespace-nowrap">
+                    訂閱
+                </button>
+            </form>
+            
+            <p class="text-primary-100 text-sm mt-6">我們承諾保護您的隱私，您可以隨時取消訂閱</p>
         </div>
     </section>
 </div>
@@ -236,7 +309,7 @@ function homeApp() {
         
         async loadFeaturedProducts() {
             try {
-                const response = await fetch('/api/products/?featured_only=true&limit=4');
+                const response = await fetch('/api/products/?limit=4&featured=true&active=true');
                 if (response.ok) {
                     this.featuredProducts = await response.json();
                 }
@@ -249,7 +322,7 @@ function homeApp() {
         
         async loadLatestPosts() {
             try {
-                const response = await fetch('/api/posts/?limit=3');
+                const response = await fetch('/api/posts/?limit=3&published=true');
                 if (response.ok) {
                     this.latestPosts = await response.json();
                 }
@@ -260,29 +333,31 @@ function homeApp() {
             }
         },
         
-        async addToCart(product) {
+        async addToCart(productId, quantity = 1) {
             try {
                 const response = await fetch('/api/cart/add', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        product_id: product.id,
-                        quantity: 1
+                        product_id: productId,
+                        quantity: quantity
                     })
                 });
                 
                 if (response.ok) {
                     // 更新購物車計數
-                    if (window.updateCartCount) {
-                        window.updateCartCount();
-                    }
-                    this.showNotification('商品已加入購物車！');
+                    window.updateCartCount();
+                    
+                    // 顯示成功訊息
+                    this.showNotification('商品已加入購物車！', 'success');
+                } else {
+                    throw new Error('加入購物車失敗');
                 }
             } catch (error) {
-                console.error('加入購物車失敗:', error);
-                this.showNotification('加入購物車失敗', 'error');
+                console.error('加入購物車錯誤:', error);
+                this.showNotification('加入購物車失敗，請稍後再試', 'error');
             }
         },
         
@@ -295,20 +370,35 @@ function homeApp() {
             });
         },
         
-        showNotification(message, type = 'success') {
+        showNotification(message, type = 'info') {
             // 創建通知元素
             const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 ${
-                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-lg transition-all duration-300 transform translate-x-full ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'error' ? 'bg-red-500 text-white' : 
+                'bg-primary-600 text-white'
             }`;
             notification.textContent = message;
             
             document.body.appendChild(notification);
             
-            // 3秒後移除
+            // 顯示動畫
             setTimeout(() => {
-                notification.remove();
+                notification.classList.remove('translate-x-full');
+            }, 100);
+            
+            // 自動隱藏
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
             }, 3000);
+        },
+        
+        async subscribe() {
+            // 這裡可以添加訂閱邏輯
+            this.showNotification('感謝您的訂閱！', 'success');
         }
     }
 }

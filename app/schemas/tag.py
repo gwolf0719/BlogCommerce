@@ -24,15 +24,12 @@ class TagCreate(TagBase):
 class TagUpdate(BaseSchema):
     name: Optional[str] = None
     description: Optional[str] = None
+    type: Optional[TagType] = None
 
 
 class TagResponse(TagBase, BaseResponseSchema, SlugSchema):
     @field_serializer('created_at')
-    def serialize_created_at(self, value: datetime) -> str:
-        return value.isoformat() if value else None
-    
-    @field_serializer('updated_at')
-    def serialize_updated_at(self, value: Optional[datetime]) -> Optional[str]:
+    def serialize_created_at(self, value: datetime, _info) -> str:
         return value.isoformat() if value else None
 
 

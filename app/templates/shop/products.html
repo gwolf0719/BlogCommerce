@@ -92,11 +92,11 @@
                     
                     <!-- 價格 -->
                     <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-2xl font-bold text-red-600" 
+                        <div class="flex flex-col space-y-1">
+                            <span class="text-lg font-bold text-red-600 truncate max-w-full" 
                                   x-text="'NT$' + (product.sale_price || product.price).toLocaleString()"></span>
                             <span x-show="product.sale_price" 
-                                  class="text-sm text-gray-500 line-through" 
+                                  class="text-sm text-gray-500 line-through truncate max-w-full" 
                                   x-text="'NT$' + product.price.toLocaleString()"></span>
                         </div>
                         <div x-show="product.sale_price" class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
@@ -310,7 +310,7 @@ function productsApp() {
                 });
                 
                 if (response.ok) {
-                    // 更新購物車計數器 (如果有的話)
+                    // 更新購物車計數器
                     if (window.updateCartCount) {
                         window.updateCartCount();
                     }
@@ -318,7 +318,8 @@ function productsApp() {
                     // 顯示成功訊息
                     this.showToast(`已將 ${product.name} 加入購物車！`, 'success');
                 } else {
-                    this.showToast('加入購物車失敗，請稍後再試', 'error');
+                    const error = await response.json();
+                    this.showToast(error.detail || '加入購物車失敗', 'error');
                 }
             } catch (error) {
                 console.error('加入購物車失敗:', error);
@@ -332,18 +333,32 @@ function productsApp() {
         },
         
         showToast(message, type = 'info') {
-            // 簡單的 toast 通知
+            // 創建通知元素
             const toast = document.createElement('div');
-            toast.className = `fixed top-4 right-4 px-6 py-3 rounded-lg text-white shadow-lg z-50 transform transition-all duration-300 ${
-                type === 'success' ? 'bg-green-500' : 
-                type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+            toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
             }`;
             toast.textContent = message;
             
+            // 初始位置在右側外面
+            toast.style.transform = 'translateX(100%)';
             document.body.appendChild(toast);
             
-            setTimeout(() => toast.classList.add('translate-x-full', 'opacity-0'), 3000);
-            setTimeout(() => document.body.removeChild(toast), 3500);
+            // 動畫進入
+            setTimeout(() => {
+                toast.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // 3秒後移除
+            setTimeout(() => {
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
         }
     }
 }

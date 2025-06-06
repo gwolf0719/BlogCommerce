@@ -105,8 +105,8 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="product.sku"></td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900">
-                                    <span x-show="product.sale_price" class="line-through text-gray-400" x-text="'NT$' + product.price"></span>
-                                    <span x-text="'NT$' + (product.sale_price || product.price)" :class="product.sale_price ? 'text-red-600 font-medium' : ''"></span>
+                                                        <span x-show="product.sale_price" class="line-through text-gray-400 text-sm" x-text="'NT$' + product.price.toLocaleString()"></span>
+                    <span x-text="'NT$' + (product.sale_price || product.price).toLocaleString()" :class="product.sale_price ? 'text-red-600 font-medium' : ''" class="truncate"></span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">

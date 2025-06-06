@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 from app.database import init_db
-from app.routes import categories, posts, auth, products, orders, admin, cart
+from app.routes import categories, posts, auth, products, orders, admin, cart, analytics, tags
 
 # 建立 FastAPI 應用程式
 app = FastAPI(
@@ -41,6 +41,8 @@ app.include_router(products.router)
 app.include_router(orders.router)
 app.include_router(admin.router)
 app.include_router(cart.router)
+app.include_router(analytics.router)
+app.include_router(tags.router)
 
 # 啟動事件
 @app.on_event("startup")
@@ -83,7 +85,13 @@ async def blog_page(request: Request):
 
 @app.get("/blog/{slug}")
 async def post_detail_page(request: Request, slug: str):
-    return templates.TemplateResponse("blog/post_detail.html", {"request": request, "slug": slug, "settings": settings})
+    # 這個路由現在會由前端 JavaScript 處理，模板只需要 slug
+    return templates.TemplateResponse("blog/post_detail.html", {
+        "request": request, 
+        "slug": slug, 
+        "settings": settings,
+        "post": None  # 暫時設為 None，由前端 API 載入
+    })
 
 @app.get("/profile")
 async def profile_page(request: Request):
@@ -92,6 +100,31 @@ async def profile_page(request: Request):
 @app.get("/orders")
 async def orders_page(request: Request):
     return templates.TemplateResponse("shop/orders.html", {"request": request, "settings": settings})
+
+# Footer 頁面路由
+@app.get("/about")
+async def about_page(request: Request):
+    return templates.TemplateResponse("pages/about.html", {"request": request, "settings": settings})
+
+@app.get("/contact")
+async def contact_page(request: Request):
+    return templates.TemplateResponse("pages/contact.html", {"request": request, "settings": settings})
+
+@app.get("/help")
+async def help_page(request: Request):
+    return templates.TemplateResponse("pages/help.html", {"request": request, "settings": settings})
+
+@app.get("/shipping")
+async def shipping_page(request: Request):
+    return templates.TemplateResponse("pages/shipping.html", {"request": request, "settings": settings})
+
+@app.get("/returns")
+async def returns_page(request: Request):
+    return templates.TemplateResponse("pages/returns.html", {"request": request, "settings": settings})
+
+@app.get("/privacy")
+async def privacy_page(request: Request):
+    return templates.TemplateResponse("pages/privacy.html", {"request": request, "settings": settings})
 
 # 管理員前端路由
 @app.get("/admin/login")
@@ -141,6 +174,23 @@ async def admin_categories_page(request: Request):
 @app.get("/admin/settings")
 async def admin_settings_page(request: Request):
     return templates.TemplateResponse("admin/settings.html", {"request": request, "settings": settings})
+
+@app.get("/admin/analytics")
+async def admin_analytics_page(request: Request):
+    return templates.TemplateResponse("admin/analytics.html", {"request": request, "settings": settings})
+
+# 標籤相關路由
+@app.get("/tags")
+async def tags_page(request: Request):
+    return templates.TemplateResponse("tags/index.html", {"request": request, "settings": settings})
+
+@app.get("/tags/{tag_slug}/posts")
+async def tag_posts_page(request: Request, tag_slug: str):
+    return templates.TemplateResponse("tags/posts.html", {"request": request, "tag_slug": tag_slug, "settings": settings})
+
+@app.get("/tags/{tag_slug}/products")
+async def tag_products_page(request: Request, tag_slug: str):
+    return templates.TemplateResponse("tags/products.html", {"request": request, "tag_slug": tag_slug, "settings": settings})
 
 # API 根路徑
 @app.get("/api")

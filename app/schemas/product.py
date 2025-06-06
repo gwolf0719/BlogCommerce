@@ -79,9 +79,8 @@ class ProductResponse(ProductBase, BaseResponseSchema, SlugSchema):
     is_on_sale: bool
 
 
-class ProductListResponse(BaseSchema):
+class ProductListResponse(BaseResponseSchema, SlugSchema):
     """商品列表回應（簡化版）"""
-    id: int
     name: str
     short_description: Optional[str] = None
     price: Decimal
@@ -90,7 +89,6 @@ class ProductListResponse(BaseSchema):
     stock_quantity: int
     is_active: bool
     is_featured: bool
-    slug: str
     current_price: Decimal
     is_on_sale: bool
     categories: List[CategoryResponse] = []

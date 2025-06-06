@@ -49,14 +49,11 @@ class PostResponse(PostBase, BaseResponseSchema, SlugSchema):
     tags: List[TagResponse] = []
 
 
-class PostListResponse(BaseSchema):
+class PostListResponse(BaseResponseSchema, SlugSchema):
     """文章列表回應（簡化版）"""
-    id: int
     title: str
     excerpt: Optional[str] = None
     featured_image: Optional[str] = None
     is_published: bool
-    slug: str
-    created_at: str
     categories: List[CategoryResponse] = []
     tags: List[TagResponse] = [] 
