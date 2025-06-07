@@ -97,6 +97,12 @@
                             <i class="fas fa-cart-plus mr-2"></i>
                             加入購物車
                         </button>
+                        <button @click="toggleFavorite()" 
+                                class="flex items-center justify-center px-4 py-3 rounded-lg border-2 transition-all duration-200"
+                                :class="isFavorited ? 'bg-red-50 border-red-500 text-red-600' : 'bg-white border-gray-300 text-gray-700 hover:border-red-500 hover:text-red-600'">
+                            <i class="fas mr-2" :class="isFavorited ? 'fa-heart' : 'fa-heart-o'"></i>
+                            <span x-text="isFavorited ? '已收藏' : '收藏'"></span>
+                        </button>
                         <button @click="buyNow()" 
                                 :disabled="!product || product.stock_quantity <= 0"
                                 class="flex-1 bg-blue-600 text-white py-3 px-4 sm:px-6 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors text-sm sm:text-base">
@@ -165,11 +171,13 @@ function productDetailApp(slug) {
         relatedProducts: [],
         quantity: 1,
         loading: true,
+        isFavorited: false,
         
         async init() {
             await this.loadProduct(slug);
             if (this.product) {
                 await this.loadRelatedProducts();
+                await this.checkFavoriteStatus();
             }
         },
         
@@ -197,6 +205,80 @@ function productDetailApp(slug) {
                 }
             } catch (error) {
                 console.error('載入相關商品失敗:', error);
+            }
+        },
+        
+        async checkFavoriteStatus() {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            
+            try {
+                const response = await fetch(`/api/favorites/check/${this.product.id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    this.isFavorited = data.is_favorited;
+                }
+            } catch (error) {
+                console.error('檢查收藏狀態失敗:', error);
+            }
+        },
+        
+        async toggleFavorite() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                this.showMessage('請先登入才能收藏商品', 'error');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 1500);
+                return;
+            }
+            
+            try {
+                if (this.isFavorited) {
+                    // 取消收藏
+                    const response = await fetch(`/api/favorites/remove/${this.product.id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        this.isFavorited = false;
+                        this.showMessage('已取消收藏', 'success');
+                    } else {
+                        const error = await response.json();
+                        this.showMessage(error.detail || '操作失敗', 'error');
+                    }
+                } else {
+                    // 添加收藏
+                    const response = await fetch('/api/favorites/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            product_id: this.product.id
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        this.isFavorited = true;
+                        this.showMessage('收藏成功！', 'success');
+                    } else {
+                        const error = await response.json();
+                        this.showMessage(error.detail || '收藏失敗', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('收藏操作失敗:', error);
+                this.showMessage('操作失敗，請稍後再試', 'error');
             }
         },
         

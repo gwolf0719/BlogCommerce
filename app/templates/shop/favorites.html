@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}我的收藏{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8" x-data="favoritesApp()">
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">我的收藏</h1>
+    
+    <!-- 收藏列表 -->
+    <div x-show="!loading && favorites.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <template x-for="item in favorites" :key="item.id">
+            <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow duration-300">
+                <div class="relative">
+                    <img :src="item.product.featured_image || '/static/images/placeholder-product.jpg'" 
+                         :alt="item.product.name"
+                         class="w-full h-48 object-cover rounded-t-lg">
+                    
+                    <!-- 移除收藏按鈕 -->
+                    <button @click="removeFavorite(item.product_id)" 
+                            class="absolute top-2 right-2 bg-white bg-opacity-90 text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                    
+                    <!-- 特價標籤 -->
+                    <span x-show="item.product.is_on_sale" 
+                          class="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 text-sm rounded">
+                        特價
+                    </span>
+                </div>
+                
+                <div class="p-4">
+                    <h3 class="font-medium text-gray-900 mb-2 line-clamp-2">
+                        <a :href="'/product/' + item.product.slug" 
+                           class="hover:text-blue-600 transition-colors"
+                           x-text="item.product.name"></a>
+                    </h3>
+                    
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <span class="text-lg font-bold text-red-600" 
+                                  x-text="'NT$ ' + item.product.current_price.toLocaleString()"></span>
+                            <span x-show="item.product.is_on_sale" 
+                                  class="text-sm text-gray-500 line-through ml-2" 
+                                  x-text="'NT$ ' + item.product.price.toLocaleString()"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="text-sm text-gray-600 mb-3">
+                        <span x-show="item.product.stock_quantity > 0" class="text-green-600">
+                            有貨
+                        </span>
+                        <span x-show="item.product.stock_quantity <= 0" class="text-red-600">
+                            缺貨
+                        </span>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button @click="addToCart(item.product)" 
+                                :disabled="item.product.stock_quantity <= 0"
+                                class="flex-1 bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700 disabled:bg-gray-400 transition-colors">
+                            加入購物車
+                        </button>
+                        <a :href="'/product/' + item.product.slug" 
+                           class="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors text-center">
+                            查看詳情
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+    
+    <!-- 載入中 -->
+    <div x-show="loading" class="text-center py-12">
+        <div class="text-gray-500">
+            <i class="fas fa-spinner fa-spin mr-2"></i>載入中...
+        </div>
+    </div>
+    
+    <!-- 無收藏商品 -->
+    <div x-show="!loading && favorites.length === 0" class="text-center py-12 bg-gray-50 rounded-lg">
+        <div class="text-gray-400 text-6xl mb-4">
+            <i class="far fa-heart"></i>
+        </div>
+        <h3 class="text-xl font-medium text-gray-600 mb-2">還沒有收藏任何商品</h3>
+        <p class="text-gray-500 mb-6">快去挑選您喜歡的商品吧！</p>
+        <a href="/products" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="fas fa-shopping-bag mr-2"></i>瀏覽商品
+        </a>
+    </div>
+    
+    <!-- 收藏統計 -->
+    <div x-show="!loading && favorites.length > 0" class="mt-8 text-center text-gray-600">
+        共收藏了 <span class="font-bold text-gray-900" x-text="favorites.length"></span> 件商品
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function favoritesApp() {
+    return {
+        favorites: [],
+        loading: true,
+        
+        async init() {
+            await this.loadFavorites();
+        },
+        
+        async loadFavorites() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/favorites/', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    this.favorites = await response.json();
+                } else if (response.status === 401) {
+                    // Token 過期或無效
+                    localStorage.removeItem('token');
+                    window.location.href = '/login';
+                } else {
+                    console.error('載入收藏失敗');
+                }
+            } catch (error) {
+                console.error('載入收藏失敗:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        async removeFavorite(productId) {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+            
+            if (!confirm('確定要取消收藏此商品嗎？')) return;
+            
+            try {
+                const response = await fetch(`/api/favorites/remove/${productId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    // 從列表中移除
+                    this.favorites = this.favorites.filter(item => item.product_id !== productId);
+                    this.showMessage('已取消收藏', 'success');
+                } else {
+                    const error = await response.json();
+                    this.showMessage(error.detail || '操作失敗', 'error');
+                }
+            } catch (error) {
+                console.error('取消收藏失敗:', error);
+                this.showMessage('操作失敗，請稍後再試', 'error');
+            }
+        },
+        
+        async addToCart(product) {
+            if (product.stock_quantity <= 0) return;
+            
+            try {
+                const response = await fetch('/api/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product_id: product.id,
+                        quantity: 1
+                    })
+                });
+                
+                if (response.ok) {
+                    this.showMessage(`已將 ${product.name} 加入購物車！`, 'success');
+                    
+                    // 更新全域購物車計數
+                    if (window.updateCartCount) {
+                        window.updateCartCount();
+                    }
+                } else {
+                    const error = await response.json();
+                    this.showMessage(error.detail || '加入購物車失敗', 'error');
+                }
+            } catch (error) {
+                console.error('加入購物車失敗:', error);
+                this.showMessage('加入購物車失敗，請稍後再試', 'error');
+            }
+        },
+        
+        showMessage(message, type = 'info') {
+            // 創建通知元素
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // 3秒後移除通知
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
+            }, 3000);
+        }
+    }
+}
+</script>
+{% endblock %}

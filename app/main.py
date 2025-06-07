@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 from app.database import init_db
-from app.routes import categories, posts, auth, products, orders, admin, cart, analytics, tags
+from app.routes import categories, posts, auth, products, orders, admin, cart, analytics, tags, favorites
 
 # 建立 FastAPI 應用程式
 app = FastAPI(
@@ -43,6 +43,7 @@ app.include_router(admin.router)
 app.include_router(cart.router)
 app.include_router(analytics.router)
 app.include_router(tags.router)
+app.include_router(favorites.router)
 
 # 啟動事件
 @app.on_event("startup")
@@ -100,6 +101,10 @@ async def profile_page(request: Request):
 @app.get("/orders")
 async def orders_page(request: Request):
     return templates.TemplateResponse("shop/orders.html", {"request": request, "settings": settings})
+
+@app.get("/favorites")
+async def favorites_page(request: Request):
+    return templates.TemplateResponse("shop/favorites.html", {"request": request, "settings": settings})
 
 # Footer 頁面路由
 @app.get("/about")

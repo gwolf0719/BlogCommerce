@@ -47,6 +47,7 @@ class Product(BaseModel, SlugMixin):
     categories = relationship("Category", secondary=product_categories, back_populates="products")
     tags = relationship("Tag", secondary=product_tags, back_populates="products")
     order_items = relationship("OrderItem", back_populates="product")
+    favorited_by = relationship("Favorite", back_populates="product", cascade="all, delete-orphan")
     
     @property
     def current_price(self):
