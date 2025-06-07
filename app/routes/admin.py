@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
-from app.models.user import User, UserRole
+from app.auth import get_current_admin_user
+from app.models.user import User
 from app.models.post import Post
 from app.models.product import Product
 from app.models.order import Order
@@ -13,15 +13,12 @@ from app.schemas.user import UserResponse, UserUpdate
 from app.schemas.post import PostResponse, PostCreate, PostUpdate
 from app.schemas.product import ProductResponse, ProductCreate, ProductUpdate
 from app.schemas.order import OrderResponse, OrderUpdate
-from app.auth import get_current_admin_user
 from app.config import settings
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
-templates = Jinja2Templates(directory="app/templates")
-
 
 # ==============================================
-# 會員管理
+# 使用者管理
 # ==============================================
 
 @router.get("/users", response_model=List[UserResponse])
@@ -38,11 +35,10 @@ def get_all_users(
     if search:
         query = query.filter(
             User.username.contains(search) |
-            User.email.contains(search) |
-            User.full_name.contains(search)
+            User.email.contains(search)
         )
     
-    users = query.offset(skip).limit(limit).all()
+    users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
     return users
 
 
@@ -167,29 +163,119 @@ def admin_delete_post(
 # 商品管理
 # ==============================================
 
-@router.get("/products", response_model=List[ProductResponse])
+@router.get("/products")
 def get_all_products(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(settings.products_per_page, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
     search: Optional[str] = Query(None, description="搜尋商品名稱或描述"),
-    active: Optional[bool] = Query(None, description="過濾啟用狀態"),
+    category: Optional[str] = Query(None, description="分類篩選"),
+    status: Optional[str] = Query(None, description="狀態篩選"),
+    sort: Optional[str] = Query("created_at_desc", description="排序方式"),
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
     """取得所有商品列表（管理員）"""
+    from sqlalchemy import func, desc, asc
+    
     query = db.query(Product)
     
+    # 搜尋篩選
     if search:
         query = query.filter(
             Product.name.contains(search) |
-            Product.description.contains(search)
+            Product.description.contains(search) |
+            Product.sku.contains(search)
         )
     
-    if active is not None:
-        query = query.filter(Product.is_active == active)
+    # 分類篩選
+    if category:
+        query = query.join(Product.categories).filter(Category.id == category)
     
-    products = query.order_by(Product.created_at.desc()).offset(skip).limit(limit).all()
-    return products
+    # 狀態篩選
+    if status == "active":
+        query = query.filter(Product.is_active == True)
+    elif status == "inactive":
+        query = query.filter(Product.is_active == False)
+    elif status == "featured":
+        query = query.filter(Product.is_featured == True)
+    
+    # 排序
+    if sort == "created_at_desc":
+        query = query.order_by(desc(Product.created_at))
+    elif sort == "created_at_asc":
+        query = query.order_by(asc(Product.created_at))
+    elif sort == "name_asc":
+        query = query.order_by(asc(Product.name))
+    elif sort == "name_desc":
+        query = query.order_by(desc(Product.name))
+    elif sort == "price_asc":
+        query = query.order_by(asc(Product.price))
+    elif sort == "price_desc":
+        query = query.order_by(desc(Product.price))
+    else:
+        query = query.order_by(desc(Product.created_at))
+    
+    # 計算總數
+    total = query.count()
+    
+    # 分頁
+    skip = (page - 1) * page_size
+    products = query.offset(skip).limit(page_size).all()
+    
+    return {
+        "items": products,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total + page_size - 1) // page_size
+    }
+
+
+@router.post("/products", response_model=ProductResponse)
+def admin_create_product(
+    product: ProductCreate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """建立新商品（管理員）"""
+    from app.routes.products import create_product
+    return create_product(product, db)
+
+
+@router.get("/products/{product_id}", response_model=ProductResponse)
+def admin_get_product(
+    product_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """取得單一商品詳情（管理員）"""
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="商品不存在")
+    return product
+
+
+@router.put("/products/{product_id}", response_model=ProductResponse)
+def admin_update_product(
+    product_id: int,
+    product_update: ProductUpdate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """更新商品（管理員）"""
+    from app.routes.products import update_product
+    return update_product(product_id, product_update, db)
+
+
+@router.delete("/products/{product_id}")
+def admin_delete_product(
+    product_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """刪除商品（管理員）"""
+    from app.routes.products import delete_product
+    return delete_product(product_id, db)
 
 
 # ==============================================
@@ -228,6 +314,20 @@ def admin_update_order(
     """更新訂單狀態（管理員）"""
     from app.routes.orders import update_order
     return update_order(order_id, order_update, current_user, db)
+
+
+# ==============================================
+# 分類管理
+# ==============================================
+
+@router.get("/categories")
+def get_all_categories(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """取得所有分類列表（管理員）"""
+    categories = db.query(Category).order_by(Category.name).all()
+    return categories
 
 
 # ==============================================

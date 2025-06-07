@@ -367,9 +367,11 @@ function productsManager() {
         // 載入分類
         async loadCategories() {
             try {
+                const token = localStorage.getItem('admin_token') || localStorage.getItem('access_token');
                 const response = await fetch('/api/categories?type=product', {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
                     }
                 });
                 
@@ -393,9 +395,11 @@ function productsManager() {
                     ...this.filters
                 });
                 
+                const token = localStorage.getItem('admin_token') || localStorage.getItem('access_token');
                 const response = await fetch(`/api/admin/products?${params}`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
                     }
                 });
                 
@@ -404,8 +408,15 @@ function productsManager() {
                     this.products = data.items || [];
                     this.totalItems = data.total || 0;
                     this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+                } else if (response.status === 401) {
+                    this.error = '認證失敗，請重新登入';
+                    // 重定向到登入頁面
+                    setTimeout(() => {
+                        window.location.href = '/admin/login';
+                    }, 2000);
                 } else {
-                    this.error = '載入商品失敗';
+                    const errorData = await response.json().catch(() => ({}));
+                    this.error = errorData.detail || '載入商品失敗';
                 }
             } catch (error) {
                 console.error('載入商品失敗:', error);
@@ -461,26 +472,48 @@ function productsManager() {
             this.error = '';
             
             try {
+                // 驗證必填欄位
+                if (!this.form.name || !this.form.price) {
+                    this.error = '請填寫商品名稱和價格';
+                    return;
+                }
+                
                 const url = this.editingProduct 
                     ? `/api/admin/products/${this.editingProduct.id}`
                     : '/api/admin/products';
                 
                 const method = this.editingProduct ? 'PUT' : 'POST';
                 
+                // 準備提交資料
+                const submitData = {
+                    ...this.form,
+                    price: parseFloat(this.form.price) || 0,
+                    sale_price: this.form.sale_price ? parseFloat(this.form.sale_price) : null,
+                    stock_quantity: parseInt(this.form.stock_quantity) || 0
+                };
+                
+                const token = localStorage.getItem('admin_token') || localStorage.getItem('access_token');
                 const response = await fetch(url, {
                     method: method,
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify(this.form)
+                    body: JSON.stringify(submitData)
                 });
                 
                 if (response.ok) {
                     await this.loadProducts(this.currentPage);
                     this.closeModal();
+                    // 顯示成功訊息
+                    alert(this.editingProduct ? '商品更新成功！' : '商品新增成功！');
+                } else if (response.status === 401) {
+                    this.error = '認證失敗，請重新登入';
+                    setTimeout(() => {
+                        window.location.href = '/admin/login';
+                    }, 2000);
                 } else {
-                    const errorData = await response.json();
+                    const errorData = await response.json().catch(() => ({}));
                     this.error = errorData.detail || '操作失敗';
                 }
             } catch (error) {
@@ -494,11 +527,12 @@ function productsManager() {
         // 切換商品狀態
         async toggleProductStatus(product) {
             try {
+                const token = localStorage.getItem('admin_token') || localStorage.getItem('access_token');
                 const response = await fetch(`/api/admin/products/${product.id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
                         ...product,
@@ -527,7 +561,7 @@ function productsManager() {
                 const response = await fetch(`/api/admin/products/${product.id}`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('admin_token') || localStorage.getItem('access_token')}`
                     }
                 });
                 

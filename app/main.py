@@ -126,6 +126,10 @@ async def returns_page(request: Request):
 async def privacy_page(request: Request):
     return templates.TemplateResponse("pages/privacy.html", {"request": request, "settings": settings})
 
+@app.get("/terms")
+async def terms_page(request: Request):
+    return templates.TemplateResponse("pages/terms.html", {"request": request, "settings": settings})
+
 # 管理員前端路由
 @app.get("/admin/login")
 async def admin_login_page(request: Request):

@@ -17,14 +17,27 @@ class OrderItemBase(BaseSchema):
         return v
 
 
-class OrderItemCreate(OrderItemBase):
-    pass
+class OrderItemCreate(BaseSchema):
+    """建立訂單時使用 product_id，系統會自動填入 product_name 和 price"""
+    product_id: int
+    quantity: int
+    
+    @validator('quantity')
+    def quantity_must_be_positive(cls, v):
+        if v <= 0:
+            raise ValueError('數量必須大於 0')
+        return v
 
 
-class OrderItemResponse(OrderItemBase, BaseResponseSchema):
+class OrderItemResponse(BaseResponseSchema):
     order_id: int
+    product_id: int
+    product_name: str
     product_price: Decimal
-    total_price: Optional[Decimal] = None
+    quantity: int
+    
+    class Config:
+        from_attributes = True
 
 
 class CartItem(BaseSchema):

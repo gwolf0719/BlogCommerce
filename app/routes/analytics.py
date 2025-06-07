@@ -180,6 +180,35 @@ async def track_page_view(
         raise HTTPException(status_code=500, detail=f"記錄失敗: {str(e)}")
 
 
+class HeartbeatRequest(BaseModel):
+    session_id: str
+    page_url: str
+    active_time: int
+
+
+@router.post("/heartbeat")
+async def heartbeat(
+    data: HeartbeatRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """更新會話活動狀態"""
+    try:
+        # 更新會話的最後活動時間
+        session = db.query(UserSession).filter(
+            UserSession.session_id == data.session_id
+        ).first()
+        
+        if session:
+            session.last_activity = datetime.utcnow()
+            db.commit()
+        
+        return {"status": "success", "message": "心跳已記錄"}
+        
+    except Exception as e:
+        return {"status": "error", "message": f"心跳記錄失敗: {str(e)}"}
+
+
 @router.get("/stats/overview")
 async def get_overview_stats(
     days: int = 30,
@@ -417,4 +446,28 @@ async def get_content_stats(
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取內容統計失敗: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"獲取內容統計失敗: {str(e)}")
+
+
+class EventRequest(BaseModel):
+    event_type: str
+    event_data: dict
+    session_id: str
+    page_url: str
+    timestamp: int
+
+
+@router.post("/event")
+async def track_event(
+    data: EventRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """記錄自定義事件"""
+    try:
+        # 這裡可以根據需要記錄事件到資料庫
+        # 目前先簡單返回成功狀態
+        return {"status": "success", "message": "事件已記錄"}
+        
+    except Exception as e:
+        return {"status": "error", "message": f"事件記錄失敗: {str(e)}"} 

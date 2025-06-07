@@ -209,6 +209,7 @@ function postsApp() {
             this.loading = true;
             try {
                 const params = new URLSearchParams({
+                    published_only: false,  // 管理後台需要顯示所有文章包括草稿
                     page: this.currentPage,
                     limit: this.pageSize,
                     ...(this.searchTitle && { title: this.searchTitle }),

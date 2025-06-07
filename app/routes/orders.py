@@ -135,8 +135,8 @@ def create_order(
         subtotal=subtotal,
         shipping_fee=shipping_fee,
         total_amount=total_amount,
-        status=OrderStatus.pending,
-        payment_method=order.payment_method,
+        status=OrderStatus.PENDING,
+
         notes=order.notes
     )
     

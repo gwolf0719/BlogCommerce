@@ -106,7 +106,7 @@
     </section>
 
     <!-- Featured Products -->
-    <section class="py-16 lg:py-24 bg-gray-50" x-data="{ products: [], loading: true }" x-init="loadFeaturedProducts()">
+    <section class="py-16 lg:py-24 bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">精選商品</h2>
@@ -115,7 +115,7 @@
             </div>
             
             <!-- Loading State -->
-            <div x-show="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div x-show="productsLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <template x-for="i in 4">
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-pulse">
                         <div class="aspect-square bg-gray-200"></div>
@@ -129,9 +129,9 @@
             </div>
             
             <!-- Products Grid -->
-            <div x-show="!loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <template x-for="product in products" :key="product.id">
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group overflow-hidden">
+            <div x-show="!productsLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <template x-for="product in featuredProducts" :key="product.id">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group overflow-hidden flex flex-col h-full">
                         <!-- 商品圖片 -->
                         <div class="aspect-square overflow-hidden bg-gray-100 relative">
                             <img :src="product.featured_image || '/static/images/default-product.jpg'" 
@@ -154,9 +154,9 @@
                         </div>
                         
                         <!-- 商品資訊 -->
-                        <div class="p-6">
-                            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200" x-text="product.name"></h3>
-                            <p class="text-gray-600 text-sm mb-4 line-clamp-2" x-text="product.short_description"></p>
+                        <div class="p-6 flex flex-col flex-grow">
+                            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 h-12 flex items-center" x-text="product.name"></h3>
+                            <p class="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow h-16 overflow-hidden" x-text="product.short_description"></p>
                             
                             <!-- 價格 -->
                             <div class="flex items-center space-x-2 mb-4">
@@ -190,7 +190,7 @@
     </section>
 
     <!-- Latest Blog Posts -->
-    <section class="py-16 lg:py-24 bg-white" x-data="{ posts: [], loading: true }" x-init="loadLatestPosts()">
+    <section class="py-16 lg:py-24 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">最新文章</h2>
@@ -199,7 +199,7 @@
             </div>
             
             <!-- Loading State -->
-            <div x-show="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div x-show="postsLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <template x-for="i in 3">
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-pulse">
                         <div class="aspect-video bg-gray-200"></div>
@@ -213,9 +213,9 @@
             </div>
             
             <!-- Posts Grid -->
-            <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <template x-for="post in posts" :key="post.id">
-                    <article class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group overflow-hidden">
+            <div x-show="!postsLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <template x-for="post in latestPosts" :key="post.id">
+                    <article class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group overflow-hidden flex flex-col h-full">
                         <!-- 文章圖片 -->
                         <div class="aspect-video overflow-hidden bg-gray-100 relative">
                             <img :src="post.featured_image || '/static/images/default-blog.jpg'" 
@@ -233,15 +233,17 @@
                             <h3 class="text-xl font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200" x-text="post.title"></h3>
                             <p class="text-gray-600 mb-4 line-clamp-3" x-text="post.excerpt"></p>
                             
-                            <!-- 作者與時間 -->
+                            <!-- 發佈時間 -->
                             <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
                                 <div class="flex items-center space-x-2">
                                     <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center">
-                                        <span class="text-white font-medium text-xs" x-text="post.author.charAt(0).toUpperCase()"></span>
+                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                        </svg>
                                     </div>
-                                    <span x-text="post.author"></span>
+                                    <span>管理員</span>
                                 </div>
-                                <time x-text="new Date(post.published_at).toLocaleDateString('zh-TW')"></time>
+                                <time x-text="new Date(post.created_at).toLocaleDateString('zh-TW')"></time>
                             </div>
                             
                             <!-- 閱讀更多按鈕 -->
