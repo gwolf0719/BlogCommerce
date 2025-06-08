@@ -6,6 +6,10 @@ from .tag import Tag, TagType
 from .post import Post
 from .product import Product
 from .order import Order, OrderItem, OrderStatus
+from .settings import SystemSettings
+from .newsletter import NewsletterSubscriber, NewsletterCampaign
+from .newsletter import NewsletterSubscriber, NewsletterCampaign
+from .newsletter import NewsletterSubscriber, NewsletterCampaign
 
 __all__ = [
     "BaseModel",
@@ -14,5 +18,7 @@ __all__ = [
     "Tag", "TagType",
     "Post",
     "Product",
-    "Order", "OrderItem", "OrderStatus"
+    "Order", "OrderItem", "OrderStatus",
+    "SystemSettings",
+    "NewsletterSubscriber", "NewsletterCampaign"
 ] 

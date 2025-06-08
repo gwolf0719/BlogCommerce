@@ -79,10 +79,10 @@
                     </a>
                     
                     <!-- Desktop Navigation -->
-                    <div class="hidden lg:flex space-x-8">
-                        <a href="/blog" class="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">部落格</a>
-                        <a href="/tags" class="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">標籤</a>
-                        <a href="/products" class="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">商品</a>
+                    <div class="hidden lg:flex space-x-8" x-data="{ features: {} }" x-init="loadFeatures()">
+                        <a href="/blog" x-show="features.blog_enabled !== false" class="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">部落格</a>
+                        <a href="/tags" x-show="features.blog_enabled !== false" class="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">標籤</a>
+                        <a href="/products" x-show="features.shop_enabled !== false" class="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">商品</a>
                     </div>
                 </div>
                 

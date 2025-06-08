@@ -1,617 +1,455 @@
 {% extends "admin/base.html" %}
 
-{% block title %}系統設定 - {{ settings.site_name }}{% endblock %}
+{% block title %}系統設定{% endblock %}
+
+{% block extra_css %}
+<style>
+.settings-card {
+    transition: all 0.3s ease;
+}
+.settings-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+input:checked + .slider {
+    background-color: #2196F3;
+}
+input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+.feature-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    margin-bottom: 0.75rem;
+    background: white;
+}
+.feature-item:hover {
+    background: #f9fafb;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div x-data="settingsApp()" x-init="loadSettings()">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- 頁面標題 -->
     <div class="mb-8">
-        <div class="flex justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900 mb-2">系統設定</h1>
-                <p class="text-gray-600">管理網站基本設定和系統配置</p>
-            </div>
-            <button @click="saveAllSettings()" 
-                    :disabled="saving"
-                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
-                <span x-show="!saving">儲存所有設定</span>
-                <span x-show="saving">
-                    <i class="fas fa-spinner fa-spin mr-2"></i>儲存中...
-                </span>
-            </button>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">系統設定</h1>
+        <p class="text-gray-600">管理網站功能開關和基本設定</p>
+    </div>
+
+    <!-- 設定標籤頁 -->
+    <div class="mb-6">
+        <div class="border-b border-gray-200">
+            <nav class="-mb-px flex space-x-8">
+                <a href="#features" class="tab-link active border-blue-500 text-blue-600 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                    功能開關
+                </a>
+                <a href="#general" class="tab-link border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                    基本設定
+                </a>
+                <a href="#seo" class="tab-link border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                    SEO 設定
+                </a>
+                <a href="#ecommerce" class="tab-link border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                    電商設定
+                </a>
+            </nav>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <!-- 側邊導航 -->
-        <div class="lg:col-span-1">
-            <nav class="bg-white rounded-lg shadow-sm border p-4">
-                <ul class="space-y-2">
-                    <li>
-                        <button @click="activeTab = 'general'" 
-                                :class="activeTab === 'general' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'"
-                                class="w-full text-left px-3 py-2 rounded-md transition-colors">
-                            <i class="fas fa-cog mr-2"></i>
-                            一般設定
-                        </button>
-                    </li>
-                    <li>
-                        <button @click="activeTab = 'site'" 
-                                :class="activeTab === 'site' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'"
-                                class="w-full text-left px-3 py-2 rounded-md transition-colors">
-                            <i class="fas fa-globe mr-2"></i>
-                            網站設定
-                        </button>
-                    </li>
-                    <li>
-                        <button @click="activeTab = 'email'" 
-                                :class="activeTab === 'email' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'"
-                                class="w-full text-left px-3 py-2 rounded-md transition-colors">
-                            <i class="fas fa-envelope mr-2"></i>
-                            郵件設定
-                        </button>
-                    </li>
-                    <li>
-                        <button @click="activeTab = 'payment'" 
-                                :class="activeTab === 'payment' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'"
-                                class="w-full text-left px-3 py-2 rounded-md transition-colors">
-                            <i class="fas fa-credit-card mr-2"></i>
-                            付款設定
-                        </button>
-                    </li>
-                    <li>
-                        <button @click="activeTab = 'shipping'" 
-                                :class="activeTab === 'shipping' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'"
-                                class="w-full text-left px-3 py-2 rounded-md transition-colors">
-                            <i class="fas fa-truck mr-2"></i>
-                            運送設定
-                        </button>
-                    </li>
-                    <li>
-                        <button @click="activeTab = 'security'" 
-                                :class="activeTab === 'security' ? 'bg-blue-100 text-blue-700' : 'text-gray-700 hover:bg-gray-100'"
-                                class="w-full text-left px-3 py-2 rounded-md transition-colors">
-                            <i class="fas fa-shield-alt mr-2"></i>
-                            安全設定
-                        </button>
-                    </li>
-                </ul>
-            </nav>
+    <!-- 功能開關設定 -->
+    <div id="features-tab" class="tab-content">
+        <div class="settings-card bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">功能開關</h2>
+            <p class="text-gray-600 mb-6">控制網站各項功能的啟用狀態</p>
+            
+            <form id="feature-settings-form">
+                <div class="space-y-4">
+                    <!-- 部落格功能 -->
+                    <div class="feature-item">
+                        <div>
+                            <h3 class="font-medium text-gray-900">部落格功能</h3>
+                            <p class="text-sm text-gray-500">啟用部落格文章、分類、標籤等功能</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="blog_enabled" name="blog_enabled" {% if features.blog_enabled %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 商店功能 -->
+                    <div class="feature-item">
+                        <div>
+                            <h3 class="font-medium text-gray-900">商店功能</h3>
+                            <p class="text-sm text-gray-500">啟用商品展示、購物車、訂單等電商功能</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="shop_enabled" name="shop_enabled" {% if features.shop_enabled %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 評論功能 -->
+                    <div class="feature-item">
+                        <div>
+                            <h3 class="font-medium text-gray-900">評論功能</h3>
+                            <p class="text-sm text-gray-500">允許用戶在文章和商品頁面留言評論</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="comment_enabled" name="comment_enabled" {% if features.comment_enabled %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 分析功能 -->
+                    <div class="feature-item">
+                        <div>
+                            <h3 class="font-medium text-gray-900">流量分析</h3>
+                            <p class="text-sm text-gray-500">啟用用戶行為追蹤和流量統計功能</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="analytics_enabled" name="analytics_enabled" {% if features.analytics_enabled %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 搜尋功能 -->
+                    <div class="feature-item">
+                        <div>
+                            <h3 class="font-medium text-gray-900">搜尋功能</h3>
+                            <p class="text-sm text-gray-500">啟用全站搜尋功能</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="search_enabled" name="search_enabled" {% if features.search_enabled %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- 電子報功能 -->
+                    <div class="feature-item">
+                        <div>
+                            <h3 class="font-medium text-gray-900">電子報訂閱</h3>
+                            <p class="text-sm text-gray-500">啟用電子報訂閱和發送功能</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="newsletter_enabled" name="newsletter_enabled" {% if features.newsletter_enabled %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        儲存設定
+                    </button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <!-- 設定內容 -->
-        <div class="lg:col-span-3">
-            <!-- 一般設定 -->
-            <div x-show="activeTab === 'general'" class="bg-white rounded-lg shadow-sm border p-6">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">一般設定</h2>
-                <form @submit.prevent="saveSettings('general')" class="space-y-4">
+    <!-- 基本設定 -->
+    <div id="general-tab" class="tab-content hidden">
+        <div class="settings-card bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">基本設定</h2>
+            <p class="text-gray-600 mb-6">網站基本資訊設定</p>
+            
+            <form id="general-settings-form">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            網站名稱 <span class="text-red-500">*</span>
-                        </label>
-                        <input type="text" 
-                               x-model="settings.general.site_name" 
-                               required
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">網站名稱</label>
+                        <input type="text" name="site_name" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500" value="BlogCommerce">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            網站描述
-                        </label>
-                        <textarea x-model="settings.general.site_description" 
-                                  rows="3"
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                        </textarea>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">網站描述</label>
+                        <input type="text" name="site_description" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500" value="部落格與電商整合平台">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">網站關鍵字</label>
+                        <input type="text" name="site_keywords" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500" value="電商,部落格,購物">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            管理員 Email
+                        <label class="flex items-center">
+                            <input type="checkbox" name="maintenance_mode" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-sm text-gray-700">維護模式</span>
                         </label>
-                        <input type="email" 
-                               x-model="settings.general.admin_email" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            時區
+                        <label class="flex items-center">
+                            <input type="checkbox" name="registration_enabled" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                            <span class="ml-2 text-sm text-gray-700">允許會員註冊</span>
                         </label>
-                        <select x-model="settings.general.timezone" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            <option value="Asia/Taipei">台北 (UTC+8)</option>
-                            <option value="UTC">UTC (UTC+0)</option>
-                            <option value="America/New_York">紐約 (UTC-5)</option>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        儲存設定
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SEO 設定 -->
+    <div id="seo-tab" class="tab-content hidden">
+        <div class="settings-card bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">SEO 設定</h2>
+            <p class="text-gray-600 mb-6">搜尋引擎優化相關設定</p>
+            
+            <form id="seo-settings-form">
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">預設 Meta Title</label>
+                        <input type="text" name="meta_title" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500" value="BlogCommerce">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">預設 Meta Description</label>
+                        <textarea name="meta_description" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">部落格與電商整合平台</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">預設關鍵字</label>
+                        <input type="text" name="meta_keywords" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500" value="電商,部落格,購物">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Google Analytics ID</label>
+                            <input type="text" name="google_analytics_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500" placeholder="GA4-XXXXXXXXX">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Google Tag Manager ID</label>
+                            <input type="text" name="google_tag_manager_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500" placeholder="GTM-XXXXXXX">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        儲存設定
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 電商設定 -->
+    <div id="ecommerce-tab" class="tab-content hidden">
+        <div class="settings-card bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">電商設定</h2>
+            <p class="text-gray-600 mb-6">商店相關功能設定</p>
+            
+            <form id="ecommerce-settings-form">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">預設貨幣</label>
+                        <select name="currency" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="TWD" selected>台幣 (TWD)</option>
+                            <option value="USD">美元 (USD)</option>
+                            <option value="EUR">歐元 (EUR)</option>
+                            <option value="JPY">日圓 (JPY)</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            預設語言
-                        </label>
-                        <select x-model="settings.general.default_language" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            <option value="zh-TW">繁體中文</option>
-                            <option value="zh-CN">簡體中文</option>
-                            <option value="en">English</option>
-                        </select>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">貨幣符號</label>
+                        <input type="text" name="currency_symbol" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500" value="NT$">
                     </div>
-                </form>
-            </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">免運費門檻</label>
+                        <input type="number" name="free_shipping_threshold" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500" value="1000" step="1">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">預設運費</label>
+                        <input type="number" name="default_shipping_fee" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500" value="60" step="1">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">稅率 (%)</label>
+                        <input type="number" name="tax_rate" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500" value="5" step="0.1" min="0" max="100">
+                    </div>
+                </div>
 
-            <!-- 網站設定 -->
-            <div x-show="activeTab === 'site'" class="bg-white rounded-lg shadow-sm border p-6">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">網站設定</h2>
-                <form @submit.prevent="saveSettings('site')" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            網站 Logo URL
-                        </label>
-                        <input type="url" 
-                               x-model="settings.site.logo_url" 
-                               placeholder="https://example.com/logo.png"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            網站圖示 URL (Favicon)
-                        </label>
-                        <input type="url" 
-                               x-model="settings.site.favicon_url" 
-                               placeholder="https://example.com/favicon.ico"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            預設 OG 圖片
-                        </label>
-                        <input type="url" 
-                               x-model="settings.site.og_image" 
-                               placeholder="https://example.com/og-image.jpg"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Google Analytics ID
-                        </label>
-                        <input type="text" 
-                               x-model="settings.site.google_analytics_id" 
-                               placeholder="GA_MEASUREMENT_ID"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            每頁顯示文章數
-                        </label>
-                        <input type="number" 
-                               x-model="settings.site.posts_per_page" 
-                               min="1" max="100"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            每頁顯示商品數
-                        </label>
-                        <input type="number" 
-                               x-model="settings.site.products_per_page" 
-                               min="1" max="100"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="flex items-center">
-                            <input type="checkbox" 
-                                   x-model="settings.site.enable_comments" 
-                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <span class="ml-2 text-sm text-gray-700">啟用評論功能</span>
-                        </label>
-                    </div>
-                    <div>
-                        <label class="flex items-center">
-                            <input type="checkbox" 
-                                   x-model="settings.site.enable_registration" 
-                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <span class="ml-2 text-sm text-gray-700">允許使用者註冊</span>
-                        </label>
-                    </div>
-                </form>
-            </div>
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        儲存設定
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-            <!-- 郵件設定 -->
-            <div x-show="activeTab === 'email'" class="bg-white rounded-lg shadow-sm border p-6">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">郵件設定</h2>
-                <form @submit.prevent="saveSettings('email')" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            SMTP 伺服器
-                        </label>
-                        <input type="text" 
-                               x-model="settings.email.smtp_host" 
-                               placeholder="smtp.gmail.com"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            SMTP 埠號
-                        </label>
-                        <input type="number" 
-                               x-model="settings.email.smtp_port" 
-                               placeholder="587"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            SMTP 使用者名稱
-                        </label>
-                        <input type="text" 
-                               x-model="settings.email.smtp_username" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            SMTP 密碼
-                        </label>
-                        <input type="password" 
-                               x-model="settings.email.smtp_password" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            寄件者名稱
-                        </label>
-                        <input type="text" 
-                               x-model="settings.email.from_name" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            寄件者 Email
-                        </label>
-                        <input type="email" 
-                               x-model="settings.email.from_email" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="flex items-center">
-                            <input type="checkbox" 
-                                   x-model="settings.email.use_tls" 
-                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <span class="ml-2 text-sm text-gray-700">使用 TLS 加密</span>
-                        </label>
-                    </div>
-                    <div class="pt-4">
-                        <button type="button" 
-                                @click="testEmail()"
-                                class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
-                            測試郵件發送
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- 付款設定 -->
-            <div x-show="activeTab === 'payment'" class="bg-white rounded-lg shadow-sm border p-6">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">付款設定</h2>
-                <form @submit.prevent="saveSettings('payment')" class="space-y-6">
-                    <div>
-                        <h3 class="text-md font-medium text-gray-900 mb-3">基本設定</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    預設貨幣
-                                </label>
-                                <select x-model="settings.payment.default_currency" 
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="TWD">新台幣 (TWD)</option>
-                                    <option value="USD">美元 (USD)</option>
-                                    <option value="EUR">歐元 (EUR)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="flex items-center">
-                                    <input type="checkbox" 
-                                           x-model="settings.payment.enable_cod" 
-                                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                    <span class="ml-2 text-sm text-gray-700">啟用貨到付款</span>
-                                </label>
-                            </div>
-                            <div>
-                                <label class="flex items-center">
-                                    <input type="checkbox" 
-                                           x-model="settings.payment.enable_bank_transfer" 
-                                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                    <span class="ml-2 text-sm text-gray-700">啟用銀行轉帳</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 class="text-md font-medium text-gray-900 mb-3">信用卡付款 (Stripe)</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="flex items-center">
-                                    <input type="checkbox" 
-                                           x-model="settings.payment.stripe.enabled" 
-                                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                    <span class="ml-2 text-sm text-gray-700">啟用 Stripe 付款</span>
-                                </label>
-                            </div>
-                            <div x-show="settings.payment.stripe.enabled">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Stripe 公開金鑰
-                                </label>
-                                <input type="text" 
-                                       x-model="settings.payment.stripe.public_key" 
-                                       placeholder="pk_..."
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div x-show="settings.payment.stripe.enabled">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Stripe 私密金鑰
-                                </label>
-                                <input type="password" 
-                                       x-model="settings.payment.stripe.secret_key" 
-                                       placeholder="sk_..."
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <!-- 運送設定 -->
-            <div x-show="activeTab === 'shipping'" class="bg-white rounded-lg shadow-sm border p-6">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">運送設定</h2>
-                <form @submit.prevent="saveSettings('shipping')" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            預設運費
-                        </label>
-                        <input type="number" 
-                               x-model="settings.shipping.default_cost" 
-                               step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            免運費門檻
-                        </label>
-                        <input type="number" 
-                               x-model="settings.shipping.free_shipping_threshold" 
-                               step="0.01" min="0"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            預計運送天數
-                        </label>
-                        <input type="number" 
-                               x-model="settings.shipping.estimated_days" 
-                               min="1"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="flex items-center">
-                            <input type="checkbox" 
-                                   x-model="settings.shipping.enable_tracking" 
-                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <span class="ml-2 text-sm text-gray-700">啟用包裹追蹤</span>
-                        </label>
-                    </div>
-                </form>
-            </div>
-
-            <!-- 安全設定 -->
-            <div x-show="activeTab === 'security'" class="bg-white rounded-lg shadow-sm border p-6">
-                <h2 class="text-lg font-medium text-gray-900 mb-4">安全設定</h2>
-                <form @submit.prevent="saveSettings('security')" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            JWT Token 有效期 (小時)
-                        </label>
-                        <input type="number" 
-                               x-model="settings.security.jwt_expires_hours" 
-                               min="1" max="720"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            最大登入嘗試次數
-                        </label>
-                        <input type="number" 
-                               x-model="settings.security.max_login_attempts" 
-                               min="1" max="10"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            帳號鎖定時間 (分鐘)
-                        </label>
-                        <input type="number" 
-                               x-model="settings.security.lockout_duration_minutes" 
-                               min="5" max="1440"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="flex items-center">
-                            <input type="checkbox" 
-                                   x-model="settings.security.require_email_verification" 
-                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <span class="ml-2 text-sm text-gray-700">要求 Email 驗證</span>
-                        </label>
-                    </div>
-                    <div>
-                        <label class="flex items-center">
-                            <input type="checkbox" 
-                                   x-model="settings.security.enable_two_factor" 
-                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <span class="ml-2 text-sm text-gray-700">啟用雙因子認證</span>
-                        </label>
-                    </div>
-                </form>
-            </div>
+    <!-- 成功訊息提示 -->
+    <div id="success-message" class="hidden fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+            </svg>
+            <span>設定已成功儲存！</span>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-function settingsApp() {
-    return {
-        activeTab: 'general',
-        saving: false,
-        settings: {
-            general: {
-                site_name: '',
-                site_description: '',
-                admin_email: '',
-                timezone: 'Asia/Taipei',
-                default_language: 'zh-TW'
-            },
-            site: {
-                logo_url: '',
-                favicon_url: '',
-                og_image: '',
-                google_analytics_id: '',
-                posts_per_page: 10,
-                products_per_page: 12,
-                enable_comments: true,
-                enable_registration: true
-            },
-            email: {
-                smtp_host: '',
-                smtp_port: 587,
-                smtp_username: '',
-                smtp_password: '',
-                from_name: '',
-                from_email: '',
-                use_tls: true
-            },
-            payment: {
-                default_currency: 'TWD',
-                enable_cod: true,
-                enable_bank_transfer: true,
-                stripe: {
-                    enabled: false,
-                    public_key: '',
-                    secret_key: ''
-                }
-            },
-            shipping: {
-                default_cost: 100,
-                free_shipping_threshold: 1000,
-                estimated_days: 3,
-                enable_tracking: true
-            },
-            security: {
-                jwt_expires_hours: 24,
-                max_login_attempts: 5,
-                lockout_duration_minutes: 15,
-                require_email_verification: false,
-                enable_two_factor: false
+document.addEventListener('DOMContentLoaded', function() {
+    // 標籤頁切換
+    const tabLinks = document.querySelectorAll('.tab-link');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // 移除所有活動狀態
+            tabLinks.forEach(l => {
+                l.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                l.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            tabContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // 添加當前活動狀態
+            this.classList.add('active', 'border-blue-500', 'text-blue-600');
+            this.classList.remove('border-transparent', 'text-gray-500');
+            
+            // 顯示對應內容
+            const target = this.getAttribute('href').replace('#', '');
+            document.getElementById(target + '-tab').classList.remove('hidden');
+        });
+    });
+    
+    // 功能設定表單提交
+    document.getElementById('feature-settings-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const settings = {};
+        
+        // 收集所有 checkbox 狀態
+        const checkboxes = this.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            settings[checkbox.name] = checkbox.checked;
+        });
+        
+        try {
+            const response = await fetch('/api/settings/features', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(settings)
+            });
+            
+            if (response.ok) {
+                showSuccessMessage();
+                // 重新載入頁面以反映變更
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                alert('設定更新失敗，請稍後再試');
             }
-        },
-
-        async loadSettings() {
-            try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/settings/', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
+        } catch (error) {
+            console.error('Error:', error);
+            alert('設定更新失敗，請檢查網路連線');
+        }
+    });
+    
+    // 通用設定表單處理
+    const settingsForms = ['general-settings-form', 'seo-settings-form', 'ecommerce-settings-form'];
+    
+    settingsForms.forEach(formId => {
+        const form = document.getElementById(formId);
+        if (form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const settings = {};
+                
+                for (let [key, value] of formData.entries()) {
+                    settings[key] = value;
+                }
+                
+                // 處理 checkbox
+                const checkboxes = this.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    if (!settings[checkbox.name]) {
+                        settings[checkbox.name] = checkbox.checked;
                     }
                 });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    this.settings = { ...this.settings, ...data };
+                
+                try {
+                    const response = await fetch('/api/settings/bulk-update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ settings: settings })
+                    });
+                    
+                    if (response.ok) {
+                        showSuccessMessage();
+                    } else {
+                        alert('設定更新失敗，請稍後再試');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('設定更新失敗，請檢查網路連線');
                 }
-            } catch (error) {
-                console.error('載入設定失敗:', error);
-                this.showToast('載入設定失敗', 'error');
-            }
-        },
-
-        async saveSettings(category) {
-            try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch(`/api/settings/${category}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(this.settings[category])
-                });
-
-                if (response.ok) {
-                    this.showToast('設定已儲存', 'success');
-                } else {
-                    this.showToast('儲存失敗', 'error');
-                }
-            } catch (error) {
-                console.error('儲存設定失敗:', error);
-                this.showToast('儲存失敗', 'error');
-            }
-        },
-
-        async saveAllSettings() {
-            this.saving = true;
-            try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/settings/', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(this.settings)
-                });
-
-                if (response.ok) {
-                    this.showToast('所有設定已儲存', 'success');
-                } else {
-                    this.showToast('儲存失敗', 'error');
-                }
-            } catch (error) {
-                console.error('儲存設定失敗:', error);
-                this.showToast('儲存失敗', 'error');
-            } finally {
-                this.saving = false;
-            }
-        },
-
-        async testEmail() {
-            try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('/api/settings/test-email', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(this.settings.email)
-                });
-
-                if (response.ok) {
-                    this.showToast('測試郵件已發送', 'success');
-                } else {
-                    this.showToast('郵件發送失敗', 'error');
-                }
-            } catch (error) {
-                console.error('測試郵件失敗:', error);
-                this.showToast('測試失敗', 'error');
-            }
-        },
-
-        showToast(message, type) {
-            const toast = document.createElement('div');
-            toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg text-white z-50 ${
-                type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            }`;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
+            });
         }
+    });
+    
+    // 顯示成功訊息
+    function showSuccessMessage() {
+        const message = document.getElementById('success-message');
+        message.classList.remove('hidden');
+        
+        setTimeout(() => {
+            message.classList.add('hidden');
+        }, 3000);
     }
-}
+});
 </script>
 {% endblock %} 

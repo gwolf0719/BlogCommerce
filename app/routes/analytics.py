@@ -470,4 +470,420 @@ async def track_event(
         return {"status": "success", "message": "事件已記錄"}
         
     except Exception as e:
-        return {"status": "error", "message": f"事件記錄失敗: {str(e)}"} 
+        return {"status": "error", "message": f"事件記錄失敗: {str(e)}"}
+
+
+@router.get("/content-stats")
+async def get_content_stats_overview(
+    content_type: Optional[str] = None,
+    days: int = 30,
+    limit: int = 50,
+    offset: int = 0,
+    sort_by: str = "total_views",  # total_views, unique_views, today_views
+    db: Session = Depends(get_db)
+):
+    """獲取內容流量統計概覽 - 支援部落格和商品的詳細統計"""
+    try:
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # 基礎查詢
+        query = db.query(
+            PageView.content_id,
+            PageView.page_type,
+            func.count(PageView.id).label('total_views'),
+            func.count(func.distinct(PageView.visitor_ip)).label('unique_views'),
+            func.count(func.distinct(PageView.session_id)).label('unique_sessions')
+        ).filter(
+            and_(
+                PageView.created_at >= start_date,
+                PageView.created_at <= end_date,
+                PageView.content_id.isnot(None)
+            )
+        )
+        
+        # 篩選內容類型
+        if content_type:
+            query = query.filter(PageView.page_type == content_type)
+        else:
+            query = query.filter(PageView.page_type.in_(['blog', 'product']))
+        
+        # 分組並排序
+        stats = query.group_by(
+            PageView.content_id, 
+            PageView.page_type
+        ).order_by(
+            desc(sort_by) if sort_by in ['total_views', 'unique_views', 'unique_sessions'] 
+            else desc('total_views')
+        ).offset(offset).limit(limit).all()
+        
+        # 獲取內容詳細信息
+        content_list = []
+        for stat in stats:
+            content_info = {
+                'content_id': stat.content_id,
+                'content_type': stat.page_type,
+                'total_views': stat.total_views,
+                'unique_views': stat.unique_views,
+                'unique_sessions': stat.unique_sessions,
+                'title': '',
+                'url': '',
+                'published_at': None,
+                'author': '',
+                'category': ''
+            }
+            
+            # 獲取具體內容信息
+            if stat.page_type == 'blog':
+                post = db.query(Post).filter(Post.id == stat.content_id).first()
+                if post:
+                    content_info.update({
+                        'title': post.title,
+                        'url': f'/blog/{post.slug}',
+                        'published_at': post.published_at,
+                        'author': post.author_id,
+                        'category': post.categories[0].name if post.categories else ''
+                    })
+            elif stat.page_type == 'product':
+                product = db.query(Product).filter(Product.id == stat.content_id).first()
+                if product:
+                    content_info.update({
+                        'title': product.name,
+                        'url': f'/product/{product.slug}',
+                        'published_at': product.created_at,
+                        'author': '',
+                        'category': product.categories[0].name if product.categories else ''
+                    })
+            
+            # 獲取今日瀏覽數
+            today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            today_views = db.query(func.count(PageView.id)).filter(
+                and_(
+                    PageView.content_id == stat.content_id,
+                    PageView.page_type == stat.page_type,
+                    PageView.created_at >= today_start
+                )
+            ).scalar()
+            
+            content_info['today_views'] = today_views or 0
+            content_list.append(content_info)
+        
+        # 獲取總數
+        total_query = db.query(func.count(func.distinct(
+            func.concat(PageView.content_id, ':', PageView.page_type)
+        ))).filter(
+            and_(
+                PageView.created_at >= start_date,
+                PageView.created_at <= end_date,
+                PageView.content_id.isnot(None)
+            )
+        )
+        
+        if content_type:
+            total_query = total_query.filter(PageView.page_type == content_type)
+        else:
+            total_query = total_query.filter(PageView.page_type.in_(['blog', 'product']))
+        
+        total_count = total_query.scalar()
+        
+        return {
+            "content_stats": content_list,
+            "total_count": total_count,
+            "period_days": days,
+            "filters": {
+                "content_type": content_type,
+                "sort_by": sort_by
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取內容統計失敗: {str(e)}")
+
+
+@router.get("/content/{content_type}/{content_id}/detailed-stats")
+async def get_detailed_content_stats(
+    content_type: str,
+    content_id: int,
+    days: int = 30,
+    db: Session = Depends(get_db)
+):
+    """獲取單個內容的詳細統計數據"""
+    try:
+        if content_type not in ['blog', 'product']:
+            raise HTTPException(status_code=400, detail="內容類型必須是 blog 或 product")
+        
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # 獲取內容基本信息
+        content_info = {}
+        if content_type == 'blog':
+            post = db.query(Post).filter(Post.id == content_id).first()
+            if not post:
+                raise HTTPException(status_code=404, detail="文章不存在")
+            content_info = {
+                'id': post.id,
+                'title': post.title,
+                'slug': post.slug,
+                'url': f'/blog/{post.slug}',
+                'published_at': post.published_at,
+                'type': 'blog'
+            }
+        else:
+            product = db.query(Product).filter(Product.id == content_id).first()
+            if not product:
+                raise HTTPException(status_code=404, detail="商品不存在")
+            content_info = {
+                'id': product.id,
+                'title': product.name,
+                'slug': product.slug,
+                'url': f'/product/{product.slug}',
+                'published_at': product.created_at,
+                'type': 'product'
+            }
+        
+        # 總體統計
+        total_stats = db.query(
+            func.count(PageView.id).label('total_views'),
+            func.count(func.distinct(PageView.visitor_ip)).label('unique_visitors'),
+            func.count(func.distinct(PageView.session_id)).label('unique_sessions'),
+            func.avg(PageView.view_duration).label('avg_duration')
+        ).filter(
+            and_(
+                PageView.content_id == content_id,
+                PageView.page_type == content_type,
+                PageView.created_at >= start_date,
+                PageView.created_at <= end_date
+            )
+        ).first()
+        
+        # 每日統計
+        daily_stats = db.query(
+            func.date(PageView.created_at).label('date'),
+            func.count(PageView.id).label('views'),
+            func.count(func.distinct(PageView.visitor_ip)).label('unique_visitors')
+        ).filter(
+            and_(
+                PageView.content_id == content_id,
+                PageView.page_type == content_type,
+                PageView.created_at >= start_date,
+                PageView.created_at <= end_date
+            )
+        ).group_by(
+            func.date(PageView.created_at)
+        ).order_by(
+            func.date(PageView.created_at)
+        ).all()
+        
+        # 設備統計
+        device_stats = db.query(
+            PageView.device_type,
+            func.count(PageView.id).label('views')
+        ).filter(
+            and_(
+                PageView.content_id == content_id,
+                PageView.page_type == content_type,
+                PageView.created_at >= start_date,
+                PageView.created_at <= end_date
+            )
+        ).group_by(PageView.device_type).all()
+        
+        # 來源統計
+        referer_stats = db.query(
+            PageView.referer,
+            func.count(PageView.id).label('views')
+        ).filter(
+            and_(
+                PageView.content_id == content_id,
+                PageView.page_type == content_type,
+                PageView.created_at >= start_date,
+                PageView.created_at <= end_date,
+                PageView.referer.isnot(None),
+                PageView.referer != ''
+            )
+        ).group_by(PageView.referer).order_by(
+            desc('views')
+        ).limit(10).all()
+        
+        # 瀏覽器統計
+        browser_stats = db.query(
+            PageView.browser,
+            func.count(PageView.id).label('views')
+        ).filter(
+            and_(
+                PageView.content_id == content_id,
+                PageView.page_type == content_type,
+                PageView.created_at >= start_date,
+                PageView.created_at <= end_date
+            )
+        ).group_by(PageView.browser).order_by(
+            desc('views')
+        ).limit(10).all()
+        
+        # 地理位置統計
+        location_stats = db.query(
+            PageView.country,
+            func.count(PageView.id).label('views')
+        ).filter(
+            and_(
+                PageView.content_id == content_id,
+                PageView.page_type == content_type,
+                PageView.created_at >= start_date,
+                PageView.created_at <= end_date,
+                PageView.country.isnot(None)
+            )
+        ).group_by(PageView.country).order_by(
+            desc('views')
+        ).limit(10).all()
+        
+        return {
+            "content_info": content_info,
+            "period_days": days,
+            "total_stats": {
+                "total_views": total_stats.total_views or 0,
+                "unique_visitors": total_stats.unique_visitors or 0,
+                "unique_sessions": total_stats.unique_sessions or 0,
+                "avg_duration": round(total_stats.avg_duration or 0, 2)
+            },
+            "daily_stats": [
+                {
+                    "date": stat.date.strftime('%Y-%m-%d'),
+                    "views": stat.views,
+                    "unique_visitors": stat.unique_visitors
+                }
+                for stat in daily_stats
+            ],
+            "device_stats": [
+                {
+                    "device_type": stat.device_type or 'unknown',
+                    "views": stat.views
+                }
+                for stat in device_stats
+            ],
+            "referer_stats": [
+                {
+                    "referer": stat.referer,
+                    "views": stat.views
+                }
+                for stat in referer_stats
+            ],
+            "browser_stats": [
+                {
+                    "browser": stat.browser or 'unknown',
+                    "views": stat.views
+                }
+                for stat in browser_stats
+            ],
+            "location_stats": [
+                {
+                    "country": stat.country or 'unknown',
+                    "views": stat.views
+                }
+                for stat in location_stats
+            ]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取詳細統計失敗: {str(e)}")
+
+
+@router.get("/top-content-by-category")
+async def get_top_content_by_category(
+    content_type: str = "blog",  # blog 或 product
+    days: int = 30,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """獲取按分類的熱門內容統計"""
+    try:
+        if content_type not in ['blog', 'product']:
+            raise HTTPException(status_code=400, detail="內容類型必須是 blog 或 product")
+        
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # 基礎統計查詢
+        view_stats = db.query(
+            PageView.content_id,
+            func.count(PageView.id).label('total_views'),
+            func.count(func.distinct(PageView.visitor_ip)).label('unique_views')
+        ).filter(
+            and_(
+                PageView.page_type == content_type,
+                PageView.content_id.isnot(None),
+                PageView.created_at >= start_date,
+                PageView.created_at <= end_date
+            )
+        ).group_by(PageView.content_id).subquery()
+        
+        # 獲取分類信息
+        if content_type == 'blog':
+            from app.models.post import post_categories
+            from app.models.category import Category
+            
+            result = db.query(
+                Post.id,
+                Post.title,
+                Post.slug,
+                Category.name.label('category_name'),
+                view_stats.c.total_views,
+                view_stats.c.unique_views
+            ).join(
+                view_stats, Post.id == view_stats.c.content_id
+            ).join(
+                post_categories, Post.id == post_categories.c.post_id
+            ).join(
+                Category, post_categories.c.category_id == Category.id
+            ).order_by(
+                desc(view_stats.c.total_views)
+            ).limit(limit).all()
+            
+        else:  # product
+            from app.models.product import product_categories
+            from app.models.category import Category
+            
+            result = db.query(
+                Product.id,
+                Product.name.label('title'),
+                Product.slug,
+                Category.name.label('category_name'),
+                view_stats.c.total_views,
+                view_stats.c.unique_views
+            ).join(
+                view_stats, Product.id == view_stats.c.content_id
+            ).join(
+                product_categories, Product.id == product_categories.c.product_id
+            ).join(
+                Category, product_categories.c.category_id == Category.id
+            ).order_by(
+                desc(view_stats.c.total_views)
+            ).limit(limit).all()
+        
+        # 整理結果
+        content_by_category = {}
+        for item in result:
+            category = item.category_name
+            if category not in content_by_category:
+                content_by_category[category] = []
+            
+            content_by_category[category].append({
+                'id': item.id,
+                'title': item.title,
+                'slug': item.slug,
+                'url': f'/{content_type}/{item.slug}' if content_type == 'blog' else f'/product/{item.slug}',
+                'total_views': item.total_views or 0,
+                'unique_views': item.unique_views or 0
+            })
+        
+        return {
+            "content_type": content_type,
+            "period_days": days,
+            "content_by_category": content_by_category
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取分類統計失敗: {str(e)}") 

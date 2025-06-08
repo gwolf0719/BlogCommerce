@@ -5,7 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 from app.database import init_db
+from app.middleware import get_feature_settings, get_public_settings
 from app.routes import categories, posts, auth, products, orders, admin, cart, analytics, tags, favorites
+from app.routes import settings as settings_router
 
 # 建立 FastAPI 應用程式
 app = FastAPI(
@@ -44,6 +46,7 @@ app.include_router(cart.router)
 app.include_router(analytics.router)
 app.include_router(tags.router)
 app.include_router(favorites.router)
+app.include_router(settings_router.router)
 
 # 啟動事件
 @app.on_event("startup")
@@ -187,6 +190,11 @@ async def admin_settings_page(request: Request):
 @app.get("/admin/analytics")
 async def admin_analytics_page(request: Request):
     return templates.TemplateResponse("admin/analytics.html", {"request": request, "settings": settings})
+
+@app.get("/admin/content-analytics")
+async def admin_content_analytics_page(request: Request):
+    """內容流量統計頁面"""
+    return templates.TemplateResponse("admin/content_analytics.html", {"request": request, "settings": settings})
 
 # 標籤相關路由
 @app.get("/tags")

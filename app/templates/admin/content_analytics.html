@@ -1,0 +1,299 @@
+{% extends "admin/base.html" %}
+
+{% block title %}內容流量統計 - {{ settings.site_name }}{% endblock %}
+
+{% block content %}
+<div x-data="contentAnalyticsApp()" x-init="loadContentStats()">
+    <!-- 頁面標題 -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">內容流量統計</h1>
+        <p class="text-gray-600">部落格文章和商品頁面的詳細流量分析</p>
+    </div>
+
+    <!-- 篩選控制 -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- 內容類型選擇 -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">內容類型</label>
+                <select x-model="filters.contentType" @change="loadContentStats()" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                    <option value="">全部</option>
+                    <option value="blog">部落格文章</option>
+                    <option value="product">商品頁面</option>
+                </select>
+            </div>
+            
+            <!-- 時間範圍 -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">時間範圍</label>
+                <select x-model="filters.days" @change="loadContentStats()" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                    <option value="7">過去 7 天</option>
+                    <option value="30">過去 30 天</option>
+                    <option value="90">過去 90 天</option>
+                    <option value="365">過去一年</option>
+                </select>
+            </div>
+            
+            <!-- 排序方式 -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">排序方式</label>
+                <select x-model="filters.sortBy" @change="loadContentStats()" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                    <option value="total_views">總瀏覽量</option>
+                    <option value="unique_views">獨立訪客</option>
+                    <option value="today_views">今日瀏覽</option>
+                    <option value="unique_sessions">獨立會話</option>
+                </select>
+            </div>
+            
+            <!-- 每頁顯示數量 -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">每頁顯示</label>
+                <select x-model="filters.limit" @change="loadContentStats()" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                    <option value="20">20 項</option>
+                    <option value="50">50 項</option>
+                    <option value="100">100 項</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 統計概覽 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">總內容數</p>
+                    <p class="text-2xl font-semibold text-gray-900" x-text="overview.totalContent || 0"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">總瀏覽量</p>
+                    <p class="text-2xl font-semibold text-gray-900" x-text="overview.totalViews || 0"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">獨立訪客</p>
+                    <p class="text-2xl font-semibold text-gray-900" x-text="overview.uniqueVisitors || 0"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">平均瀏覽量</p>
+                    <p class="text-2xl font-semibold text-gray-900" x-text="overview.avgViews || 0"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 內容統計表格 -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">內容流量排行</h3>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">排名</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">內容</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">類型</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分類</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">總瀏覽</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">獨立訪客</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">今日瀏覽</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">發布日期</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <template x-for="(content, index) in contentStats" :key="content.content_id">
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" x-text="index + 1"></td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900" x-text="content.title"></div>
+                                <div class="text-sm text-gray-500" x-text="content.url"></div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                                      :class="content.content_type === 'blog' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'"
+                                      x-text="content.content_type === 'blog' ? '部落格' : '商品'"></span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="content.category || '-'"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="content.total_views"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="content.unique_views"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="content.today_views"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(content.published_at)"></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button @click="viewDetailedStats(content.content_type, content.content_id)" 
+                                        class="text-blue-600 hover:text-blue-900 mr-3">詳細統計</button>
+                                <a :href="content.url" target="_blank" class="text-gray-600 hover:text-gray-900">查看</a>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 分頁 -->
+        <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                <button @click="previousPage()" :disabled="currentPage <= 1"
+                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    上一頁
+                </button>
+                <button @click="nextPage()" :disabled="currentPage >= totalPages"
+                        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    下一頁
+                </button>
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        顯示第 <span class="font-medium" x-text="((currentPage - 1) * filters.limit) + 1"></span> 到 
+                        <span class="font-medium" x-text="Math.min(currentPage * filters.limit, totalCount)"></span> 項，
+                        共 <span class="font-medium" x-text="totalCount"></span> 項結果
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        <button @click="previousPage()" :disabled="currentPage <= 1"
+                                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            上一頁
+                        </button>
+                        <button @click="nextPage()" :disabled="currentPage >= totalPages"
+                                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            下一頁
+                        </button>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 載入中狀態 -->
+    <div x-show="loading" class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+</div>
+
+<script>
+function contentAnalyticsApp() {
+    return {
+        contentStats: [],
+        overview: {},
+        filters: {
+            contentType: '',
+            days: 30,
+            sortBy: 'total_views',
+            limit: 20
+        },
+        currentPage: 1,
+        totalCount: 0,
+        totalPages: 0,
+        loading: false,
+
+        async loadContentStats() {
+            this.loading = true;
+            try {
+                const offset = (this.currentPage - 1) * this.filters.limit;
+                const params = new URLSearchParams({
+                    days: this.filters.days,
+                    limit: this.filters.limit,
+                    offset: offset,
+                    sort_by: this.filters.sortBy
+                });
+                
+                if (this.filters.contentType) {
+                    params.append('content_type', this.filters.contentType);
+                }
+                
+                const response = await fetch(`/api/analytics/content-stats?${params}`);
+                const data = await response.json();
+                
+                this.contentStats = data.content_stats || [];
+                this.totalCount = data.total_count || 0;
+                this.totalPages = Math.ceil(this.totalCount / this.filters.limit);
+                
+                // 計算概覽統計
+                this.overview = {
+                    totalContent: this.totalCount,
+                    totalViews: this.contentStats.reduce((sum, item) => sum + item.total_views, 0),
+                    uniqueVisitors: this.contentStats.reduce((sum, item) => sum + item.unique_views, 0),
+                    avgViews: this.contentStats.length > 0 ? 
+                        Math.round(this.contentStats.reduce((sum, item) => sum + item.total_views, 0) / this.contentStats.length) : 0
+                };
+                
+            } catch (error) {
+                console.error('載入內容統計失敗:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async viewDetailedStats(contentType, contentId) {
+            alert(`查看 ${contentType} ID: ${contentId} 的詳細統計 (功能開發中)`);
+        },
+
+        previousPage() {
+            if (this.currentPage > 1) {
+                this.currentPage--;
+                this.loadContentStats();
+            }
+        },
+
+        nextPage() {
+            if (this.currentPage < this.totalPages) {
+                this.currentPage++;
+                this.loadContentStats();
+            }
+        },
+
+        formatDate(dateString) {
+            if (!dateString) return '-';
+            return new Date(dateString).toLocaleDateString('zh-TW');
+        }
+    };
+}
+</script>
+{% endblock %} 
