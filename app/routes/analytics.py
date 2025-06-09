@@ -540,8 +540,8 @@ async def get_content_stats_overview(
                     content_info.update({
                         'title': post.title,
                         'url': f'/blog/{post.slug}',
-                        'published_at': post.published_at,
-                        'author': post.author_id,
+                        'published_at': post.created_at,
+                        'author': '',
                         'category': post.categories[0].name if post.categories else ''
                     })
             elif stat.page_type == 'product':
@@ -626,7 +626,7 @@ async def get_detailed_content_stats(
                 'title': post.title,
                 'slug': post.slug,
                 'url': f'/blog/{post.slug}',
-                'published_at': post.published_at,
+                'published_at': post.created_at,
                 'type': 'blog'
             }
         else:

@@ -12,7 +12,7 @@ from app.models.tag import Tag
 from app.schemas.user import UserResponse, UserUpdate
 from app.schemas.post import PostResponse, PostCreate, PostUpdate
 from app.schemas.product import ProductResponse, ProductCreate, ProductUpdate
-from app.schemas.order import OrderResponse, OrderUpdate
+from app.schemas.order import OrderResponse, OrderUpdate, OrderListResponse
 from app.config import settings
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -282,7 +282,7 @@ def admin_delete_product(
 # 訂單管理
 # ==============================================
 
-@router.get("/orders", response_model=List[OrderResponse])
+@router.get("/orders", response_model=List[OrderListResponse])
 def get_all_orders_admin(
     skip: int = Query(0, ge=0),
     limit: int = Query(settings.orders_per_page, ge=1, le=100),
@@ -291,7 +291,9 @@ def get_all_orders_admin(
     db: Session = Depends(get_db)
 ):
     """取得所有訂單列表（管理員）"""
-    query = db.query(Order)
+    from sqlalchemy.orm import selectinload
+    
+    query = db.query(Order).options(selectinload(Order.items))
     
     if search:
         query = query.filter(
@@ -301,7 +303,21 @@ def get_all_orders_admin(
         )
     
     orders = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
-    return orders
+    
+    # 轉換為 OrderListResponse 格式
+    result = []
+    for order in orders:
+        result.append({
+            "id": order.id,
+            "order_number": order.order_number,
+            "customer_name": order.customer_name,
+            "total_amount": order.total_amount,
+            "status": order.status,
+            "created_at": order.created_at.isoformat() if order.created_at else None,
+            "items_count": len(order.items)
+        })
+    
+    return result
 
 
 @router.put("/orders/{order_id}", response_model=OrderResponse)
@@ -360,4 +376,114 @@ def get_admin_stats(
     
     stats["total_sales"] = float(total_sales)
     
-    return stats 
+    return stats
+
+
+# ==============================================
+# AI 設定管理
+# ==============================================
+
+@router.put("/settings/ai")
+async def update_ai_settings(
+    settings_data: dict,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """更新AI設定"""
+    from app.models.settings import SystemSettings
+    
+    try:
+        for key, value in settings_data.items():
+            if key.startswith('ai_'):
+                # 查找現有設定
+                setting = db.query(SystemSettings).filter(
+                    SystemSettings.key == key
+                ).first()
+                
+                if setting:
+                    # 根據數據類型轉換值
+                    if setting.data_type == "boolean":
+                        setting.value = str(value).lower()
+                    else:
+                        setting.value = str(value)
+                else:
+                    # 創建新設定
+                    setting = SystemSettings(
+                        key=key,
+                        value=str(value),
+                        category="ai",
+                        data_type="boolean" if isinstance(value, bool) else "string"
+                    )
+                    db.add(setting)
+        
+        db.commit()
+        return {"message": "AI設定更新成功"}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"更新設定失敗: {str(e)}")
+
+
+@router.post("/posts/generate")
+async def generate_ai_post(
+    generation_request: dict,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """使用AI生成文章"""
+    from app.services.ai_service import AIService
+    
+    try:
+        user_prompt = generation_request.get("prompt", "")
+        title_hint = generation_request.get("title_hint", "")
+        generate_image = generation_request.get("generate_image", True)
+        
+        if not user_prompt:
+            raise HTTPException(status_code=400, detail="請提供文章提示詞")
+        
+        async with AIService() as ai_service:
+            if not ai_service.is_ai_enabled():
+                raise HTTPException(status_code=400, detail="AI功能未啟用，請先在系統設定中啟用")
+            
+            result = await ai_service.generate_complete_article(
+                user_prompt=user_prompt,
+                title_hint=title_hint,
+                generate_image=generate_image
+            )
+            
+            if not result["success"]:
+                raise HTTPException(status_code=400, detail=result["error"])
+            
+            return {
+                "success": True,
+                "data": result["data"],
+                "message": "文章生成成功"
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI生成失敗: {str(e)}")
+
+
+@router.get("/ai/status")
+async def get_ai_status(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """檢查AI功能狀態"""
+    from app.services.ai_service import AIService
+    
+    try:
+        async with AIService() as ai_service:
+            return {
+                "ai_enabled": ai_service.is_ai_enabled(),
+                "image_generation_enabled": ai_service.is_image_generation_enabled(),
+                "settings": ai_service.get_ai_settings()
+            }
+    except Exception as e:
+        return {
+            "ai_enabled": False,
+            "image_generation_enabled": False,
+            "error": str(e)
+        } 

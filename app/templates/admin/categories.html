@@ -256,7 +256,7 @@ function categoriesApp() {
             this.loading = true;
             try {
                 const params = new URLSearchParams({
-                    page: this.currentPage,
+                    skip: (this.currentPage - 1) * this.pageSize,
                     limit: this.pageSize,
                     ...(this.searchName && { name: this.searchName }),
                     ...(this.typeFilter && { type: this.typeFilter })
@@ -265,9 +265,12 @@ function categoriesApp() {
                 const response = await fetch(`/api/categories/?${params}`);
                 if (response.ok) {
                     const data = await response.json();
-                    this.categories = data.items || data;
+                    this.categories = Array.isArray(data) ? data : data.items || [];
                     this.total = data.total || this.categories.length;
                     this.totalPages = Math.ceil(this.total / this.pageSize);
+                } else {
+                    console.error('載入分類失敗:', response.status, response.statusText);
+                    this.showToast('載入分類失敗', 'error');
                 }
             } catch (error) {
                 console.error('載入分類失敗:', error);
@@ -293,6 +296,7 @@ function categoriesApp() {
                 type: category.type
             };
             this.showEditModal = true;
+            this.showCreateModal = false;
         },
 
         async createCategory() {
@@ -311,9 +315,10 @@ function categoriesApp() {
                 if (response.ok) {
                     this.showToast('分類已新增', 'success');
                     this.closeModal();
-                    this.loadCategories();
+                    await this.loadCategories();
                 } else {
-                    this.showToast('新增失敗', 'error');
+                    const errorData = await response.json();
+                    this.showToast(errorData.detail || '新增失敗', 'error');
                 }
             } catch (error) {
                 console.error('新增分類失敗:', error);
@@ -339,9 +344,10 @@ function categoriesApp() {
                 if (response.ok) {
                     this.showToast('分類已更新', 'success');
                     this.closeModal();
-                    this.loadCategories();
+                    await this.loadCategories();
                 } else {
-                    this.showToast('更新失敗', 'error');
+                    const errorData = await response.json();
+                    this.showToast(errorData.detail || '更新失敗', 'error');
                 }
             } catch (error) {
                 console.error('更新分類失敗:', error);
@@ -367,9 +373,10 @@ function categoriesApp() {
 
                 if (response.ok) {
                     this.showToast('分類已刪除', 'success');
-                    this.loadCategories();
+                    await this.loadCategories();
                 } else {
-                    this.showToast('刪除失敗', 'error');
+                    const errorData = await response.json();
+                    this.showToast(errorData.detail || '刪除失敗', 'error');
                 }
             } catch (error) {
                 console.error('刪除分類失敗:', error);
@@ -427,7 +434,9 @@ function categoriesApp() {
             document.body.appendChild(toast);
             
             setTimeout(() => {
-                toast.remove();
+                if (document.body.contains(toast)) {
+                    toast.remove();
+                }
             }, 3000);
         }
     }

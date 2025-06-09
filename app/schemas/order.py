@@ -1,6 +1,7 @@
 from typing import Optional, List
 from decimal import Decimal
-from pydantic import validator
+from datetime import datetime
+from pydantic import validator, field_serializer
 from app.schemas.base import BaseSchema, BaseResponseSchema
 from app.models.order import OrderStatus
 
@@ -101,6 +102,15 @@ class OrderResponse(OrderBase, BaseResponseSchema):
     status: OrderStatus
     items: List[OrderItemResponse] = []
 
+    @field_serializer('created_at')
+    def serialize_created_at(self, value, _info) -> str:
+        if hasattr(value, 'isoformat'):
+            return value.isoformat()
+        elif isinstance(value, str):
+            return value
+        else:
+            return str(value) if value else None
+
 
 class OrderListResponse(BaseSchema):
     """訂單列表回應（簡化版）"""
@@ -110,4 +120,20 @@ class OrderListResponse(BaseSchema):
     total_amount: Decimal
     status: OrderStatus
     created_at: str
-    items_count: int 
+    items_count: int = 0
+
+    @field_serializer('created_at')
+    def serialize_created_at(self, value, _info) -> str:
+        if hasattr(value, 'isoformat'):
+            return value.isoformat()
+        elif isinstance(value, str):
+            return value
+        else:
+            return str(value) if value else None
+
+    @field_serializer('total_amount')
+    def serialize_total_amount(self, value, _info) -> str:
+        return str(value) if value else "0.00"
+
+    class Config:
+        from_attributes = True 

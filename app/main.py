@@ -1,13 +1,17 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from fastapi.exception_handlers import http_exception_handler
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 from app.config import settings
 from app.database import init_db
 from app.middleware import get_feature_settings, get_public_settings
 from app.routes import categories, posts, auth, products, orders, admin, cart, analytics, tags, favorites
 from app.routes import settings as settings_router
+from app.utils.logger import app_logger, log_api_error, log_validation_error, LoggingMiddleware
 
 # 建立 FastAPI 應用程式
 app = FastAPI(
@@ -16,6 +20,9 @@ app = FastAPI(
     version="1.0.0",
     debug=settings.debug
 )
+
+# 日誌中間件
+app.add_middleware(LoggingMiddleware)
 
 # Session 中介軟體（用於購物車功能）
 app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
@@ -48,11 +55,39 @@ app.include_router(tags.router)
 app.include_router(favorites.router)
 app.include_router(settings_router.router)
 
+# 全局異常處理器
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request: Request, exc: HTTPException):
+    """處理HTTP異常"""
+    log_api_error(f"{request.method} {request.url.path}", exc, {"status_code": exc.status_code})
+    return await http_exception_handler(request, exc)
+
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(request: Request, exc: ValidationError):
+    """處理驗證錯誤"""
+    log_validation_error("Request", exc.errors(), None)
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "驗證錯誤", "errors": exc.errors()}
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """處理一般異常"""
+    log_api_error(f"{request.method} {request.url.path}", exc)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "內部服務器錯誤"}
+    )
+
 # 啟動事件
 @app.on_event("startup")
 async def startup_event():
     """應用程式啟動時初始化資料庫"""
+    app_logger.info("應用程式正在啟動...")
     init_db()
+    app_logger.info("資料庫初始化完成")
+    app_logger.info(f"應用程式已啟動，運行在 {settings.debug and 'DEBUG' or 'PRODUCTION'} 模式")
 
 # 前端路由
 @app.get("/")
@@ -183,9 +218,7 @@ async def admin_orders_page(request: Request):
 async def admin_categories_page(request: Request):
     return templates.TemplateResponse("admin/categories.html", {"request": request, "settings": settings})
 
-@app.get("/admin/settings")
-async def admin_settings_page(request: Request):
-    return templates.TemplateResponse("admin/settings.html", {"request": request, "settings": settings})
+# 注意：/admin/settings 路由已在 settings.py 中定義，此處不再重複定義
 
 @app.get("/admin/analytics")
 async def admin_analytics_page(request: Request):

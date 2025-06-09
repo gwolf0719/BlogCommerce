@@ -78,27 +78,41 @@ input:checked + .slider:before {
     </div>
 
     <!-- 設定標籤頁 -->
-    <div class="mb-6">
+    <div class="mb-6" x-data="{ activeTab: 'features' }">
         <div class="border-b border-gray-200">
             <nav class="-mb-px flex space-x-8">
-                <a href="#features" class="tab-link active border-blue-500 text-blue-600 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                <button @click="activeTab = 'features'" 
+                        :class="activeTab === 'features' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
                     功能開關
-                </a>
-                <a href="#general" class="tab-link border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                </button>
+                <button @click="activeTab = 'general'" 
+                        :class="activeTab === 'general' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
                     基本設定
-                </a>
-                <a href="#seo" class="tab-link border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                </button>
+                <button @click="activeTab = 'seo'" 
+                        :class="activeTab === 'seo' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
                     SEO 設定
-                </a>
-                <a href="#ecommerce" class="tab-link border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                </button>
+                <button @click="activeTab = 'ecommerce'" 
+                        :class="activeTab === 'ecommerce' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
                     電商設定
-                </a>
+                </button>
+                <button @click="activeTab = 'ai'" 
+                        :class="activeTab === 'ai' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                    AI 設定
+                </button>
             </nav>
         </div>
-    </div>
+    
+        <!-- 功能開關設定 -->
+        <div x-show="activeTab === 'features'" class="tab-content">
 
-    <!-- 功能開關設定 -->
-    <div id="features-tab" class="tab-content">
+
         <div class="settings-card bg-white rounded-xl shadow-sm p-6 mb-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">功能開關</h2>
             <p class="text-gray-600 mb-6">控制網站各項功能的啟用狀態</p>
@@ -187,8 +201,8 @@ input:checked + .slider:before {
         </div>
     </div>
 
-    <!-- 基本設定 -->
-    <div id="general-tab" class="tab-content hidden">
+        <!-- 基本設定 -->
+        <div x-show="activeTab === 'general'" class="tab-content">
         <div class="settings-card bg-white rounded-xl shadow-sm p-6 mb-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">基本設定</h2>
             <p class="text-gray-600 mb-6">網站基本資訊設定</p>
@@ -230,8 +244,8 @@ input:checked + .slider:before {
         </div>
     </div>
 
-    <!-- SEO 設定 -->
-    <div id="seo-tab" class="tab-content hidden">
+        <!-- SEO 設定 -->
+        <div x-show="activeTab === 'seo'" class="tab-content">
         <div class="settings-card bg-white rounded-xl shadow-sm p-6 mb-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">SEO 設定</h2>
             <p class="text-gray-600 mb-6">搜尋引擎優化相關設定</p>
@@ -271,8 +285,8 @@ input:checked + .slider:before {
         </div>
     </div>
 
-    <!-- 電商設定 -->
-    <div id="ecommerce-tab" class="tab-content hidden">
+        <!-- 電商設定 -->
+        <div x-show="activeTab === 'ecommerce'" class="tab-content">
         <div class="settings-card bg-white rounded-xl shadow-sm p-6 mb-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">電商設定</h2>
             <p class="text-gray-600 mb-6">商店相關功能設定</p>
@@ -315,6 +329,131 @@ input:checked + .slider:before {
         </div>
     </div>
 
+        <!-- AI 設定 -->
+        <div x-show="activeTab === 'ai'" class="tab-content">
+        <div class="settings-card bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                <svg class="w-6 h-6 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+                AI 生成設定
+            </h2>
+            <p class="text-gray-600 mb-6">配置AI文章生成功能和相關參數</p>
+            
+            <form id="ai-settings-form">
+                <!-- AI 功能開關 -->
+                <div class="mb-8">
+                    <div class="feature-item">
+                        <div>
+                            <h3 class="font-medium text-gray-900">啟用 AI 文章生成</h3>
+                            <p class="text-sm text-gray-500">啟用後可以使用AI來協助生成文章內容</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="ai_enabled" name="ai_enabled" {% if ai_settings.ai_enabled %}checked{% endif %}>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- AI API 設定 -->
+                <div id="ai-config" class="space-y-6" {% if not ai_settings.ai_enabled %}style="display: none;"{% endif %}>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">AI 服務提供商</label>
+                            <select name="ai_api_provider" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500">
+                                <option value="openai" {% if ai_settings.ai_api_provider == 'openai' %}selected{% endif %}>OpenAI</option>
+                                <option value="anthropic" {% if ai_settings.ai_api_provider == 'anthropic' %}selected{% endif %}>Anthropic (Claude)</option>
+                                <option value="custom" {% if ai_settings.ai_api_provider == 'custom' %}selected{% endif %}>自定義</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">API 基礎 URL</label>
+                            <input type="url" name="ai_api_url" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500" 
+                                   value="{% if ai_settings.ai_api_url %}{{ ai_settings.ai_api_url }}{% else %}https://api.openai.com/v1{% endif %}" 
+                                   placeholder="https://api.openai.com/v1">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">API 金鑰</label>
+                        <input type="password" name="ai_api_key" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500" 
+                               value="{{ ai_settings.ai_api_key or '' }}" 
+                               placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                        <p class="text-xs text-gray-500 mt-1">請輸入您的AI服務API金鑰，這將安全地儲存在系統中</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">文字生成模型</label>
+                            <input type="text" name="ai_text_model" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500" 
+                                   value="{{ ai_settings.ai_text_model or 'gpt-3.5-turbo' }}" 
+                                   placeholder="gpt-3.5-turbo">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">最大 Token 數</label>
+                            <input type="number" name="ai_max_tokens" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500" 
+                                   value="{{ ai_settings.ai_max_tokens or 2000 }}" 
+                                   min="100" max="4000">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">創意度 (0-1)</label>
+                        <input type="range" name="ai_temperature" class="w-full" 
+                               value="{{ ai_settings.ai_temperature or 0.7 }}" 
+                               min="0" max="1" step="0.1" 
+                               oninput="this.nextElementSibling.value = this.value">
+                        <output class="text-sm text-gray-600">{{ ai_settings.ai_temperature or 0.7 }}</output>
+                        <p class="text-xs text-gray-500 mt-1">較低值生成更保守的內容，較高值生成更有創意的內容</p>
+                    </div>
+
+                    <!-- 圖片生成設定 -->
+                    <div class="border-t pt-6">
+                        <div class="feature-item mb-4">
+                            <div>
+                                <h3 class="font-medium text-gray-900">啟用 AI 圖片生成</h3>
+                                <p class="text-sm text-gray-500">同時生成文章的特色圖片</p>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="ai_image_enabled" name="ai_image_enabled" {% if ai_settings.ai_image_enabled %}checked{% endif %}>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div id="image-config" {% if not ai_settings.ai_image_enabled %}style="display: none;"{% endif %}>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">圖片生成模型</label>
+                                <select name="ai_image_model" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500">
+                                    <option value="dall-e-3" {% if ai_settings.ai_image_model == 'dall-e-3' %}selected{% endif %}>DALL-E 3</option>
+                                    <option value="dall-e-2" {% if ai_settings.ai_image_model == 'dall-e-2' %}selected{% endif %}>DALL-E 2</option>
+                                    <option value="midjourney" {% if ai_settings.ai_image_model == 'midjourney' %}selected{% endif %}>Midjourney</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 全站風格提示詞 -->
+                    <div class="border-t pt-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">全站風格提示詞</label>
+                        <textarea name="ai_global_prompt" rows="5" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500" 
+                                  placeholder="輸入全站AI生成的風格和要求...">{{ ai_settings.ai_global_prompt or '你是一個專業的部落格文章寫手，請根據用戶提供的主題和要求，撰寫高質量的中文部落格文章。文章應該結構清晰、內容豐富、語言流暢，並符合SEO最佳實踐。' }}</textarea>
+                        <p class="text-xs text-gray-500 mt-1">這個提示詞會應用到所有AI生成的文章，用來定義文章的整體風格和品質標準</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        儲存 AI 設定
+                    </button>
+                </div>
+            </form>
+        </div>
+        </div>
+    </div>
+
     <!-- 成功訊息提示 -->
     <div id="success-message" class="hidden fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
         <div class="flex items-center">
@@ -330,33 +469,7 @@ input:checked + .slider:before {
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 標籤頁切換
-    const tabLinks = document.querySelectorAll('.tab-link');
-    const tabContents = document.querySelectorAll('.tab-content');
-    
-    tabLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // 移除所有活動狀態
-            tabLinks.forEach(l => {
-                l.classList.remove('active', 'border-blue-500', 'text-blue-600');
-                l.classList.add('border-transparent', 'text-gray-500');
-            });
-            
-            tabContents.forEach(content => {
-                content.classList.add('hidden');
-            });
-            
-            // 添加當前活動狀態
-            this.classList.add('active', 'border-blue-500', 'text-blue-600');
-            this.classList.remove('border-transparent', 'text-gray-500');
-            
-            // 顯示對應內容
-            const target = this.getAttribute('href').replace('#', '');
-            document.getElementById(target + '-tab').classList.remove('hidden');
-        });
-    });
+    console.log('Settings page loaded');
     
     // 功能設定表單提交
     document.getElementById('feature-settings-form').addEventListener('submit', async function(e) {
@@ -372,10 +485,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         try {
+            const token = localStorage.getItem('access_token');
             const response = await fetch('/api/settings/features', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(settings)
             });
@@ -395,6 +510,65 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // AI 設定切換邏輯
+    document.getElementById('ai_enabled').addEventListener('change', function() {
+        const aiConfig = document.getElementById('ai-config');
+        if (this.checked) {
+            aiConfig.style.display = 'block';
+        } else {
+            aiConfig.style.display = 'none';
+        }
+    });
+
+    document.getElementById('ai_image_enabled').addEventListener('change', function() {
+        const imageConfig = document.getElementById('image-config');
+        if (this.checked) {
+            imageConfig.style.display = 'block';
+        } else {
+            imageConfig.style.display = 'none';
+        }
+    });
+
+    // AI 設定表單提交
+    document.getElementById('ai-settings-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const settings = {};
+        
+        // 收集所有表單數據
+        for (let [key, value] of formData.entries()) {
+            settings[key] = value;
+        }
+        
+        // 處理 checkbox
+        const checkboxes = this.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            settings[checkbox.name] = checkbox.checked;
+        });
+        
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/settings/ai', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(settings)
+            });
+            
+            if (response.ok) {
+                showSuccessMessage();
+            } else {
+                alert('AI設定更新失敗，請稍後再試');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('AI設定更新失敗，請檢查網路連線');
+        }
+    });
+
     // 通用設定表單處理
     const settingsForms = ['general-settings-form', 'seo-settings-form', 'ecommerce-settings-form'];
     
@@ -420,10 +594,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 try {
+                    const token = localStorage.getItem('access_token');
                     const response = await fetch('/api/settings/bulk-update', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
                         },
                         body: JSON.stringify({ settings: settings })
                     });

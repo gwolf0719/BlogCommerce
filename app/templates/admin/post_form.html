@@ -154,6 +154,109 @@
                     </div>
                 </div>
 
+                <!-- AI 生成功能 -->
+                <div class="bg-white rounded-lg shadow-sm border p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                        <svg class="w-5 h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        AI 文章生成
+                    </h3>
+                    
+                    <div x-show="!aiEnabled" class="text-center py-8">
+                        <div class="text-gray-400 mb-2">
+                            <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                        <p class="text-gray-500 mb-4">AI 功能未啟用</p>
+                        <a href="/admin/settings" class="text-purple-600 hover:text-purple-700 text-sm">
+                            前往系統設定啟用 →
+                        </a>
+                    </div>
+
+                    <div x-show="aiEnabled">
+                        <div x-show="!showAiForm">
+                            <button @click="showAiForm = true" 
+                                    class="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                使用 AI 生成文章
+                            </button>
+                        </div>
+
+                        <div x-show="showAiForm" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    文章提示詞 <span class="text-red-500">*</span>
+                                </label>
+                                <textarea x-model="aiPrompt" 
+                                          rows="4" 
+                                          placeholder="請描述您想要生成的文章內容，例如：寫一篇關於AI在教育領域應用的文章，包含現狀分析、未來趨勢和實際案例..."
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500">
+                                </textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    標題提示（可選）
+                                </label>
+                                <input type="text" 
+                                       x-model="titleHint" 
+                                       placeholder="給AI一個標題方向，例如：創新教學"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500">
+                            </div>
+
+                            <div class="flex items-center space-x-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" 
+                                           x-model="generateImage" 
+                                           class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                                    <span class="ml-2 text-sm text-gray-700">同時生成特色圖片</span>
+                                </label>
+                            </div>
+
+                            <div class="flex space-x-3">
+                                <button @click="generateAiContent()" 
+                                        :disabled="generating || !aiPrompt.trim()"
+                                        class="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center">
+                                    <span x-show="!generating">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                        </svg>
+                                        生成文章
+                                    </span>
+                                    <span x-show="generating">
+                                        <svg class="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        生成中...
+                                    </span>
+                                </button>
+                                <button @click="showAiForm = false; aiPrompt = ''; titleHint = ''" 
+                                        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                                    取消
+                                </button>
+                            </div>
+
+                            <div x-show="aiError" class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm text-red-800" x-text="aiError"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 特色圖片 -->
                 <div class="bg-white rounded-lg shadow-sm border p-6">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">特色圖片</h3>
@@ -275,11 +378,110 @@ function postFormApp() {
         saving: false,
         saveStatus: null,
         postId: {% if post_id %}{{ post_id }}{% else %}null{% endif %},
+        
+        // AI 功能相關
+        aiEnabled: false,
+        showAiForm: false,
+        aiPrompt: '',
+        titleHint: '',
+        generateImage: true,
+        generating: false,
+        aiError: null,
 
         async init() {
             await this.loadCategories();
             if (this.postId) {
                 await this.loadPost();
+            }
+            await this.checkAiStatus();
+        },
+
+        // AI 功能相關方法
+        async checkAiStatus() {
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/admin/ai/status', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (response.ok) {
+                    const status = await response.json();
+                    this.aiEnabled = status.ai_enabled;
+                }
+            } catch (error) {
+                console.error('檢查AI狀態失敗:', error);
+                this.aiEnabled = false;
+            }
+        },
+
+        async generateAiContent() {
+            if (!this.aiPrompt.trim()) {
+                this.aiError = '請輸入文章提示詞';
+                return;
+            }
+
+            this.generating = true;
+            this.aiError = null;
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/admin/posts/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        prompt: this.aiPrompt,
+                        title_hint: this.titleHint,
+                        generate_image: this.generateImage
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        const data = result.data;
+                        
+                        // 填充生成的內容到表單
+                        this.form.title = data.title || '';
+                        this.form.excerpt = data.excerpt || '';
+                        this.form.content = data.content || '';
+                        this.form.meta_title = data.title || '';
+                        this.form.meta_description = data.meta_description || data.excerpt || '';
+                        
+                        // 如果生成了圖片，設置特色圖片
+                        if (data.featured_image) {
+                            this.form.featured_image = data.featured_image;
+                        }
+                        
+                        // 設置標籤
+                        if (data.tags && Array.isArray(data.tags)) {
+                            this.form.tags = data.tags;
+                        }
+                        
+                        // 自動生成slug
+                        this.generateSlug();
+                        
+                        // 關閉AI表單
+                        this.showAiForm = false;
+                        this.aiPrompt = '';
+                        this.titleHint = '';
+                        
+                        this.showToast('AI文章生成成功！請檢查內容後發布', 'success');
+                    } else {
+                        this.aiError = result.error || 'AI生成失敗';
+                    }
+                } else {
+                    const errorData = await response.json();
+                    this.aiError = errorData.detail || 'AI生成請求失敗';
+                }
+            } catch (error) {
+                console.error('AI生成失敗:', error);
+                this.aiError = '網路錯誤，請稍後再試';
+            } finally {
+                this.generating = false;
             }
         },
 

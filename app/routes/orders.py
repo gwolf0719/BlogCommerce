@@ -13,6 +13,7 @@ from app.schemas.order import (
 )
 from app.auth import get_current_active_user, get_current_admin_user
 from datetime import datetime
+from sqlalchemy import func, and_
 
 router = APIRouter(prefix="/api/orders", tags=["orders"])
 
@@ -164,13 +165,29 @@ def get_orders(
     db: Session = Depends(get_db)
 ):
     """取得所有訂單 (管理員用)"""
-    query = db.query(Order)
+    from sqlalchemy.orm import selectinload
+    
+    query = db.query(Order).options(selectinload(Order.items))
     
     if status:
         query = query.filter(Order.status == status)
     
     orders = query.offset(skip).limit(limit).all()
-    return orders
+    
+    # 轉換為 OrderListResponse 格式
+    result = []
+    for order in orders:
+        result.append({
+            "id": order.id,
+            "order_number": order.order_number,
+            "customer_name": order.customer_name,
+            "total_amount": order.total_amount,
+            "status": order.status,
+            "created_at": order.created_at.isoformat() if order.created_at else None,
+            "items_count": len(order.items)
+        })
+    
+    return result
 
 
 @router.get("/my", response_model=List[OrderResponse])
@@ -284,35 +301,63 @@ def delete_order(order_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/stats/overview")
-def get_order_stats(db: Session = Depends(get_db)):
-    """取得訂單統計 (管理員用)"""
-    from sqlalchemy import func
-    
-    # 總訂單數
-    total_orders = db.query(func.count(Order.id)).scalar()
-    
-    # 各狀態訂單數
-    pending_orders = db.query(func.count(Order.id)).filter(Order.status == OrderStatus.pending).scalar()
-    processing_orders = db.query(func.count(Order.id)).filter(Order.status == OrderStatus.processing).scalar()
-    shipped_orders = db.query(func.count(Order.id)).filter(Order.status == OrderStatus.shipped).scalar()
-    delivered_orders = db.query(func.count(Order.id)).filter(Order.status == OrderStatus.delivered).scalar()
-    cancelled_orders = db.query(func.count(Order.id)).filter(Order.status == OrderStatus.cancelled).scalar()
-    
-    # 總營收
-    total_revenue = db.query(func.sum(Order.total_amount)).filter(
-        Order.status.in_([OrderStatus.delivered, OrderStatus.shipped])
-    ).scalar() or 0
-    
-    # 平均訂單金額
-    avg_order_amount = db.query(func.avg(Order.total_amount)).scalar() or 0
-    
-    return {
-        "total_orders": total_orders,
-        "pending_orders": pending_orders,
-        "processing_orders": processing_orders,
-        "shipped_orders": shipped_orders,
-        "delivered_orders": delivered_orders,
-        "cancelled_orders": cancelled_orders,
-        "total_revenue": float(total_revenue),
-        "avg_order_amount": float(avg_order_amount)
-    } 
+async def get_order_stats_overview(
+    db: Session = Depends(get_db)
+):
+    """獲取訂單總體統計"""
+    try:
+        # 計算總訂單數
+        total_orders = db.query(func.count(Order.id)).scalar()
+        
+        # 計算各狀態訂單數
+        pending_orders = db.query(func.count(Order.id)).filter(Order.status == OrderStatus.PENDING).scalar()
+        confirmed_orders = db.query(func.count(Order.id)).filter(Order.status == OrderStatus.CONFIRMED).scalar()
+        shipped_orders = db.query(func.count(Order.id)).filter(Order.status == OrderStatus.SHIPPED).scalar()
+        delivered_orders = db.query(func.count(Order.id)).filter(Order.status == OrderStatus.DELIVERED).scalar()
+        cancelled_orders = db.query(func.count(Order.id)).filter(Order.status == OrderStatus.CANCELLED).scalar()
+        
+        # 計算總銷售額
+        total_revenue = db.query(
+            func.coalesce(func.sum(Order.total_amount), 0)
+        ).filter(Order.status.in_([OrderStatus.CONFIRMED, OrderStatus.SHIPPED, OrderStatus.DELIVERED])).scalar()
+        
+        # 計算今日訂單數
+        today = datetime.now().date()
+        today_orders = db.query(func.count(Order.id)).filter(
+            func.date(Order.created_at) == today
+        ).scalar()
+        
+        # 計算今日銷售額
+        today_revenue = db.query(
+            func.coalesce(func.sum(Order.total_amount), 0)
+        ).filter(
+            and_(
+                func.date(Order.created_at) == today,
+                Order.status.in_([OrderStatus.CONFIRMED, OrderStatus.SHIPPED, OrderStatus.DELIVERED])
+            )
+        ).scalar()
+        
+        return {
+            "total_orders": total_orders or 0,
+            "pending_orders": pending_orders or 0,
+            "confirmed_orders": confirmed_orders or 0,
+            "shipped_orders": shipped_orders or 0,
+            "delivered_orders": delivered_orders or 0,
+            "cancelled_orders": cancelled_orders or 0,
+            "completed_orders": delivered_orders or 0,
+            "processing_orders": (pending_orders or 0) + (confirmed_orders or 0) + (shipped_orders or 0),
+            "total_revenue": float(total_revenue or 0),
+            "today_orders": today_orders or 0,
+            "today_revenue": float(today_revenue or 0)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取訂單統計失敗: {str(e)}")
+
+
+# 添加路由別名以符合前端API調用
+@router.get("/stats")
+async def get_order_stats_alias(
+    db: Session = Depends(get_db)
+):
+    """獲取訂單統計（別名路由）"""
+    return await get_order_stats_overview(db) 

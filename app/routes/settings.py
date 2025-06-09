@@ -241,12 +241,77 @@ async def update_feature_settings(
     return {"message": "功能設定已更新"}
 
 
-# 管理後台頁面路由
+@router.get("/api/settings/ai")
+async def get_ai_settings(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """獲取AI設定"""
+    manager = SettingsManager(db)
+    ai_settings = manager.get_category_settings("ai")
+    
+    # 設定預設值
+    defaults = {
+        "ai_enabled": False,
+        "ai_api_provider": "openai",
+        "ai_api_key": "",
+        "ai_api_url": "https://api.openai.com/v1",
+        "ai_text_model": "gpt-3.5-turbo",
+        "ai_image_enabled": False,
+        "ai_image_model": "dall-e-3",
+        "ai_global_prompt": "你是一個專業的部落格文章寫手，請根據用戶提供的主題和要求，撰寫高質量的中文部落格文章。文章應該結構清晰、內容豐富、語言流暢，並符合SEO最佳實踐。",
+        "ai_max_tokens": 2000,
+        "ai_temperature": 0.7
+    }
+    
+    for key, default_value in defaults.items():
+        if key not in ai_settings:
+            ai_settings[key] = default_value
+    
+    return ai_settings
+
+
+@router.put("/api/settings/ai")
+async def update_ai_settings(
+    ai_data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """更新AI設定"""
+    manager = SettingsManager(db)
+    
+    # 更新AI設定
+    for key, value in ai_data.items():
+        if key.startswith("ai_"):
+            # 根據鍵名推斷描述
+            descriptions = {
+                "ai_enabled": "啟用AI文章生成功能",
+                "ai_api_provider": "AI服務提供商",
+                "ai_api_key": "AI API金鑰",
+                "ai_api_url": "AI API基礎URL",
+                "ai_text_model": "文字生成模型",
+                "ai_image_enabled": "啟用AI圖片生成",
+                "ai_image_model": "圖片生成模型",
+                "ai_global_prompt": "全站AI生成風格提示詞",
+                "ai_max_tokens": "AI生成最大token數",
+                "ai_temperature": "AI生成創意度(0-1)"
+            }
+            
+            manager.set_setting(
+                key, value,
+                category="ai",
+                description=descriptions.get(key, f"AI設定：{key}"),
+                is_public=False
+            )
+    
+    return {"message": "AI設定已更新"}
+
+
+# 管理後台頁面路由（認證由前端JavaScript處理）
 @router.get("/admin/settings", response_class=HTMLResponse)
 async def admin_settings_page(
     request: Request,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_admin_user)
+    db: Session = Depends(get_db)
 ):
     """設定管理頁面"""
     manager = SettingsManager(db)
@@ -261,9 +326,13 @@ async def admin_settings_page(
         newsletter_enabled=manager.get_setting("newsletter_enabled", False)
     )
     
+    # 獲取AI設定
+    ai_settings = manager.get_category_settings("ai")
+    
     return templates.TemplateResponse("admin/settings.html", {
         "request": request,
-        "user": current_user,
         "features": features,
-        "active_tab": "settings"
+        "ai_settings": ai_settings,
+        "active_tab": "settings",
+        "settings": manager.get_public_settings()  # 添加全局設定
     }) 

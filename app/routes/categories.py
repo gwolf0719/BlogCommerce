@@ -4,6 +4,8 @@ from typing import List, Optional
 from app.database import get_db
 from app.models.category import Category, CategoryType
 from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryResponse, CategoryWithCounts
+from app.auth import get_current_admin_user
+from app.models.user import User
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
 
@@ -55,8 +57,12 @@ def get_category_by_slug(slug: str, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=CategoryResponse)
-def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
-    """建立新分類"""
+def create_category(
+    category: CategoryCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """建立新分類（需要管理員權限）"""
     # 檢查名稱是否重複
     existing = db.query(Category).filter(
         Category.name == category.name,
@@ -83,9 +89,10 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
 def update_category(
     category_id: int,
     category_update: CategoryUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
 ):
-    """更新分類"""
+    """更新分類（需要管理員權限）"""
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="分類不存在")
@@ -112,8 +119,12 @@ def update_category(
 
 
 @router.delete("/{category_id}")
-def delete_category(category_id: int, db: Session = Depends(get_db)):
-    """刪除分類"""
+def delete_category(
+    category_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """刪除分類（需要管理員權限）"""
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
         raise HTTPException(status_code=404, detail="分類不存在")
