@@ -565,7 +565,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.querySelector('input[name="ai_api_url"]').addEventListener('change', loadModels);
-    document.addEventListener('DOMContentLoaded', loadModels);
+    // 初始載入模型列表
+    loadModels();
 
     document.getElementById('ai_image_enabled').addEventListener('change', function() {
         const imageConfig = document.getElementById('image-config');
