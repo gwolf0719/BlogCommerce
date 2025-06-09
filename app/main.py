@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from app.config import settings
 from app.database import init_db
 from app.middleware import get_feature_settings, get_public_settings
-from app.routes import categories, posts, auth, products, orders, admin, cart, analytics, tags, favorites
+from app.routes import categories, posts, auth, products, orders, admin, cart, analytics, tags, favorites, newsletter
 from app.routes import settings as settings_router
 from app.utils.logger import app_logger, log_api_error, log_validation_error, LoggingMiddleware
 
@@ -53,6 +53,7 @@ app.include_router(cart.router)
 app.include_router(analytics.router)
 app.include_router(tags.router)
 app.include_router(favorites.router)
+app.include_router(newsletter.router)
 app.include_router(settings_router.router)
 
 # 全局異常處理器

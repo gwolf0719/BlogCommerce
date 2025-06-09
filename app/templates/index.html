@@ -399,8 +399,22 @@ function homeApp() {
         },
         
         async subscribe() {
-            // 這裡可以添加訂閱邏輯
-            this.showNotification('感謝您的訂閱！', 'success');
+            try {
+                const response = await fetch('/api/newsletter/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: this.email })
+                });
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.detail || '訂閱失敗');
+                }
+                this.email = '';
+                this.showNotification('感謝您的訂閱！', 'success');
+            } catch (error) {
+                console.error('訂閱錯誤:', error);
+                this.showNotification(error.message || '訂閱失敗', 'error');
+            }
         }
     }
 }
