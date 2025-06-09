@@ -2,188 +2,230 @@
 
 {% block title %}流量統計 - {{ settings.site_name }}{% endblock %}
 
-{% block admin_content %}
-<div x-data="analyticsApp()" x-init="loadStats()">
+{% block content %}
+<div x-data="analyticsApp()" x-init="loadData()">
     <!-- 頁面標題 -->
     <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">流量統計</h1>
-        <p class="text-gray-600">網站訪問數據分析與統計</p>
+        <h1 class="text-2xl font-bold text-gray-900">流量分析</h1>
+        <p class="text-gray-600">網站流量趨勢分析與熱門內容統計</p>
     </div>
 
-    <!-- 時間範圍選擇 -->
-    <div class="mb-6">
-        <div class="flex space-x-4">
-            <select x-model="selectedPeriod" @change="loadStats()" class="border border-gray-300 rounded-lg px-3 py-2">
-                <option value="7">過去 7 天</option>
-                <option value="30">過去 30 天</option>
-                <option value="90">過去 90 天</option>
-            </select>
-            
-            <button @click="loadRealtime()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
-                <span class="flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
-                    即時統計
-                </span>
+    <!-- 時間維度控制 -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <!-- 時間粒度選擇 -->
+            <div class="flex items-center space-x-4">
+                <label class="text-sm font-medium text-gray-700">時間維度：</label>
+                <div class="flex rounded-lg border border-gray-300 overflow-hidden">
+                    <button 
+                        @click="setGranularity('hour')"
+                        :class="granularity === 'hour' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                        class="px-4 py-2 text-sm font-medium transition-colors"
+                    >
+                        分時
+                    </button>
+                    <button 
+                        @click="setGranularity('day')"
+                        :class="granularity === 'day' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                        class="px-4 py-2 text-sm font-medium border-l border-gray-300 transition-colors"
+                    >
+                        分日
+                    </button>
+                    <button 
+                        @click="setGranularity('month')"
+                        :class="granularity === 'month' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                        class="px-4 py-2 text-sm font-medium border-l border-gray-300 transition-colors"
+                    >
+                        分月
+                    </button>
+                </div>
+            </div>
+
+            <!-- 時間範圍選擇 -->
+            <div class="flex items-center space-x-4">
+                <label class="text-sm font-medium text-gray-700">時間範圍：</label>
+                <select 
+                    x-model="days" 
+                    @change="loadData()"
+                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    :disabled="granularity === 'hour'"
+                >
+                    <option value="1" x-show="granularity === 'hour'">今天</option>
+                    <option value="7" x-show="granularity === 'day'">過去 7 天</option>
+                    <option value="30" x-show="granularity === 'day'">過去 30 天</option>
+                    <option value="90" x-show="granularity === 'day'">過去 90 天</option>
+                    <option value="30" x-show="granularity === 'month'">過去 30 天</option>
+                    <option value="90" x-show="granularity === 'month'">過去 90 天</option>
+                    <option value="365" x-show="granularity === 'month'">過去一年</option>
+                </select>
+            </div>
+
+            <!-- 重新整理按鈕 -->
+            <button 
+                @click="loadData()" 
+                :disabled="loading"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+                <svg class="w-4 h-4" :class="loading ? 'animate-spin' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span>重新整理</span>
             </button>
         </div>
     </div>
 
-    <!-- 概覽卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- 總瀏覽量 -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">總瀏覽量</p>
-                    <p class="text-2xl font-semibold text-gray-900" x-text="stats.total_views || 0"></p>
-                </div>
-            </div>
-        </div>
-
-        <!-- 獨立訪客 -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">獨立訪客</p>
-                    <p class="text-2xl font-semibold text-gray-900" x-text="stats.unique_visitors || 0"></p>
-                </div>
-            </div>
-        </div>
-
-        <!-- 獨立 IP -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">獨立 IP</p>
-                    <p class="text-2xl font-semibold text-gray-900" x-text="stats.unique_ips || 0"></p>
-                </div>
-            </div>
-        </div>
-
-        <!-- 在線用戶 -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                    </div>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">在線用戶</p>
-                    <p class="text-2xl font-semibold text-gray-900" x-text="realtime.active_users || 0"></p>
-                </div>
-            </div>
+    <!-- 流量趨勢圖表 -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+            流量趨勢 - 
+            <span x-text="granularity === 'hour' ? '今日分時' : (granularity === 'day' ? '每日統計' : '每月統計')"></span>
+        </h3>
+        <div class="h-96">
+            <canvas id="trendChart"></canvas>
         </div>
     </div>
 
-    <!-- 圖表區域 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <!-- 每日趨勢圖 -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">每日瀏覽趨勢</h3>
-            <div class="h-64">
-                <canvas id="dailyTrendChart"></canvas>
+    <!-- Top10 內容表格 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Top10 部落格文章 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    熱門文章 TOP10
+                </h3>
+                <p class="text-sm text-gray-600 mt-1">
+                    <span x-text="getTimeRangeText()"></span> 瀏覽量排行
+                </p>
+            </div>
+            <div class="overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">排名</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">文章</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">瀏覽量</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <template x-for="(post, index) in topPosts" :key="post.id">
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <span 
+                                            :class="index < 3 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'"
+                                            class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium"
+                                            x-text="index + 1"
+                                        ></span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center">
+                                        <img 
+                                            x-show="post.featured_image"
+                                            :src="post.featured_image" 
+                                            :alt="post.title"
+                                            class="w-10 h-10 rounded-lg object-cover mr-3"
+                                        >
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-gray-900 truncate" x-text="post.title"></p>
+                                            <p class="text-xs text-gray-500" x-text="`獨立訪客: ${post.unique_views}`"></p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right">
+                                    <div class="text-sm font-medium text-gray-900" x-text="post.views"></div>
+                                </td>
+                            </tr>
+                        </template>
+                        <tr x-show="topPosts.length === 0 && !loading">
+                            <td colspan="3" class="px-6 py-8 text-center text-gray-500">
+                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <p>暫無數據</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <!-- 頁面類型統計 -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">頁面類型分佈</h3>
-            <div class="h-64">
-                <canvas id="pageTypeChart"></canvas>
+        <!-- Top10 商品 -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                    </svg>
+                    熱門商品 TOP10
+                </h3>
+                <p class="text-sm text-gray-600 mt-1">
+                    <span x-text="getTimeRangeText()"></span> 瀏覽量排行
+                </p>
             </div>
-        </div>
-    </div>
-
-    <!-- 設備統計 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <!-- 設備類型 -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">設備類型</h3>
-            <div class="space-y-3">
-                <template x-for="device in stats.devices || []" :key="device.device">
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-600" x-text="getDeviceName(device.device)"></span>
-                        <div class="flex items-center space-x-2">
-                            <div class="w-32 bg-gray-200 rounded-full h-2">
-                                <div class="h-2 bg-blue-600 rounded-full" 
-                                     :style="`width: ${getPercentage(device.views, getTotalViews())}%`"></div>
-                            </div>
-                            <span class="text-sm font-medium text-gray-900" x-text="device.views"></span>
-                        </div>
-                    </div>
-                </template>
+            <div class="overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">排名</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">商品</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">瀏覽量</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <template x-for="(product, index) in topProducts" :key="product.id">
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <span 
+                                            :class="index < 3 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'"
+                                            class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium"
+                                            x-text="index + 1"
+                                        ></span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center">
+                                        <img 
+                                            x-show="product.featured_image"
+                                            :src="product.featured_image" 
+                                            :alt="product.title"
+                                            class="w-10 h-10 rounded-lg object-cover mr-3"
+                                        >
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-gray-900 truncate" x-text="product.title"></p>
+                                            <p class="text-xs text-gray-500" x-text="`獨立訪客: ${product.unique_views}`"></p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right">
+                                    <div class="text-sm font-medium text-gray-900" x-text="product.views"></div>
+                                </td>
+                            </tr>
+                        </template>
+                        <tr x-show="topProducts.length === 0 && !loading">
+                            <td colspan="3" class="px-6 py-8 text-center text-gray-500">
+                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                                </svg>
+                                <p>暫無數據</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        </div>
-
-        <!-- 熱門內容 -->
-        <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">熱門內容</h3>
-            <div class="space-y-3">
-                <template x-for="content in popularContent.slice(0, 5)" :key="content.content_id">
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div class="flex-1">
-                            <p class="font-medium text-gray-900 text-sm" x-text="content.title"></p>
-                            <p class="text-xs text-gray-500" x-text="content.content_type === 'blog' ? '部落格文章' : '商品頁面'"></p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm font-semibold text-gray-900" x-text="content.total_views"></p>
-                            <p class="text-xs text-gray-500">瀏覽</p>
-                        </div>
-                    </div>
-                </template>
-            </div>
-        </div>
-    </div>
-
-    <!-- 實時活動 -->
-    <div x-show="showRealtime" class="bg-white rounded-lg shadow p-6 mb-8">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">實時活動</h3>
-        <div class="space-y-2">
-            <template x-for="view in realtime.recent_views || []" :key="view.time">
-                <div class="flex items-center justify-between p-2 border-l-2 border-blue-500 bg-blue-50">
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-gray-900" x-text="view.page_url"></p>
-                        <p class="text-xs text-gray-500" x-text="formatTime(view.time)"></p>
-                    </div>
-                    <div class="text-right">
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800" 
-                              x-text="view.device"></span>
-                    </div>
-                </div>
-            </template>
         </div>
     </div>
 
     <!-- 載入中狀態 -->
-    <div x-show="loading" class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <div x-show="loading" class="fixed inset-0 bg-black bg-opacity-25 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 flex items-center space-x-3">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span class="text-gray-700">載入中...</span>
+        </div>
     </div>
 </div>
 
@@ -193,160 +235,162 @@
 <script>
 function analyticsApp() {
     return {
-        stats: {},
-        realtime: {},
-        popularContent: [],
-        selectedPeriod: 30,
+        granularity: 'day',
+        days: 30,
         loading: false,
-        showRealtime: false,
-        dailyChart: null,
-        pageChart: null,
+        trendChart: null,
+        trendData: null,
+        topPosts: [],
+        topProducts: [],
         
-        async loadStats() {
+        async loadData() {
             this.loading = true;
             try {
-                // 載入概覽統計
-                const response = await fetch(`/api/analytics/stats/overview?days=${this.selectedPeriod}`);
-                if (response.ok) {
-                    this.stats = await response.json();
-                    this.updateCharts();
+                // 調整天數基於時間粒度
+                let adjustedDays = this.days;
+                if (this.granularity === 'hour') {
+                    adjustedDays = 1; // 分時只看當天
                 }
+                
+                // 載入趨勢數據
+                await this.loadTrendData(adjustedDays);
                 
                 // 載入熱門內容
-                const popularResponse = await fetch('/api/analytics/popular/content?limit=10');
-                if (popularResponse.ok) {
-                    this.popularContent = await popularResponse.json();
-                }
+                await this.loadTopContent(adjustedDays);
                 
             } catch (error) {
-                console.error('載入統計失敗:', error);
+                console.error('載入數據失敗:', error);
+                alert('載入數據失敗，請重試');
             } finally {
                 this.loading = false;
             }
         },
         
-        async loadRealtime() {
-            this.showRealtime = true;
+        async loadTrendData(days) {
             try {
-                const response = await fetch('/api/analytics/realtime');
+                const response = await fetch(`/api/analytics/trend/time-series?granularity=${this.granularity}&days=${days}`);
                 if (response.ok) {
-                    this.realtime = await response.json();
+                    this.trendData = await response.json();
+                    this.updateTrendChart();
+                } else {
+                    throw new Error('載入趨勢數據失敗');
                 }
             } catch (error) {
-                console.error('載入實時統計失敗:', error);
+                console.error('載入趨勢數據失敗:', error);
             }
         },
         
-        updateCharts() {
+        async loadTopContent(days) {
+            try {
+                // 載入熱門文章
+                const postsResponse = await fetch(`/api/analytics/top-content?content_type=blog&granularity=${this.granularity}&days=${days}&limit=10`);
+                if (postsResponse.ok) {
+                    this.topPosts = await postsResponse.json();
+                }
+                
+                // 載入熱門商品
+                const productsResponse = await fetch(`/api/analytics/top-content?content_type=product&granularity=${this.granularity}&days=${days}&limit=10`);
+                if (productsResponse.ok) {
+                    this.topProducts = await productsResponse.json();
+                }
+            } catch (error) {
+                console.error('載入熱門內容失敗:', error);
+            }
+        },
+        
+        setGranularity(newGranularity) {
+            this.granularity = newGranularity;
+            
+            // 根據時間粒度調整預設天數
+            if (newGranularity === 'hour') {
+                this.days = 1;
+            } else if (newGranularity === 'day') {
+                this.days = 30;
+            } else if (newGranularity === 'month') {
+                this.days = 365;
+            }
+            
+            this.loadData();
+        },
+        
+        updateTrendChart() {
             this.$nextTick(() => {
-                this.createDailyTrendChart();
-                this.createPageTypeChart();
-            });
-        },
-        
-        createDailyTrendChart() {
-            const ctx = document.getElementById('dailyTrendChart');
-            if (!ctx || !this.stats.daily_trend) return;
-            
-            if (this.dailyChart) {
-                this.dailyChart.destroy();
-            }
-            
-            this.dailyChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: this.stats.daily_trend.map(d => d.date),
-                    datasets: [{
-                        label: '瀏覽量',
-                        data: this.stats.daily_trend.map(d => d.views),
-                        borderColor: 'rgb(59, 130, 246)',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.1
-                    }, {
-                        label: '訪客數',
-                        data: this.stats.daily_trend.map(d => d.visitors),
-                        borderColor: 'rgb(16, 185, 129)',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
+                const ctx = document.getElementById('trendChart');
+                if (!ctx || !this.trendData) return;
+                
+                if (this.trendChart) {
+                    this.trendChart.destroy();
+                }
+                
+                this.trendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: this.trendData.labels,
+                        datasets: this.trendData.datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: (context) => {
+                                        const label = context[0].label;
+                                        if (this.granularity === 'hour') {
+                                            return `${label} (今日)`;
+                                        } else if (this.granularity === 'day') {
+                                            return `${label}`;
+                                        } else {
+                                            return `${label}`;
+                                        }
+                                    },
+                                    label: (context) => {
+                                        return `${context.dataset.label}: ${context.parsed.y} 次瀏覽`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: this.granularity === 'hour' ? '時間' : (this.granularity === 'day' ? '日期' : '月份')
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: '瀏覽量'
+                                },
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
                         }
                     }
-                }
+                });
             });
         },
         
-        createPageTypeChart() {
-            const ctx = document.getElementById('pageTypeChart');
-            if (!ctx || !this.stats.page_types) return;
-            
-            if (this.pageChart) {
-                this.pageChart.destroy();
+        getTimeRangeText() {
+            if (this.granularity === 'hour') {
+                return '今日';
+            } else if (this.granularity === 'day') {
+                return `過去 ${this.days} 天`;
+            } else {
+                return `過去 ${Math.floor(this.days / 30)} 個月`;
             }
-            
-            this.pageChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: this.stats.page_types.map(p => this.getPageTypeName(p.type)),
-                    datasets: [{
-                        data: this.stats.page_types.map(p => p.views),
-                        backgroundColor: [
-                            '#3B82F6',
-                            '#10B981',
-                            '#F59E0B',
-                            '#EF4444',
-                            '#8B5CF6',
-                            '#EC4899'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-        },
-        
-        getDeviceName(device) {
-            const names = {
-                'desktop': '桌面電腦',
-                'mobile': '手機',
-                'tablet': '平板電腦'
-            };
-            return names[device] || device;
-        },
-        
-        getPageTypeName(type) {
-            const names = {
-                'home': '首頁',
-                'blog': '部落格文章',
-                'blog_list': '部落格列表',
-                'product': '商品頁面',
-                'product_list': '商品列表',
-                'cart': '購物車',
-                'checkout': '結帳',
-                'other': '其他'
-            };
-            return names[type] || type;
-        },
-        
-        getTotalViews() {
-            return (this.stats.devices || []).reduce((total, device) => total + device.views, 0);
-        },
-        
-        getPercentage(value, total) {
-            return total > 0 ? Math.round((value / total) * 100) : 0;
-        },
-        
-        formatTime(timeString) {
-            const date = new Date(timeString);
-            return date.toLocaleTimeString('zh-TW');
         }
     }
 }

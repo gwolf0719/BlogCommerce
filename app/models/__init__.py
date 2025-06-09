@@ -8,8 +8,8 @@ from .product import Product
 from .order import Order, OrderItem, OrderStatus
 from .settings import SystemSettings
 from .newsletter import NewsletterSubscriber, NewsletterCampaign
-from .newsletter import NewsletterSubscriber, NewsletterCampaign
-from .newsletter import NewsletterSubscriber, NewsletterCampaign
+from .analytics import PageView, DailyStats, PopularContent, UserSession
+from .favorite import Favorite
 
 __all__ = [
     "BaseModel",
@@ -20,5 +20,7 @@ __all__ = [
     "Product",
     "Order", "OrderItem", "OrderStatus",
     "SystemSettings",
-    "NewsletterSubscriber", "NewsletterCampaign"
+    "NewsletterSubscriber", "NewsletterCampaign",
+    "PageView", "DailyStats", "PopularContent", "UserSession",
+    "Favorite"
 ] 

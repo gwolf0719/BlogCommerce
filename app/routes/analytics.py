@@ -886,4 +886,267 @@ async def get_top_content_by_category(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取分類統計失敗: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"獲取分類統計失敗: {str(e)}")
+
+
+@router.get("/trend/time-series")
+async def get_time_series_trends(
+    granularity: str = "day",  # hour, day, month
+    days: int = 30,
+    db: Session = Depends(get_db)
+):
+    """獲取時間序列趨勢數據"""
+    try:
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        if granularity == "hour":
+            # 按小時統計（僅限當天）
+            start_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            blog_query = db.query(
+                extract('hour', PageView.created_at).label('time_unit'),
+                func.count(PageView.id).label('views')
+            ).filter(
+                and_(
+                    PageView.created_at >= start_date,
+                    PageView.page_type == 'blog'
+                )
+            ).group_by(extract('hour', PageView.created_at))
+            
+            product_query = db.query(
+                extract('hour', PageView.created_at).label('time_unit'),
+                func.count(PageView.id).label('views')
+            ).filter(
+                and_(
+                    PageView.created_at >= start_date,
+                    PageView.page_type == 'product'
+                )
+            ).group_by(extract('hour', PageView.created_at))
+            
+            # 生成24小時的完整數據
+            time_labels = [f"{i:02d}:00" for i in range(24)]
+            
+        elif granularity == "day":
+            # 按天統計
+            blog_query = db.query(
+                func.date(PageView.created_at).label('time_unit'),
+                func.count(PageView.id).label('views')
+            ).filter(
+                and_(
+                    PageView.created_at >= start_date,
+                    PageView.page_type == 'blog'
+                )
+            ).group_by(func.date(PageView.created_at))
+            
+            product_query = db.query(
+                func.date(PageView.created_at).label('time_unit'),
+                func.count(PageView.id).label('views')
+            ).filter(
+                and_(
+                    PageView.created_at >= start_date,
+                    PageView.page_type == 'product'
+                )
+            ).group_by(func.date(PageView.created_at))
+            
+            # 生成日期標籤
+            time_labels = []
+            current_date = start_date.date()
+            while current_date <= end_date.date():
+                time_labels.append(current_date.strftime("%m/%d"))
+                current_date += timedelta(days=1)
+            
+        else:  # month
+            # 按月統計
+            blog_query = db.query(
+                extract('year', PageView.created_at).label('year'),
+                extract('month', PageView.created_at).label('month'),
+                func.count(PageView.id).label('views')
+            ).filter(
+                and_(
+                    PageView.created_at >= start_date,
+                    PageView.page_type == 'blog'
+                )
+            ).group_by(
+                extract('year', PageView.created_at),
+                extract('month', PageView.created_at)
+            )
+            
+            product_query = db.query(
+                extract('year', PageView.created_at).label('year'),
+                extract('month', PageView.created_at).label('month'),
+                func.count(PageView.id).label('views')
+            ).filter(
+                and_(
+                    PageView.created_at >= start_date,
+                    PageView.page_type == 'product'
+                )
+            ).group_by(
+                extract('year', PageView.created_at),
+                extract('month', PageView.created_at)
+            )
+            
+            # 生成月份標籤
+            time_labels = []
+            current_date = start_date.replace(day=1)
+            while current_date <= end_date:
+                time_labels.append(current_date.strftime("%Y/%m"))
+                if current_date.month == 12:
+                    current_date = current_date.replace(year=current_date.year + 1, month=1)
+                else:
+                    current_date = current_date.replace(month=current_date.month + 1)
+        
+        # 執行查詢
+        blog_results = blog_query.all()
+        product_results = product_query.all()
+        
+        # 處理結果數據
+        blog_data = {}
+        product_data = {}
+        
+        if granularity == "hour":
+            for result in blog_results:
+                blog_data[int(result.time_unit)] = result.views
+            for result in product_results:
+                product_data[int(result.time_unit)] = result.views
+                
+            blog_values = [blog_data.get(i, 0) for i in range(24)]
+            product_values = [product_data.get(i, 0) for i in range(24)]
+            
+        elif granularity == "day":
+            for result in blog_results:
+                # 確保 time_unit 是 date 物件
+                if hasattr(result.time_unit, 'strftime'):
+                    key = result.time_unit.strftime("%m/%d")
+                else:
+                    # 如果是字符串，嘗試轉換為 date
+                    try:
+                        date_obj = datetime.strptime(str(result.time_unit), "%Y-%m-%d").date()
+                        key = date_obj.strftime("%m/%d")
+                    except:
+                        key = str(result.time_unit)
+                blog_data[key] = result.views
+                
+            for result in product_results:
+                if hasattr(result.time_unit, 'strftime'):
+                    key = result.time_unit.strftime("%m/%d")
+                else:
+                    try:
+                        date_obj = datetime.strptime(str(result.time_unit), "%Y-%m-%d").date()
+                        key = date_obj.strftime("%m/%d")
+                    except:
+                        key = str(result.time_unit)
+                product_data[key] = result.views
+                
+            blog_values = [blog_data.get(label, 0) for label in time_labels]
+            product_values = [product_data.get(label, 0) for label in time_labels]
+            
+        else:  # month
+            for result in blog_results:
+                key = f"{int(result.year)}/{int(result.month):02d}"
+                blog_data[key] = result.views
+            for result in product_results:
+                key = f"{int(result.year)}/{int(result.month):02d}"
+                product_data[key] = result.views
+                
+            blog_values = [blog_data.get(label, 0) for label in time_labels]
+            product_values = [product_data.get(label, 0) for label in time_labels]
+        
+        return {
+            "labels": time_labels,
+            "datasets": [
+                {
+                    "label": "部落格文章",
+                    "data": blog_values,
+                    "borderColor": "#3B82F6",
+                    "backgroundColor": "rgba(59, 130, 246, 0.1)",
+                    "tension": 0.1
+                },
+                {
+                    "label": "商品頁面",
+                    "data": product_values,
+                    "borderColor": "#10B981",
+                    "backgroundColor": "rgba(16, 185, 129, 0.1)",
+                    "tension": 0.1
+                }
+            ]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取趨勢數據失敗: {str(e)}")
+
+
+@router.get("/top-content")
+async def get_top_content(
+    content_type: str = "blog",  # blog or product
+    granularity: str = "day",  # hour, day, month
+    days: int = 30,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """獲取指定時間範圍內的熱門內容"""
+    try:
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        if granularity == "hour":
+            start_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        if content_type == "blog":
+            query = db.query(
+                Post.id,
+                Post.title,
+                Post.slug,
+                Post.featured_image,
+                func.count(PageView.id).label('views'),
+                func.count(func.distinct(PageView.visitor_ip)).label('unique_views')
+            ).join(
+                PageView, and_(
+                    PageView.content_id == Post.id,
+                    PageView.page_type == 'blog'
+                )
+            ).filter(
+                PageView.created_at >= start_date
+            ).group_by(
+                Post.id, Post.title, Post.slug, Post.featured_image
+            ).order_by(
+                desc('views')
+            ).limit(limit)
+            
+        else:  # product
+            query = db.query(
+                Product.id,
+                Product.name.label('title'),
+                Product.slug,
+                Product.featured_image,
+                func.count(PageView.id).label('views'),
+                func.count(func.distinct(PageView.visitor_ip)).label('unique_views')
+            ).join(
+                PageView, and_(
+                    PageView.content_id == Product.id,
+                    PageView.page_type == 'product'
+                )
+            ).filter(
+                PageView.created_at >= start_date
+            ).group_by(
+                Product.id, Product.name, Product.slug, Product.featured_image
+            ).order_by(
+                desc('views')
+            ).limit(limit)
+        
+        results = query.all()
+        
+        return [
+            {
+                "id": result.id,
+                "title": result.title,
+                "slug": result.slug,
+                "featured_image": result.featured_image,
+                "views": result.views,
+                "unique_views": result.unique_views,
+                "content_type": content_type
+            }
+            for result in results
+        ]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取熱門內容失敗: {str(e)}") 
