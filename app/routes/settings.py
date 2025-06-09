@@ -307,6 +307,26 @@ async def update_ai_settings(
     return {"message": "AI設定已更新"}
 
 
+@router.post("/api/ai/models")
+async def get_ai_models(
+    data: Dict[str, Any],
+    current_user = Depends(get_current_admin_user)
+):
+    """根據提供商與API路徑取得模型列表"""
+    provider = data.get("provider", "openai")
+    api_url = data.get("api_url", "https://api.openai.com/v1")
+    api_key = data.get("api_key", "")
+
+    from app.services.ai_service import AIService
+
+    async with AIService() as service:
+        try:
+            models = await service.fetch_available_models(provider, api_url, api_key)
+            return {"models": models}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+
 # 管理後台頁面路由（認證由前端JavaScript處理）
 @router.get("/admin/settings", response_class=HTMLResponse)
 async def admin_settings_page(

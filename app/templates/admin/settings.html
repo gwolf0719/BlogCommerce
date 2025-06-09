@@ -385,9 +385,9 @@ input:checked + .slider:before {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">文字生成模型</label>
-                            <input type="text" name="ai_text_model" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500" 
-                                   value="{{ ai_settings.ai_text_model or 'gpt-3.5-turbo' }}" 
-                                   placeholder="gpt-3.5-turbo">
+                            <select name="ai_text_model" id="ai_text_model" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500">
+                                <option value="{{ ai_settings.ai_text_model or 'gpt-3.5-turbo' }}">{{ ai_settings.ai_text_model or 'gpt-3.5-turbo' }}</option>
+                            </select>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">最大 Token 數</label>
@@ -519,6 +519,53 @@ document.addEventListener('DOMContentLoaded', function() {
             aiConfig.style.display = 'none';
         }
     });
+
+    async function loadModels() {
+        const provider = document.querySelector('select[name="ai_api_provider"]').value;
+        const apiUrl = document.querySelector('input[name="ai_api_url"]').value;
+        const apiKey = document.querySelector('input[name="ai_api_key"]').value;
+        const select = document.getElementById('ai_text_model');
+        select.innerHTML = '';
+
+        try {
+            const token = localStorage.getItem('access_token');
+            const resp = await fetch('/api/ai/models', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ provider: provider, api_url: apiUrl, api_key: apiKey })
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                data.models.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    select.appendChild(opt);
+                });
+            } else {
+                select.innerHTML = `<option>取得模型失敗</option>`;
+            }
+        } catch (err) {
+            console.error(err);
+            select.innerHTML = `<option>取得模型失敗</option>`;
+        }
+    }
+
+    document.querySelector('select[name="ai_api_provider"]').addEventListener('change', function() {
+        const apiUrlInput = document.querySelector('input[name="ai_api_url"]');
+        if (this.value === 'openai') {
+            apiUrlInput.value = 'https://api.openai.com/v1';
+        } else if (this.value === 'anthropic') {
+            apiUrlInput.value = 'https://api.anthropic.com/v1';
+        }
+        loadModels();
+    });
+
+    document.querySelector('input[name="ai_api_url"]').addEventListener('change', loadModels);
+    document.addEventListener('DOMContentLoaded', loadModels);
 
     document.getElementById('ai_image_enabled').addEventListener('change', function() {
         const imageConfig = document.getElementById('image-config');
