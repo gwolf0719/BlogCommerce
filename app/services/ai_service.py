@@ -21,6 +21,35 @@ class AIService:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.session:
             await self.session.close()
+
+    async def fetch_available_models(self, provider: str, api_url: str, api_key: str) -> List[str]:
+        """根據提供商取得可用模型列表"""
+        if not self.session:
+            self.session = aiohttp.ClientSession()
+
+        headers = {}
+        endpoint = api_url.rstrip('/') + '/models'
+
+        if provider in ['openai', 'custom']:
+            if api_key:
+                headers['Authorization'] = f'Bearer {api_key}'
+        elif provider == 'anthropic':
+            if api_key:
+                headers['x-api-key'] = api_key
+            headers['anthropic-version'] = '2023-06-01'
+        else:
+            raise ValueError('不支援的AI提供商')
+
+        async with self.session.get(endpoint, headers=headers) as resp:
+            if resp.status != 200:
+                text = await resp.text()
+                raise ValueError(f'取得模型列表失敗: {resp.status} {text}')
+            data = await resp.json()
+
+        if provider in ['openai', 'custom']:
+            return [m.get('id') for m in data.get('data', [])]
+        else:  # anthropic
+            return [m.get('name') for m in data.get('models', [])]
     
     def get_ai_settings(self) -> Dict[str, Any]:
         """獲取AI相關設定"""
