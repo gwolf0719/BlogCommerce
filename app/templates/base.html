@@ -68,34 +68,51 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16 lg:h-20">
                 <!-- Logo -->
-                <div class="flex items-center space-x-8">
-                    <a href="/" class="flex items-center space-x-3">
+                <div class="flex items-center space-x-4 lg:space-x-8">
+                    <a href="/" class="flex items-center space-x-2 lg:space-x-3">
                         <div class="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
                             <span class="text-white font-bold text-lg lg:text-xl">B</span>
                         </div>
-                        <span class="text-xl lg:text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
+                        <span class="text-lg lg:text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent hidden sm:block">
                             {{ settings.site_name }}
                         </span>
                     </a>
                     
                     <!-- Desktop Navigation -->
-                    <div class="hidden lg:flex space-x-8" x-data="{ features: {} }" x-init="loadFeatures()">
+                    <div class="hidden lg:flex space-x-8" x-data="{ 
+                        features: {}, 
+                        async loadFeatures() {
+                            try {
+                                const response = await fetch('/api/settings/public');
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    this.features = data.features || {};
+                                }
+                            } catch (error) {
+                                console.error('載入功能設定失敗:', error);
+                                // 預設所有功能都啟用
+                                this.features = { blog_enabled: true, shop_enabled: true };
+                            }
+                        }
+                    }" x-init="loadFeatures()">
                         <a href="/blog" x-show="features.blog_enabled !== false" class="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">部落格</a>
                         <a href="/tags" x-show="features.blog_enabled !== false" class="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">標籤</a>
                         <a href="/products" x-show="features.shop_enabled !== false" class="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">商品</a>
                     </div>
                 </div>
                 
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2 lg:space-x-4">
                     <!-- 購物車 -->
                     <div class="relative">
-                        <a href="/cart" class="relative p-2 text-gray-600 hover:text-primary-600 transition-colors duration-200 group">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 9M7 13h10"></path>
-                            </svg>
-                            <span x-show="cartCount > 0" 
-                                  x-text="cartCount" 
-                                  class="cart-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium z-10 min-w-[20px] transform group-hover:scale-110 transition-transform"></span>
+                        <a href="/cart" class="relative block p-2 text-gray-600 hover:text-primary-600 transition-colors duration-200 group">
+                            <div class="relative">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 9M7 13h10"></path>
+                                </svg>
+                                <span x-show="cartCount > 0" 
+                                      x-text="cartCount" 
+                                      class="cart-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium z-20 min-w-[20px] transform group-hover:scale-110 transition-transform shadow-lg border-2 border-white"></span>
+                            </div>
                         </a>
                     </div>
                     

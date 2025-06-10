@@ -12,26 +12,7 @@
         <p class="text-xl text-gray-600">探索所有標籤，發現更多精彩內容</p>
     </div>
 
-    <!-- 篩選選項 -->
-    <div class="mb-8">
-        <div class="flex flex-wrap gap-4 justify-center">
-            <button @click="filterType = 'all'; loadTags()" 
-                    :class="filterType === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
-                    class="px-4 py-2 rounded-lg transition-colors">
-                所有標籤
-            </button>
-            <button @click="filterType = 'blog'; loadTags()" 
-                    :class="filterType === 'blog' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
-                    class="px-4 py-2 rounded-lg transition-colors">
-                部落格標籤
-            </button>
-            <button @click="filterType = 'product'; loadTags()" 
-                    :class="filterType === 'product' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
-                    class="px-4 py-2 rounded-lg transition-colors">
-                商品標籤
-            </button>
-        </div>
-    </div>
+
 
     <!-- 搜尋框 -->
     <div class="max-w-md mx-auto mb-8">
@@ -56,9 +37,8 @@
         <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">標籤雲</h2>
         <div class="flex flex-wrap justify-center gap-3">
             <template x-for="tag in tags" :key="tag.id">
-                <a :href="getTagUrl(tag)" 
-                   class="inline-block px-4 py-2 rounded-full transition-all duration-200 hover:scale-105 hover:shadow-md"
-                   :class="getTagClass(tag)"
+                <a :href="'/tags/' + tag.slug" 
+                   class="inline-block px-4 py-2 rounded-full transition-all duration-200 hover:scale-105 hover:shadow-md bg-gradient-to-r from-blue-100 to-purple-100 hover:from-blue-200 hover:to-purple-200 text-gray-700 hover:text-gray-900"
                    :style="getTagSize(tag)"
                    x-text="tag.name + ' (' + tag.count + ')'">
                 </a>
@@ -88,7 +68,7 @@
                             <i class="fas fa-file-alt mr-1"></i>
                             <span x-text="tag.count"></span> 個內容
                         </span>
-                        <a :href="getTagUrl(tag)" 
+                        <a :href="'/tags/' + tag.slug" 
                            class="text-blue-600 hover:text-blue-800 text-sm font-medium">
                             查看全部 →
                         </a>
@@ -113,16 +93,12 @@ function tagsApp() {
     return {
         tags: [],
         loading: true,
-        filterType: 'all',
         searchQuery: '',
         
         async loadTags() {
             this.loading = true;
             try {
                 const params = new URLSearchParams();
-                if (this.filterType !== 'all') {
-                    params.append('content_type', this.filterType);
-                }
                 if (this.searchQuery.trim()) {
                     params.append('search', this.searchQuery.trim());
                 }
@@ -140,18 +116,6 @@ function tagsApp() {
             } finally {
                 this.loading = false;
             }
-        },
-        
-        getTagUrl(tag) {
-            return tag.type === 'blog' 
-                ? `/tags/${tag.slug}/posts` 
-                : `/tags/${tag.slug}/products`;
-        },
-        
-        getTagClass(tag) {
-            return tag.type === 'blog' 
-                ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                : 'bg-blue-100 text-blue-700 hover:bg-blue-200';
         },
         
         getTagSize(tag) {

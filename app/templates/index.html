@@ -217,20 +217,41 @@
                 <template x-for="post in latestPosts" :key="post.id">
                     <article class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group overflow-hidden flex flex-col h-full">
                         <!-- 文章圖片 -->
-                        <div class="aspect-video overflow-hidden bg-gray-100 relative">
+                        <div class="aspect-video bg-gray-100 relative overflow-hidden" x-show="post.featured_image">
                             <img :src="post.featured_image || '/static/images/default-blog.jpg'" 
                                  :alt="post.title"
-                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                                 
+                            <!-- 分類標籤 -->
+                            <template x-if="post.categories && post.categories.length > 0">
+                                <div class="absolute top-4 left-4">
+                                    <span class="bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium" 
+                                          x-text="post.categories[0].name"></span>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <!-- 沒有圖片時的佔位 -->
+                        <div class="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden flex items-center justify-center" x-show="!post.featured_image">
+                            <div class="text-6xl text-gray-400">📝</div>
                             
                             <!-- 分類標籤 -->
-                            <template x-for="category in post.categories" :key="category.id">
-                                <span class="absolute top-4 left-4 bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium" x-text="category.name"></span>
+                            <template x-if="post.categories && post.categories.length > 0">
+                                <div class="absolute top-4 left-4">
+                                    <span class="bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium" 
+                                          x-text="post.categories[0].name"></span>
+                                </div>
                             </template>
                         </div>
                         
                         <!-- 文章內容 -->
                         <div class="p-6">
-                            <h3 class="text-xl font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200" x-text="post.title"></h3>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200">
+                                <a :href="'/blog/' + post.slug" 
+                                   class="hover:text-primary-600 transition-colors"
+                                   x-text="post.title">
+                                </a>
+                            </h3>
                             <p class="text-gray-600 mb-4 line-clamp-3" x-text="post.excerpt"></p>
                             
                             <!-- 發佈時間 -->
@@ -301,6 +322,7 @@ function homeApp() {
         latestPosts: [],
         productsLoading: true,
         postsLoading: true,
+        email: '',
         
         async loadContent() {
             await Promise.all([

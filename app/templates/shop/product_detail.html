@@ -90,23 +90,46 @@
                         </div>
                     </div>
                     
-                    <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-                        <button @click="addToCart()" 
-                                :disabled="!product || product.stock_quantity <= 0"
-                                class="flex-1 bg-green-600 text-white py-3 px-4 sm:px-6 rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors text-sm sm:text-base">
-                            <i class="fas fa-cart-plus mr-2"></i>
-                            加入購物車
-                        </button>
+                    <div class="space-y-4">
+                        <!-- 主要操作按鈕 -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button @click="addToCart()" 
+                                    :disabled="!product || product.stock_quantity <= 0"
+                                    class="group relative overflow-hidden bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none font-medium">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 9M7 13h10"></path>
+                                    </svg>
+                                    <span>加入購物車</span>
+                                </div>
+                                <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                            </button>
+                            
+                            <button @click="buyNow()" 
+                                    :disabled="!product || product.stock_quantity <= 0"
+                                    class="group relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none font-medium">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                    <span>立即購買</span>
+                                </div>
+                                <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                            </button>
+                        </div>
+                        
+                        <!-- 收藏按鈕 -->
                         <button @click="toggleFavorite()" 
-                                class="flex items-center justify-center px-4 py-3 rounded-lg border-2 transition-all duration-200"
-                                :class="isFavorited ? 'bg-red-50 border-red-500 text-red-600' : 'bg-white border-gray-300 text-gray-700 hover:border-red-500 hover:text-red-600'">
-                            <i class="fas mr-2" :class="isFavorited ? 'fa-heart' : 'fa-heart-o'"></i>
-                            <span x-text="isFavorited ? '已收藏' : '收藏'"></span>
-                        </button>
-                        <button @click="buyNow()" 
-                                :disabled="!product || product.stock_quantity <= 0"
-                                class="flex-1 bg-blue-600 text-white py-3 px-4 sm:px-6 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors text-sm sm:text-base">
-                            立即購買
+                                class="w-full group relative overflow-hidden py-3 px-6 rounded-xl border-2 transition-all duration-300 font-medium"
+                                :class="isFavorited ? 'bg-red-50 border-red-500 text-red-600 hover:bg-red-100' : 'bg-white border-gray-300 text-gray-700 hover:border-red-500 hover:text-red-600 hover:bg-red-50'">
+                            <div class="flex items-center justify-center space-x-2">
+                                <svg class="w-5 h-5 transition-transform group-hover:scale-110" 
+                                     :class="isFavorited ? 'fill-current' : 'fill-none'" 
+                                     stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                </svg>
+                                <span x-text="isFavorited ? '已收藏' : '收藏'"></span>
+                            </div>
                         </button>
                     </div>
                 </div>
