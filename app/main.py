@@ -9,8 +9,9 @@ from pydantic import ValidationError
 from app.config import settings
 from app.database import init_db
 from app.middleware import get_feature_settings, get_public_settings
-from app.routes import categories, posts, auth, products, orders, admin, cart, analytics, tags, favorites, newsletter
-from app.routes import settings as settings_router
+from pathlib import Path
+from fastapi.responses import FileResponse
+from app.api import router as api_router
 from app.utils.logger import app_logger, log_api_error, log_validation_error, LoggingMiddleware
 
 # 建立 FastAPI 應用程式
@@ -37,24 +38,13 @@ app.add_middleware(
 )
 
 # 靜態檔案設定
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory="app/static", html=True), name="static")
 
 # 模板設定
 templates = Jinja2Templates(directory="app/templates")
 
 # 包含 API 路由
-app.include_router(auth.router)
-app.include_router(categories.router)
-app.include_router(posts.router)
-app.include_router(products.router)
-app.include_router(orders.router)
-app.include_router(admin.router)
-app.include_router(cart.router)
-app.include_router(analytics.router)
-app.include_router(tags.router)
-app.include_router(favorites.router)
-app.include_router(newsletter.router)
-app.include_router(settings_router.router)
+app.include_router(api_router)
 
 # 全局異常處理器
 @app.exception_handler(HTTPException)
@@ -174,61 +164,12 @@ async def privacy_page(request: Request):
 async def terms_page(request: Request):
     return templates.TemplateResponse("pages/terms.html", {"request": request, "settings": settings})
 
-# 管理員前端路由
-@app.get("/admin/login")
-async def admin_login_page(request: Request):
-    return templates.TemplateResponse("admin/login.html", {"request": request, "settings": settings})
 
-@app.get("/admin")
-async def admin_dashboard(request: Request):
-    return templates.TemplateResponse("admin/dashboard.html", {"request": request, "settings": settings})
-
-@app.get("/admin/users")
-async def admin_users_page(request: Request):
-    return templates.TemplateResponse("admin/users.html", {"request": request, "settings": settings})
-
-@app.get("/admin/posts")
-async def admin_posts_page(request: Request):
-    return templates.TemplateResponse("admin/posts.html", {"request": request, "settings": settings})
-
-@app.get("/admin/posts/create")
-async def admin_post_create_page(request: Request):
-    return templates.TemplateResponse("admin/post_form.html", {"request": request, "settings": settings})
-
-@app.get("/admin/posts/{post_id}/edit")
-async def admin_post_edit_page(request: Request, post_id: int):
-    return templates.TemplateResponse("admin/post_form.html", {"request": request, "post_id": post_id, "settings": settings})
-
-@app.get("/admin/products")
-async def admin_products_page(request: Request):
-    return templates.TemplateResponse("admin/products.html", {"request": request, "settings": settings})
-
-@app.get("/admin/products/create")
-async def admin_product_create_page(request: Request):
-    return templates.TemplateResponse("admin/product_form.html", {"request": request, "settings": settings})
-
-@app.get("/admin/products/{product_id}/edit")
-async def admin_product_edit_page(request: Request, product_id: int):
-    return templates.TemplateResponse("admin/product_form.html", {"request": request, "product_id": product_id, "settings": settings})
-
-@app.get("/admin/orders")
-async def admin_orders_page(request: Request):
-    return templates.TemplateResponse("admin/orders.html", {"request": request, "settings": settings})
-
-@app.get("/admin/categories")
-async def admin_categories_page(request: Request):
-    return templates.TemplateResponse("admin/categories.html", {"request": request, "settings": settings})
-
-# 注意：/admin/settings 路由已在 settings.py 中定義，此處不再重複定義
-
-@app.get("/admin/analytics")
-async def admin_analytics_page(request: Request):
-    return templates.TemplateResponse("admin/analytics.html", {"request": request, "settings": settings})
-
-@app.get("/admin/content-analytics")
-async def admin_content_analytics_page(request: Request):
-    """內容流量統計頁面"""
-    return templates.TemplateResponse("admin/content_analytics.html", {"request": request, "settings": settings})
+# Admin SPA routes
+@app.get("/admin", include_in_schema=False)
+@app.get("/admin/{path:path}", include_in_schema=False)
+async def admin_spa(path: str = ""):
+    return FileResponse(Path("app/static/index.html"))
 
 # 標籤相關路由
 @app.get("/tags")

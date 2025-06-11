@@ -8,11 +8,18 @@ from app.models.post import Post
 from app.models.product import Product
 from app.models.order import Order
 from app.models.category import Category
-from app.models.tag import Tag
+from app.models.tag import Tag, TagType
+from app.models.newsletter import NewsletterSubscriber
 from app.schemas.user import UserResponse, UserUpdate
 from app.schemas.post import PostResponse, PostCreate, PostUpdate
 from app.schemas.product import ProductResponse, ProductCreate, ProductUpdate
 from app.schemas.order import OrderResponse, OrderUpdate, OrderListResponse
+from app.schemas.tag import TagResponse, TagCreate, TagUpdate
+from app.schemas.newsletter import (
+    NewsletterSubscriberResponse,
+    NewsletterSubscriberCreate,
+    NewsletterSubscriberUpdate,
+)
 from app.config import settings
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -486,4 +493,199 @@ async def get_ai_status(
             "ai_enabled": False,
             "image_generation_enabled": False,
             "error": str(e)
-        } 
+        }
+
+
+# ==============================================
+# 標籤管理
+# ==============================================
+
+@router.get("/tags", response_model=List[TagResponse])
+def get_all_tags_admin(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """取得所有標籤列表（管理員）"""
+    tags = db.query(Tag).order_by(Tag.name).offset(skip).limit(limit).all()
+    return tags
+
+
+@router.post("/tags", response_model=TagResponse)
+def create_tag_admin(
+    tag: TagCreate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """建立新標籤（管理員）"""
+    existing = db.query(Tag).filter(Tag.name == tag.name, Tag.type == tag.type).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="標籤名稱已存在")
+
+    db_tag = Tag(**tag.model_dump())
+    db_tag.slug = db_tag.generate_slug(tag.name)
+
+    slug_exists = db.query(Tag).filter(Tag.slug == db_tag.slug).first()
+    if slug_exists:
+        db_tag.slug = f"{db_tag.slug}-{db_tag.type.value}"
+
+    db.add(db_tag)
+    db.commit()
+    db.refresh(db_tag)
+    return db_tag
+
+
+@router.get("/tags/{tag_id}", response_model=TagResponse)
+def get_tag_admin(
+    tag_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """取得單一標籤（管理員）"""
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="標籤不存在")
+    return tag
+
+
+@router.put("/tags/{tag_id}", response_model=TagResponse)
+def update_tag_admin(
+    tag_id: int,
+    tag_update: TagUpdate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """更新標籤（管理員）"""
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="標籤不存在")
+
+    update_data = tag_update.model_dump(exclude_unset=True)
+
+    if "name" in update_data:
+        tag.slug = tag.generate_slug(update_data["name"])
+        slug_exists = db.query(Tag).filter(Tag.slug == tag.slug, Tag.id != tag_id).first()
+        if slug_exists:
+            tag.slug = f"{tag.slug}-{(update_data.get('type') or tag.type).value}"
+
+    for field, value in update_data.items():
+        setattr(tag, field, value)
+
+    db.commit()
+    db.refresh(tag)
+    return tag
+
+
+@router.delete("/tags/{tag_id}")
+def delete_tag_admin(
+    tag_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """刪除標籤（管理員）"""
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="標籤不存在")
+
+    if tag.posts or tag.products:
+        raise HTTPException(status_code=400, detail="無法刪除：此標籤仍有相關內容")
+
+    db.delete(tag)
+    db.commit()
+
+    return {"message": "標籤已刪除"}
+
+
+# ==============================================
+# 電子報訂閱管理
+# ==============================================
+
+@router.get("/newsletter/subscribers", response_model=List[NewsletterSubscriberResponse])
+def get_newsletter_subscribers_admin(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """取得電子報訂閱者列表（管理員）"""
+    subscribers = db.query(NewsletterSubscriber).order_by(NewsletterSubscriber.subscribed_at.desc()).offset(skip).limit(limit).all()
+    return subscribers
+
+
+@router.post("/newsletter/subscribers", response_model=NewsletterSubscriberResponse)
+def create_newsletter_subscriber_admin(
+    subscriber: NewsletterSubscriberCreate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """新增電子報訂閱者（管理員）"""
+    existing = db.query(NewsletterSubscriber).filter(NewsletterSubscriber.email == subscriber.email).first()
+    if existing:
+        if existing.is_active:
+            raise HTTPException(status_code=400, detail="此電子郵件已訂閱")
+        for field, value in subscriber.model_dump().items():
+            setattr(existing, field, value)
+        existing.is_active = True
+        existing.subscribed_at = datetime.utcnow()
+        existing.unsubscribed_at = None
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    db_subscriber = NewsletterSubscriber(**subscriber.model_dump())
+    db.add(db_subscriber)
+    db.commit()
+    db.refresh(db_subscriber)
+    return db_subscriber
+
+
+@router.get("/newsletter/subscribers/{subscriber_id}", response_model=NewsletterSubscriberResponse)
+def get_newsletter_subscriber_admin(
+    subscriber_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """取得單一電子報訂閱者（管理員）"""
+    subscriber = db.query(NewsletterSubscriber).filter(NewsletterSubscriber.id == subscriber_id).first()
+    if not subscriber:
+        raise HTTPException(status_code=404, detail="訂閱者不存在")
+    return subscriber
+
+
+@router.put("/newsletter/subscribers/{subscriber_id}", response_model=NewsletterSubscriberResponse)
+def update_newsletter_subscriber_admin(
+    subscriber_id: int,
+    subscriber_update: NewsletterSubscriberUpdate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """更新電子報訂閱者（管理員）"""
+    subscriber = db.query(NewsletterSubscriber).filter(NewsletterSubscriber.id == subscriber_id).first()
+    if not subscriber:
+        raise HTTPException(status_code=404, detail="訂閱者不存在")
+
+    update_data = subscriber_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(subscriber, field, value)
+
+    db.commit()
+    db.refresh(subscriber)
+    return subscriber
+
+
+@router.delete("/newsletter/subscribers/{subscriber_id}")
+def delete_newsletter_subscriber_admin(
+    subscriber_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """刪除電子報訂閱者（管理員）"""
+    subscriber = db.query(NewsletterSubscriber).filter(NewsletterSubscriber.id == subscriber_id).first()
+    if not subscriber:
+        raise HTTPException(status_code=404, detail="訂閱者不存在")
+
+    db.delete(subscriber)
+    db.commit()
+
+    return {"message": "訂閱者已刪除"}
