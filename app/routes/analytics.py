@@ -6,13 +6,26 @@ from typing import Optional, Dict, Any
 from pydantic import BaseModel
 import uuid
 import re
+import logging
 from user_agents import parse
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models.analytics import PageView, DailyStats, PopularContent, UserSession
 from app.models.post import Post
 from app.models.product import Product
+from app.models.user import User
+from app.models.order import Order
+from app.schemas.analytics import (
+    PageViewCreate, 
+    HeartbeatRequest,
+    AnalyticsOverviewResponse,
+    ContentStatsResponse,
+    RealtimeStatsResponse
+)
+from app.services.realtime_analytics import get_realtime_analytics
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
@@ -153,31 +166,79 @@ class PageViewRequest(BaseModel):
 
 @router.post("/track")
 async def track_page_view(
-    data: PageViewRequest,
+    data: PageViewCreate,
     request: Request,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    """記錄頁面瀏覽"""
+    """記錄頁面瀏覽（即時更新）"""
     try:
-        client_info = get_client_info(request)
-        session_id = get_or_create_session(request, db)
+        # 獲取客戶端IP
+        visitor_ip = request.client.host
+        if hasattr(request.state, 'forwarded_for'):
+            visitor_ip = request.state.forwarded_for
         
-        # 使用後台任務處理統計記錄
-        background_tasks.add_task(
-            track_page_view_background,
-            data.page_url,
-            data.page_type,
-            data.content_id,
-            session_id,
-            client_info,
-            db
+        # 創建頁面瀏覽記錄
+        page_view = PageView(
+            page_url=data.page_url,
+            page_title=data.page_title,
+            page_type=data.page_type,
+            content_id=data.content_id,
+            visitor_ip=visitor_ip,
+            user_agent=data.user_agent,
+            referer=data.referer,
+            session_id=data.session_id,
+            device_type=data.device_type,
+            browser=data.browser,
+            os=data.os,
+            country=data.country,
+            city=data.city
         )
+        
+        db.add(page_view)
+        
+        # 更新或創建會話記錄
+        session = db.query(UserSession).filter(
+            UserSession.session_id == data.session_id
+        ).first()
+        
+        current_time = datetime.utcnow()
+        
+        if session:
+            # 更新現有會話
+            session.last_activity = current_time
+            session.page_views += 1
+            if session.page_views > 1:
+                session.is_bounce = False
+        else:
+            # 創建新會話
+            session = UserSession(
+                session_id=data.session_id,
+                visitor_ip=visitor_ip,
+                start_time=current_time,
+                last_activity=current_time,
+                page_views=1,
+                user_agent=data.user_agent,
+                device_type=data.device_type,
+                browser=data.browser,
+                os=data.os,
+                country=data.country,
+                city=data.city,
+                referer=data.referer
+            )
+            db.add(session)
+        
+        db.commit()
+        
+        # 即時清除相關快取
+        analytics_service = await get_realtime_analytics()
+        await analytics_service.invalidate_cache("overview")
+        await analytics_service.invalidate_cache("dashboard_stats")
         
         return {"status": "success", "message": "頁面瀏覽已記錄"}
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"記錄失敗: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"記錄頁面瀏覽失敗: {str(e)}")
 
 
 class HeartbeatRequest(BaseModel):
@@ -192,7 +253,7 @@ async def heartbeat(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """更新會話活動狀態"""
+    """更新會話活動狀態（即時更新）"""
     try:
         # 更新會話的最後活動時間
         session = db.query(UserSession).filter(
@@ -202,11 +263,353 @@ async def heartbeat(
         if session:
             session.last_activity = datetime.utcnow()
             db.commit()
+            
+            # 即時清除活躍會話快取
+            analytics_service = await get_realtime_analytics()
+            await analytics_service.invalidate_cache("overview")
         
         return {"status": "success", "message": "心跳已記錄"}
         
     except Exception as e:
         return {"status": "error", "message": f"心跳記錄失敗: {str(e)}"}
+
+
+@router.get("/overview", response_model=AnalyticsOverviewResponse)
+async def get_analytics_overview(
+    days: int = 30,
+    db: Session = Depends(get_db)
+):
+    """獲取即時分析概覽數據"""
+    try:
+        analytics_service = await get_realtime_analytics()
+        overview_data = await analytics_service.get_realtime_overview(db, days)
+        
+        return AnalyticsOverviewResponse(**overview_data)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取概覽數據失敗: {str(e)}")
+
+
+@router.get("/realtime", response_model=RealtimeStatsResponse) 
+async def get_realtime_stats(db: Session = Depends(get_db)):
+    """獲取即時統計數據"""
+    try:
+        now = datetime.utcnow()
+        last_hour = now - timedelta(hours=1)
+        last_24h = now - timedelta(hours=24)
+        
+        # 即時計算統計數據
+        hour_views = db.query(func.count(PageView.id)).filter(
+            PageView.created_at >= last_hour
+        ).scalar() or 0
+        
+        day_views = db.query(func.count(PageView.id)).filter(
+            PageView.created_at >= last_24h
+        ).scalar() or 0
+        
+        # 當前在線用戶數（過去15分鐘有活動）
+        active_sessions = db.query(func.count(UserSession.id)).filter(
+            UserSession.last_activity >= now - timedelta(minutes=15)
+        ).scalar() or 0
+        
+        # 最近的頁面瀏覽
+        recent_views = db.query(PageView).filter(
+            PageView.created_at >= last_hour
+        ).order_by(desc(PageView.created_at)).limit(10).all()
+        
+        return RealtimeStatsResponse(
+            current_time=now.isoformat(),
+            active_users=active_sessions,
+            hour_views=hour_views,
+            day_views=day_views,
+            recent_views=[
+                {
+                    "page_url": pv.page_url,
+                    "page_type": pv.page_type,
+                    "time": pv.created_at.isoformat(),
+                    "device": pv.device_type,
+                    "country": pv.country
+                } for pv in recent_views
+            ]
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取實時統計失敗: {str(e)}")
+
+
+@router.get("/content-stats", response_model=ContentStatsResponse)
+async def get_content_stats_overview(
+    content_type: Optional[str] = None,
+    days: int = 30,
+    limit: int = 50,
+    offset: int = 0,
+    sort_by: str = "total_views",
+    db: Session = Depends(get_db)
+):
+    """獲取即時內容統計概覽"""
+    try:
+        analytics_service = await get_realtime_analytics()
+        content_data = await analytics_service.get_realtime_content_stats(
+            db, content_type, days, limit, offset
+        )
+        
+        return ContentStatsResponse(**content_data)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取內容統計失敗: {str(e)}")
+
+
+@router.get("/device-stats")
+async def get_device_stats(
+    days: int = 30,
+    db: Session = Depends(get_db)
+):
+    """獲取即時設備統計數據"""
+    try:
+        analytics_service = await get_realtime_analytics()
+        device_data = await analytics_service.get_realtime_device_stats(db, days)
+        
+        return device_data
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取設備統計失敗: {str(e)}")
+
+
+@router.get("/content/{content_type}/{content_id}/stats")
+async def get_content_stats(
+    content_type: str,
+    content_id: int,
+    days: int = 30,
+    db: Session = Depends(get_db)
+):
+    """獲取特定內容的即時統計數據"""
+    try:
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        # 即時計算統計數據
+        total_views = db.query(func.count(PageView.id)).filter(
+            and_(
+                PageView.page_type == content_type,
+                PageView.content_id == content_id,
+                PageView.created_at >= start_date
+            )
+        ).scalar() or 0
+        
+        unique_visitors = db.query(func.count(func.distinct(PageView.session_id))).filter(
+            and_(
+                PageView.page_type == content_type,
+                PageView.content_id == content_id,
+                PageView.created_at >= start_date
+            )
+        ).scalar() or 0
+        
+        # 今日瀏覽數
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_views = db.query(func.count(PageView.id)).filter(
+            and_(
+                PageView.page_type == content_type,
+                PageView.content_id == content_id,
+                PageView.created_at >= today_start
+            )
+        ).scalar() or 0
+        
+        # 每日瀏覽趨勢
+        daily_views = db.query(
+            func.date(PageView.created_at).label('date'),
+            func.count(PageView.id).label('views')
+        ).filter(
+            and_(
+                PageView.page_type == content_type,
+                PageView.content_id == content_id,
+                PageView.created_at >= start_date
+            )
+        ).group_by(func.date(PageView.created_at)).order_by('date').all()
+        
+        return {
+            "content_type": content_type,
+            "content_id": content_id,
+            "period_days": days,
+            "total_views": total_views,
+            "unique_visitors": unique_visitors,
+            "today_views": today_views,
+            "daily_trend": [
+                {
+                    "date": str(dv.date),
+                    "views": dv.views
+                } for dv in daily_views
+            ],
+            "calculated_at": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取內容統計失敗: {str(e)}")
+
+
+@router.get("/top-content")
+async def get_top_content(
+    content_type: str = "blog",
+    days: int = 30,
+    limit: int = 5,
+    db: Session = Depends(get_db)
+):
+    """獲取即時熱門內容"""
+    try:
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # 即時查詢熱門內容統計
+        content_stats = db.query(
+            PageView.content_id,
+            func.count(PageView.id).label('total_views'),
+            func.count(func.distinct(PageView.session_id)).label('unique_views')
+        ).filter(
+            PageView.created_at >= start_date,
+            PageView.page_type == content_type,
+            PageView.content_id.isnot(None)
+        ).group_by(PageView.content_id).order_by(
+            func.count(PageView.id).desc()
+        ).limit(limit).all()
+        
+        results = []
+        for stat in content_stats:
+            if content_type == 'blog':
+                content = db.query(Post).filter(Post.id == stat.content_id).first()
+                if content:
+                    results.append({
+                        "content_id": stat.content_id,
+                        "title": content.title,
+                        "url": f"/blog/{content.slug}",
+                        "total_views": stat.total_views,
+                        "unique_views": stat.unique_views
+                    })
+            elif content_type == 'product':
+                content = db.query(Product).filter(Product.id == stat.content_id).first()
+                if content:
+                    results.append({
+                        "content_id": stat.content_id,
+                        "title": content.name,
+                        "url": f"/product/{content.slug}",
+                        "total_views": stat.total_views,
+                        "unique_views": stat.unique_views
+                    })
+        
+        return {
+            "content_type": content_type,
+            "period_days": days,
+            "top_content": results,
+            "calculated_at": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取熱門內容失敗: {str(e)}")
+
+
+@router.get("/trend/time-series")
+async def get_time_series_trends(
+    granularity: str = "day",
+    days: int = 30,
+    db: Session = Depends(get_db)
+):
+    """獲取即時時間序列趨勢數據（支援 SQLite）"""
+    try:
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # SQLite 兼容的時間分組
+        if granularity == "hour":
+            # SQLite: strftime('%Y-%m-%d %H:00:00', datetime)
+            time_trunc = func.strftime('%Y-%m-%d %H:00:00', PageView.created_at)
+        elif granularity == "month":
+            # SQLite: strftime('%Y-%m-01', datetime)  
+            time_trunc = func.strftime('%Y-%m-01', PageView.created_at)
+        else:  # day
+            # SQLite: date(datetime)
+            time_trunc = func.date(PageView.created_at)
+        
+        # 即時查詢趨勢數據（SQLite 兼容版本）
+        trend_data = db.query(
+            time_trunc.label('date'),
+            func.count(PageView.id).label('total_views'),
+            func.sum(func.case([(PageView.page_type == 'blog', 1)], else_=0)).label('blog_views'),
+            func.sum(func.case([(PageView.page_type == 'product', 1)], else_=0)).label('product_views'),
+            func.count(func.distinct(PageView.session_id)).label('unique_sessions')
+        ).filter(
+            PageView.created_at >= start_date
+        ).group_by(time_trunc).order_by(time_trunc).all()
+        
+        # 處理結果並確保日期格式一致
+        result_data = []
+        for trend in trend_data:
+            try:
+                # 根據粒度處理日期
+                if granularity == "hour":
+                    # 從 '2025-06-11 14:00:00' 格式解析
+                    date_obj = datetime.strptime(trend.date, '%Y-%m-%d %H:%M:%S')
+                elif granularity == "month":
+                    # 從 '2025-06-01' 格式解析
+                    date_obj = datetime.strptime(trend.date, '%Y-%m-%d')
+                else:  # day
+                    # 從 '2025-06-11' 格式解析
+                    date_obj = datetime.strptime(trend.date, '%Y-%m-%d')
+                
+                result_data.append({
+                    "date": date_obj.isoformat(),
+                    "total_views": trend.total_views or 0,
+                    "blog_views": trend.blog_views or 0,
+                    "product_views": trend.product_views or 0,
+                    "unique_sessions": trend.unique_sessions or 0
+                })
+            except (ValueError, AttributeError) as e:
+                # 如果日期解析失敗，跳過這個數據點
+                logger.warning(f"日期解析失敗: {trend.date}, 錯誤: {e}")
+                continue
+        
+        return {
+            "granularity": granularity,
+            "period_days": days,
+            "trend_data": result_data,
+            "calculated_at": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取趨勢數據失敗: {str(e)}")
+
+
+@router.post("/cache/invalidate")
+async def invalidate_analytics_cache(
+    pattern: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """手動清除分析快取"""
+    try:
+        analytics_service = await get_realtime_analytics()
+        await analytics_service.invalidate_cache(pattern)
+        
+        return {
+            "status": "success", 
+            "message": f"快取已清除: {pattern or '全部'}",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"清除快取失敗: {str(e)}")
+
+
+@router.post("/update-popular-content")
+async def update_popular_content(db: Session = Depends(get_db)):
+    """手動更新熱門內容統計"""
+    try:
+        analytics_service = await get_realtime_analytics()
+        await analytics_service.update_popular_content(db)
+        
+        return {
+            "status": "success",
+            "message": "熱門內容統計已更新",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新熱門內容統計失敗: {str(e)}")
 
 
 @router.get("/stats/overview")
@@ -320,284 +723,6 @@ async def get_popular_content(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"獲取熱門內容失敗: {str(e)}")
-
-
-@router.get("/realtime")
-async def get_realtime_stats(db: Session = Depends(get_db)):
-    """獲取實時統計"""
-    try:
-        now = datetime.utcnow()
-        last_hour = now - timedelta(hours=1)
-        last_24h = now - timedelta(hours=24)
-        
-        # 過去一小時的瀏覽量
-        hour_views = db.query(func.count(PageView.id)).filter(
-            PageView.created_at >= last_hour
-        ).scalar()
-        
-        # 過去24小時的瀏覽量
-        day_views = db.query(func.count(PageView.id)).filter(
-            PageView.created_at >= last_24h
-        ).scalar()
-        
-        # 當前在線用戶數（過去15分鐘有活動）
-        active_sessions = db.query(func.count(UserSession.id)).filter(
-            UserSession.last_activity >= now - timedelta(minutes=15)
-        ).scalar()
-        
-        # 最近的頁面瀏覽
-        recent_views = db.query(PageView).filter(
-            PageView.created_at >= last_hour
-        ).order_by(desc(PageView.created_at)).limit(10).all()
-        
-        return {
-            "current_time": now.isoformat(),
-            "active_users": active_sessions or 0,
-            "hour_views": hour_views or 0,
-            "day_views": day_views or 0,
-            "recent_views": [
-                {
-                    "page_url": pv.page_url,
-                    "page_type": pv.page_type,
-                    "time": pv.created_at.isoformat(),
-                    "device": pv.device_type,
-                    "country": pv.country
-                } for pv in recent_views
-            ]
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取實時統計失敗: {str(e)}")
-
-
-@router.get("/content/{content_type}/{content_id}/stats")
-async def get_content_stats(
-    content_type: str,
-    content_id: int,
-    days: int = 30,
-    db: Session = Depends(get_db)
-):
-    """獲取特定內容的統計數據"""
-    try:
-        start_date = datetime.utcnow() - timedelta(days=days)
-        
-        # 總瀏覽量
-        total_views = db.query(func.count(PageView.id)).filter(
-            and_(
-                PageView.page_type == content_type,
-                PageView.content_id == content_id,
-                PageView.created_at >= start_date
-            )
-        ).scalar()
-        
-        # 獨立訪客
-        unique_visitors = db.query(func.count(func.distinct(PageView.session_id))).filter(
-            and_(
-                PageView.page_type == content_type,
-                PageView.content_id == content_id,
-                PageView.created_at >= start_date
-            )
-        ).scalar()
-        
-        # 每日瀏覽趨勢
-        daily_views = db.query(
-            func.date(PageView.created_at).label('date'),
-            func.count(PageView.id).label('views')
-        ).filter(
-            and_(
-                PageView.page_type == content_type,
-                PageView.content_id == content_id,
-                PageView.created_at >= start_date
-            )
-        ).group_by(func.date(PageView.created_at)).order_by('date').all()
-        
-        # 來源統計
-        referer_stats = db.query(
-            PageView.referer,
-            func.count(PageView.id).label('views')
-        ).filter(
-            and_(
-                PageView.page_type == content_type,
-                PageView.content_id == content_id,
-                PageView.created_at >= start_date,
-                PageView.referer.isnot(None),
-                PageView.referer != ""
-            )
-        ).group_by(PageView.referer).order_by(desc('views')).limit(10).all()
-        
-        return {
-            "content_type": content_type,
-            "content_id": content_id,
-            "period": f"過去 {days} 天",
-            "total_views": total_views or 0,
-            "unique_visitors": unique_visitors or 0,
-            "daily_views": [
-                {
-                    "date": str(dv.date),
-                    "views": dv.views
-                } for dv in daily_views
-            ],
-            "top_referers": [
-                {
-                    "referer": rs.referer,
-                    "views": rs.views
-                } for rs in referer_stats
-            ]
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取內容統計失敗: {str(e)}")
-
-
-class EventRequest(BaseModel):
-    event_type: str
-    event_data: dict
-    session_id: str
-    page_url: str
-    timestamp: int
-
-
-@router.post("/event")
-async def track_event(
-    data: EventRequest,
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    """記錄自定義事件"""
-    try:
-        # 這裡可以根據需要記錄事件到資料庫
-        # 目前先簡單返回成功狀態
-        return {"status": "success", "message": "事件已記錄"}
-        
-    except Exception as e:
-        return {"status": "error", "message": f"事件記錄失敗: {str(e)}"}
-
-
-@router.get("/content-stats")
-async def get_content_stats_overview(
-    content_type: Optional[str] = None,
-    days: int = 30,
-    limit: int = 50,
-    offset: int = 0,
-    sort_by: str = "total_views",  # total_views, unique_views, today_views
-    db: Session = Depends(get_db)
-):
-    """獲取內容流量統計概覽 - 支援部落格和商品的詳細統計"""
-    try:
-        end_date = datetime.utcnow()
-        start_date = end_date - timedelta(days=days)
-        
-        # 基礎查詢
-        query = db.query(
-            PageView.content_id,
-            PageView.page_type,
-            func.count(PageView.id).label('total_views'),
-            func.count(func.distinct(PageView.visitor_ip)).label('unique_views'),
-            func.count(func.distinct(PageView.session_id)).label('unique_sessions')
-        ).filter(
-            and_(
-                PageView.created_at >= start_date,
-                PageView.created_at <= end_date,
-                PageView.content_id.isnot(None)
-            )
-        )
-        
-        # 篩選內容類型
-        if content_type:
-            query = query.filter(PageView.page_type == content_type)
-        else:
-            query = query.filter(PageView.page_type.in_(['blog', 'product']))
-        
-        # 分組並排序
-        stats = query.group_by(
-            PageView.content_id, 
-            PageView.page_type
-        ).order_by(
-            desc(sort_by) if sort_by in ['total_views', 'unique_views', 'unique_sessions'] 
-            else desc('total_views')
-        ).offset(offset).limit(limit).all()
-        
-        # 獲取內容詳細信息
-        content_list = []
-        for stat in stats:
-            content_info = {
-                'content_id': stat.content_id,
-                'content_type': stat.page_type,
-                'total_views': stat.total_views,
-                'unique_views': stat.unique_views,
-                'unique_sessions': stat.unique_sessions,
-                'title': '',
-                'url': '',
-                'published_at': None,
-                'author': '',
-                'category': ''
-            }
-            
-            # 獲取具體內容信息
-            if stat.page_type == 'blog':
-                post = db.query(Post).filter(Post.id == stat.content_id).first()
-                if post:
-                    content_info.update({
-                        'title': post.title,
-                        'url': f'/blog/{post.slug}',
-                        'published_at': post.created_at,
-                        'author': '',
-                        'category': post.categories[0].name if post.categories else ''
-                    })
-            elif stat.page_type == 'product':
-                product = db.query(Product).filter(Product.id == stat.content_id).first()
-                if product:
-                    content_info.update({
-                        'title': product.name,
-                        'url': f'/product/{product.slug}',
-                        'published_at': product.created_at,
-                        'author': '',
-                        'category': product.categories[0].name if product.categories else ''
-                    })
-            
-            # 獲取今日瀏覽數
-            today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            today_views = db.query(func.count(PageView.id)).filter(
-                and_(
-                    PageView.content_id == stat.content_id,
-                    PageView.page_type == stat.page_type,
-                    PageView.created_at >= today_start
-                )
-            ).scalar()
-            
-            content_info['today_views'] = today_views or 0
-            content_list.append(content_info)
-        
-        # 獲取總數
-        total_query = db.query(func.count(func.distinct(
-            func.concat(PageView.content_id, ':', PageView.page_type)
-        ))).filter(
-            and_(
-                PageView.created_at >= start_date,
-                PageView.created_at <= end_date,
-                PageView.content_id.isnot(None)
-            )
-        )
-        
-        if content_type:
-            total_query = total_query.filter(PageView.page_type == content_type)
-        else:
-            total_query = total_query.filter(PageView.page_type.in_(['blog', 'product']))
-        
-        total_count = total_query.scalar()
-        
-        return {
-            "content_stats": content_list,
-            "total_count": total_count,
-            "period_days": days,
-            "filters": {
-                "content_type": content_type,
-                "sort_by": sort_by
-            }
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取內容統計失敗: {str(e)}")
 
 
 @router.get("/content/{content_type}/{content_id}/detailed-stats")
@@ -789,364 +914,228 @@ async def get_detailed_content_stats(
         raise HTTPException(status_code=500, detail=f"獲取詳細統計失敗: {str(e)}")
 
 
-@router.get("/top-content-by-category")
-async def get_top_content_by_category(
-    content_type: str = "blog",  # blog 或 product
+# 分類統計端點已移除
+
+
+@router.get("/overview")
+async def get_analytics_overview(
     days: int = 30,
-    limit: int = 10,
     db: Session = Depends(get_db)
 ):
-    """獲取按分類的熱門內容統計"""
+    """獲取分析概覽數據"""
     try:
-        if content_type not in ['blog', 'product']:
-            raise HTTPException(status_code=400, detail="內容類型必須是 blog 或 product")
-        
+        # 計算時間範圍
         end_date = datetime.utcnow()
         start_date = end_date - timedelta(days=days)
         
-        # 基礎統計查詢
-        view_stats = db.query(
-            PageView.content_id,
-            func.count(PageView.id).label('total_views'),
-            func.count(func.distinct(PageView.visitor_ip)).label('unique_views')
-        ).filter(
+        # 總瀏覽量
+        total_views = db.query(func.count(PageView.id)).filter(
+            PageView.created_at >= start_date
+        ).scalar() or 0
+        
+        # 獨立訪客數（基於session_id）
+        unique_visitors = db.query(func.count(func.distinct(PageView.session_id))).filter(
+            PageView.created_at >= start_date
+        ).scalar() or 0
+        
+        # 總會話數
+        total_sessions = db.query(func.count(UserSession.id)).filter(
+            UserSession.created_at >= start_date
+        ).scalar() or 0
+        
+        # 跳出率（瀏覽頁面數為1的會話比例）
+        bounce_sessions = db.query(func.count(UserSession.id)).filter(
             and_(
-                PageView.page_type == content_type,
-                PageView.content_id.isnot(None),
-                PageView.created_at >= start_date,
-                PageView.created_at <= end_date
+                UserSession.created_at >= start_date,
+                UserSession.page_views == 1
             )
-        ).group_by(PageView.content_id).subquery()
+        ).scalar() or 0
         
-        # 獲取分類信息
-        if content_type == 'blog':
-            from app.models.post import post_categories
-            from app.models.category import Category
-            
-            result = db.query(
-                Post.id,
-                Post.title,
-                Post.slug,
-                Category.name.label('category_name'),
-                view_stats.c.total_views,
-                view_stats.c.unique_views
-            ).join(
-                view_stats, Post.id == view_stats.c.content_id
-            ).join(
-                post_categories, Post.id == post_categories.c.post_id
-            ).join(
-                Category, post_categories.c.category_id == Category.id
-            ).order_by(
-                desc(view_stats.c.total_views)
-            ).limit(limit).all()
-            
-        else:  # product
-            from app.models.product import product_categories
-            from app.models.category import Category
-            
-            result = db.query(
-                Product.id,
-                Product.name.label('title'),
-                Product.slug,
-                Category.name.label('category_name'),
-                view_stats.c.total_views,
-                view_stats.c.unique_views
-            ).join(
-                view_stats, Product.id == view_stats.c.content_id
-            ).join(
-                product_categories, Product.id == product_categories.c.product_id
-            ).join(
-                Category, product_categories.c.category_id == Category.id
-            ).order_by(
-                desc(view_stats.c.total_views)
-            ).limit(limit).all()
+        bounce_rate = (bounce_sessions / total_sessions * 100) if total_sessions > 0 else 0
         
-        # 整理結果
-        content_by_category = {}
-        for item in result:
-            category = item.category_name
-            if category not in content_by_category:
-                content_by_category[category] = []
+        # 計算平均會話時長（基於真實數據）
+        session_durations = db.query(
+            func.extract('epoch', UserSession.last_activity - UserSession.created_at).label('duration')
+        ).filter(
+            UserSession.created_at >= start_date,
+            UserSession.last_activity > UserSession.created_at
+        ).all()
+        
+        if session_durations:
+            total_duration = sum(row.duration for row in session_durations if row.duration)
+            avg_session_duration = round(total_duration / len(session_durations) / 60, 1)  # 轉換為分鐘
+        else:
+            avg_session_duration = 0
+        
+        # 新訪客比例（基於首次訪問判斷）
+        total_unique_ips = db.query(func.count(func.distinct(PageView.visitor_ip))).filter(
+            PageView.created_at >= start_date
+        ).scalar() or 0
+        
+        # 計算在此期間首次訪問的IP數量
+        if total_unique_ips > 0:
+            # 獲取在指定期間內每個IP的最早訪問時間
+            first_visits = db.query(
+                PageView.visitor_ip,
+                func.min(PageView.created_at).label('first_visit')
+            ).group_by(PageView.visitor_ip).subquery()
             
-            content_by_category[category].append({
-                'id': item.id,
-                'title': item.title,
-                'slug': item.slug,
-                'url': f'/{content_type}/{item.slug}' if content_type == 'blog' else f'/product/{item.slug}',
-                'total_views': item.total_views or 0,
-                'unique_views': item.unique_views or 0
+            new_visitor_ips = db.query(func.count(first_visits.c.visitor_ip)).filter(
+                first_visits.c.first_visit >= start_date
+            ).scalar() or 0
+            
+            new_visitor_rate = round((new_visitor_ips / total_unique_ips * 100), 1)
+        else:
+            new_visitor_rate = 0
+        
+        # 獲取總訂單數和總收入（電商統計）
+        total_orders = db.query(func.count(Order.id)).filter(
+            Order.created_at >= start_date
+        ).scalar() or 0
+        
+        total_revenue = db.query(func.sum(Order.total_amount)).filter(
+            Order.created_at >= start_date,
+            Order.status.in_(['confirmed', 'shipped', 'delivered'])
+        ).scalar() or 0
+        
+        return {
+            "total_views": total_views,
+            "unique_visitors": unique_visitors,
+            "total_sessions": total_sessions,
+            "bounce_rate": round(bounce_rate, 1),
+            "avg_session_duration": avg_session_duration,
+            "new_visitor_rate": new_visitor_rate,
+            "total_orders": total_orders,
+            "total_revenue": float(total_revenue),
+            "period": f"過去 {days} 天"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取概覽數據失敗: {str(e)}")
+
+
+@router.get("/device-stats")
+async def get_device_stats(
+    days: int = 30,
+    db: Session = Depends(get_db)
+):
+    """獲取設備統計數據"""
+    try:
+        # 計算時間範圍
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # 設備類型統計（基於會話）
+        device_query = db.query(
+            UserSession.device_type,
+            func.count(UserSession.id).label('count')
+        ).filter(
+            UserSession.created_at >= start_date
+        ).group_by(UserSession.device_type).all()
+        
+        # 瀏覽器統計
+        browser_query = db.query(
+            UserSession.browser,
+            func.count(UserSession.id).label('count')
+        ).filter(
+            UserSession.created_at >= start_date
+        ).group_by(UserSession.browser).order_by(
+            func.count(UserSession.id).desc()
+        ).limit(5).all()
+        
+        # 操作系統統計
+        os_query = db.query(
+            UserSession.os,
+            func.count(UserSession.id).label('count')
+        ).filter(
+            UserSession.created_at >= start_date
+        ).group_by(UserSession.os).order_by(
+            func.count(UserSession.id).desc()
+        ).limit(5).all()
+        
+        # 處理設備類型數據
+        total_sessions = sum(row.count for row in device_query) or 1
+        device_stats = []
+        
+        for row in device_query:
+            device_name = row.device_type or "unknown"
+            # 標準化設備名稱
+            if device_name == "unknown":
+                device_name = "其他"
+            
+            device_stats.append({
+                "name": device_name,
+                "count": row.count,
+                "percentage": round((row.count / total_sessions * 100), 1)
             })
         
-        return {
-            "content_type": content_type,
-            "period_days": days,
-            "content_by_category": content_by_category
-        }
+        # 處理瀏覽器數據
+        browser_stats = []
+        total_browser_sessions = sum(row.count for row in browser_query) or 1
         
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取分類統計失敗: {str(e)}")
-
-
-@router.get("/trend/time-series")
-async def get_time_series_trends(
-    granularity: str = "day",  # hour, day, month
-    days: int = 30,
-    db: Session = Depends(get_db)
-):
-    """獲取時間序列趨勢數據"""
-    try:
-        end_date = datetime.utcnow()
-        start_date = end_date - timedelta(days=days)
+        for row in browser_query:
+            browser_name = row.browser or "Unknown"
+            # 簡化瀏覽器名稱
+            if "Chrome" in browser_name:
+                browser_name = "Chrome"
+            elif "Firefox" in browser_name:
+                browser_name = "Firefox"
+            elif "Safari" in browser_name:
+                browser_name = "Safari"
+            elif "Edge" in browser_name:
+                browser_name = "Edge"
+            else:
+                browser_name = "其他"
+            
+            browser_stats.append({
+                "name": browser_name,
+                "count": row.count,
+                "percentage": round((row.count / total_browser_sessions * 100), 1)
+            })
         
-        if granularity == "hour":
-            # 按小時統計（僅限當天）
-            start_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
-            blog_query = db.query(
-                extract('hour', PageView.created_at).label('time_unit'),
-                func.count(PageView.id).label('views')
-            ).filter(
-                and_(
-                    PageView.created_at >= start_date,
-                    PageView.page_type == 'blog'
-                )
-            ).group_by(extract('hour', PageView.created_at))
-            
-            product_query = db.query(
-                extract('hour', PageView.created_at).label('time_unit'),
-                func.count(PageView.id).label('views')
-            ).filter(
-                and_(
-                    PageView.created_at >= start_date,
-                    PageView.page_type == 'product'
-                )
-            ).group_by(extract('hour', PageView.created_at))
-            
-            # 生成24小時的完整數據
-            time_labels = [f"{i:02d}:00" for i in range(24)]
-            
-        elif granularity == "day":
-            # 按天統計
-            blog_query = db.query(
-                func.date(PageView.created_at).label('time_unit'),
-                func.count(PageView.id).label('views')
-            ).filter(
-                and_(
-                    PageView.created_at >= start_date,
-                    PageView.page_type == 'blog'
-                )
-            ).group_by(func.date(PageView.created_at))
-            
-            product_query = db.query(
-                func.date(PageView.created_at).label('time_unit'),
-                func.count(PageView.id).label('views')
-            ).filter(
-                and_(
-                    PageView.created_at >= start_date,
-                    PageView.page_type == 'product'
-                )
-            ).group_by(func.date(PageView.created_at))
-            
-            # 生成日期標籤
-            time_labels = []
-            current_date = start_date.date()
-            while current_date <= end_date.date():
-                time_labels.append(current_date.strftime("%m/%d"))
-                current_date += timedelta(days=1)
-            
-        else:  # month
-            # 按月統計
-            blog_query = db.query(
-                extract('year', PageView.created_at).label('year'),
-                extract('month', PageView.created_at).label('month'),
-                func.count(PageView.id).label('views')
-            ).filter(
-                and_(
-                    PageView.created_at >= start_date,
-                    PageView.page_type == 'blog'
-                )
-            ).group_by(
-                extract('year', PageView.created_at),
-                extract('month', PageView.created_at)
-            )
-            
-            product_query = db.query(
-                extract('year', PageView.created_at).label('year'),
-                extract('month', PageView.created_at).label('month'),
-                func.count(PageView.id).label('views')
-            ).filter(
-                and_(
-                    PageView.created_at >= start_date,
-                    PageView.page_type == 'product'
-                )
-            ).group_by(
-                extract('year', PageView.created_at),
-                extract('month', PageView.created_at)
-            )
-            
-            # 生成月份標籤
-            time_labels = []
-            current_date = start_date.replace(day=1)
-            while current_date <= end_date:
-                time_labels.append(current_date.strftime("%Y/%m"))
-                if current_date.month == 12:
-                    current_date = current_date.replace(year=current_date.year + 1, month=1)
-                else:
-                    current_date = current_date.replace(month=current_date.month + 1)
+        # 處理操作系統數據
+        os_stats = []
+        total_os_sessions = sum(row.count for row in os_query) or 1
         
-        # 執行查詢
-        blog_results = blog_query.all()
-        product_results = product_query.all()
-        
-        # 處理結果數據
-        blog_data = {}
-        product_data = {}
-        
-        if granularity == "hour":
-            for result in blog_results:
-                blog_data[int(result.time_unit)] = result.views
-            for result in product_results:
-                product_data[int(result.time_unit)] = result.views
-                
-            blog_values = [blog_data.get(i, 0) for i in range(24)]
-            product_values = [product_data.get(i, 0) for i in range(24)]
+        for row in os_query:
+            os_name = row.os or "Unknown"
+            # 簡化操作系統名稱
+            if "Windows" in os_name:
+                os_name = "Windows"
+            elif "Mac" in os_name or "macOS" in os_name:
+                os_name = "macOS"
+            elif "iOS" in os_name:
+                os_name = "iOS"
+            elif "Android" in os_name:
+                os_name = "Android"
+            elif "Linux" in os_name:
+                os_name = "Linux"
+            else:
+                os_name = "其他"
             
-        elif granularity == "day":
-            for result in blog_results:
-                # 確保 time_unit 是 date 物件
-                if hasattr(result.time_unit, 'strftime'):
-                    key = result.time_unit.strftime("%m/%d")
-                else:
-                    # 如果是字符串，嘗試轉換為 date
-                    try:
-                        date_obj = datetime.strptime(str(result.time_unit), "%Y-%m-%d").date()
-                        key = date_obj.strftime("%m/%d")
-                    except:
-                        key = str(result.time_unit)
-                blog_data[key] = result.views
-                
-            for result in product_results:
-                if hasattr(result.time_unit, 'strftime'):
-                    key = result.time_unit.strftime("%m/%d")
-                else:
-                    try:
-                        date_obj = datetime.strptime(str(result.time_unit), "%Y-%m-%d").date()
-                        key = date_obj.strftime("%m/%d")
-                    except:
-                        key = str(result.time_unit)
-                product_data[key] = result.views
-                
-            blog_values = [blog_data.get(label, 0) for label in time_labels]
-            product_values = [product_data.get(label, 0) for label in time_labels]
-            
-        else:  # month
-            for result in blog_results:
-                key = f"{int(result.year)}/{int(result.month):02d}"
-                blog_data[key] = result.views
-            for result in product_results:
-                key = f"{int(result.year)}/{int(result.month):02d}"
-                product_data[key] = result.views
-                
-            blog_values = [blog_data.get(label, 0) for label in time_labels]
-            product_values = [product_data.get(label, 0) for label in time_labels]
+            os_stats.append({
+                "name": os_name,
+                "count": row.count,
+                "percentage": round((row.count / total_os_sessions * 100), 1)
+            })
+        
+        # 如果沒有數據，返回空統計而不是模擬數據
+        if not device_stats:
+            device_stats = []
+        
+        if not browser_stats:
+            browser_stats = []
+        
+        if not os_stats:
+            os_stats = []
         
         return {
-            "labels": time_labels,
-            "datasets": [
-                {
-                    "label": "部落格文章",
-                    "data": blog_values,
-                    "borderColor": "#3B82F6",
-                    "backgroundColor": "rgba(59, 130, 246, 0.1)",
-                    "tension": 0.1
-                },
-                {
-                    "label": "商品頁面",
-                    "data": product_values,
-                    "borderColor": "#10B981",
-                    "backgroundColor": "rgba(16, 185, 129, 0.1)",
-                    "tension": 0.1
-                }
-            ]
+            "devices": device_stats,
+            "browsers": browser_stats,
+            "operating_systems": os_stats,
+            "total_sessions": total_sessions,
+            "period": f"過去 {days} 天"
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取趨勢數據失敗: {str(e)}")
-
-
-@router.get("/top-content")
-async def get_top_content(
-    content_type: str = "blog",  # blog or product
-    granularity: str = "day",  # hour, day, month
-    days: int = 30,
-    limit: int = 10,
-    db: Session = Depends(get_db)
-):
-    """獲取指定時間範圍內的熱門內容"""
-    try:
-        end_date = datetime.utcnow()
-        start_date = end_date - timedelta(days=days)
-        
-        if granularity == "hour":
-            start_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
-        
-        if content_type == "blog":
-            query = db.query(
-                Post.id,
-                Post.title,
-                Post.slug,
-                Post.featured_image,
-                func.count(PageView.id).label('views'),
-                func.count(func.distinct(PageView.visitor_ip)).label('unique_views')
-            ).join(
-                PageView, and_(
-                    PageView.content_id == Post.id,
-                    PageView.page_type == 'blog'
-                )
-            ).filter(
-                PageView.created_at >= start_date
-            ).group_by(
-                Post.id, Post.title, Post.slug, Post.featured_image
-            ).order_by(
-                desc('views')
-            ).limit(limit)
-            
-        else:  # product
-            query = db.query(
-                Product.id,
-                Product.name.label('title'),
-                Product.slug,
-                Product.featured_image,
-                func.count(PageView.id).label('views'),
-                func.count(func.distinct(PageView.visitor_ip)).label('unique_views')
-            ).join(
-                PageView, and_(
-                    PageView.content_id == Product.id,
-                    PageView.page_type == 'product'
-                )
-            ).filter(
-                PageView.created_at >= start_date
-            ).group_by(
-                Product.id, Product.name, Product.slug, Product.featured_image
-            ).order_by(
-                desc('views')
-            ).limit(limit)
-        
-        results = query.all()
-        
-        return [
-            {
-                "id": result.id,
-                "title": result.title,
-                "slug": result.slug,
-                "featured_image": result.featured_image,
-                "views": result.views,
-                "unique_views": result.unique_views,
-                "content_type": content_type
-            }
-            for result in results
-        ]
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取熱門內容失敗: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"獲取設備統計失敗: {str(e)}") 

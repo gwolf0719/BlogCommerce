@@ -3,8 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
 from app.models.product import Product
-from app.models.category import Category, CategoryType
-from app.models.tag import Tag, TagType
+# 分類和標籤已移除
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse, ProductListResponse
 from app.auth import get_current_admin_user
 

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
 資料庫初始化腳本
-建立範例分類、標籤、文章和商品
+建立範例文章和商品
 """
 from app.database import SessionLocal, init_db
-from app.models.category import Category, CategoryType
-from app.models.tag import Tag, TagType
 from app.models.post import Post
 from app.models.product import Product
 from app.models.user import User, UserRole
@@ -35,41 +33,7 @@ def create_sample_data():
             print(f"✅ 建立管理員帳號: {settings.admin_email}")
         else:
             print(f"ℹ️  管理員帳號已存在: {settings.admin_email}")
-        # 建立部落格分類
-        blog_categories = [
-            Category(name="技術文章", description="程式設計與技術相關文章", type=CategoryType.BLOG, slug="tech"),
-            Category(name="生活分享", description="日常生活與心得分享", type=CategoryType.BLOG, slug="life"),
-            Category(name="產品評測", description="各種產品的使用心得", type=CategoryType.BLOG, slug="review"),
-        ]
-        
-        # 建立商品分類
-        product_categories = [
-            Category(name="電子產品", description="各種電子設備與配件", type=CategoryType.PRODUCT, slug="electronics"),
-            Category(name="服飾配件", description="衣服、鞋子與配件", type=CategoryType.PRODUCT, slug="fashion"),
-            Category(name="書籍文具", description="書籍、筆記本與文具用品", type=CategoryType.PRODUCT, slug="books"),
-        ]
-        
-        db.add_all(blog_categories + product_categories)
-        db.flush()
-        
-        # 建立部落格標籤
-        blog_tags = [
-            Tag(name="Python", description="Python 程式語言", type=TagType.BLOG, slug="python"),
-            Tag(name="Web開發", description="網頁開發相關", type=TagType.BLOG, slug="web-dev"),
-            Tag(name="教學", description="教學文章", type=TagType.BLOG, slug="tutorial"),
-            Tag(name="心得", description="個人心得分享", type=TagType.BLOG, slug="experience"),
-        ]
-        
-        # 建立商品標籤
-        product_tags = [
-            Tag(name="熱銷", description="熱銷商品", type=TagType.PRODUCT, slug="bestseller"),
-            Tag(name="新品", description="最新商品", type=TagType.PRODUCT, slug="new"),
-            Tag(name="推薦", description="推薦商品", type=TagType.PRODUCT, slug="recommended"),
-            Tag(name="限時特價", description="限時優惠商品", type=TagType.PRODUCT, slug="sale"),
-        ]
-        
-        db.add_all(blog_tags + product_tags)
-        db.flush()
+        # 分類和標籤已移除
         
         # 建立範例文章
         posts = [
@@ -95,13 +59,6 @@ def create_sample_data():
         
         db.add_all(posts)
         db.flush()
-        
-        # 為文章設定分類和標籤
-        posts[0].categories = [blog_categories[0]]  # 技術文章
-        posts[0].tags = [blog_tags[0], blog_tags[1], blog_tags[2]]  # Python, Web開發, 教學
-        
-        posts[1].categories = [blog_categories[0]]  # 技術文章
-        posts[1].tags = [blog_tags[0], blog_tags[2]]  # Python, 教學
         
         # 建立範例商品
         products = [
@@ -135,13 +92,6 @@ def create_sample_data():
         
         db.add_all(products)
         db.flush()
-        
-        # 為商品設定分類和標籤
-        products[0].categories = [product_categories[0]]  # 電子產品
-        products[0].tags = [product_tags[0], product_tags[2], product_tags[3]]  # 熱銷, 推薦, 限時特價
-        
-        products[1].categories = [product_categories[2]]  # 書籍文具
-        products[1].tags = [product_tags[1], product_tags[2]]  # 新品, 推薦
         
         db.commit()
         print("✅ 範例資料建立完成！")

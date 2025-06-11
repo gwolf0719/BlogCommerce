@@ -1,15 +1,18 @@
 <template>
-  <a-layout style="min-height: 100vh">
-    <a-layout-header>Admin Panel</a-layout-header>
-    <a-layout-content style="padding: 24px">
-      <h1>Welcome to the Admin SPA</h1>
-    </a-layout-content>
-  </a-layout>
+  <a-config-provider :locale="zhCN">
+    <router-view />
+  </a-config-provider>
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import zhCN from 'ant-design-vue/locale/zh_CN'
 </script>
 
 <style>
-body { margin: 0; }
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 </style>

@@ -1,23 +1,6 @@
-from sqlalchemy import Column, String, Text, Boolean, Table, ForeignKey, Numeric, Integer
+from sqlalchemy import Column, String, Text, Boolean, Numeric, Integer
 from sqlalchemy.orm import relationship
 from app.models.base import BaseModel, SlugMixin
-
-
-# 商品與分類的多對多關聯表
-product_categories = Table(
-    'product_categories',
-    BaseModel.metadata,
-    Column('product_id', ForeignKey('products.id'), primary_key=True),
-    Column('category_id', ForeignKey('categories.id'), primary_key=True)
-)
-
-# 商品與標籤的多對多關聯表
-product_tags = Table(
-    'product_tags',
-    BaseModel.metadata,
-    Column('product_id', ForeignKey('products.id'), primary_key=True),
-    Column('tag_id', ForeignKey('tags.id'), primary_key=True)
-)
 
 
 class Product(BaseModel, SlugMixin):
@@ -44,8 +27,6 @@ class Product(BaseModel, SlugMixin):
     meta_description = Column(Text, nullable=True)
     
     # 關聯
-    categories = relationship("Category", secondary=product_categories, back_populates="products")
-    tags = relationship("Tag", secondary=product_tags, back_populates="products")
     order_items = relationship("OrderItem", back_populates="product")
     favorited_by = relationship("Favorite", back_populates="product", cascade="all, delete-orphan")
     

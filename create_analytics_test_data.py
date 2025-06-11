@@ -13,6 +13,7 @@ from app.database import get_db
 from app.models.analytics import PageView, UserSession, PopularContent
 from app.models.post import Post
 from app.models.product import Product
+from sqlalchemy.sql import func
 
 def generate_analytics_test_data():
     """生成測試流量數據"""
@@ -33,110 +34,119 @@ def generate_analytics_test_data():
         
         print(f"找到 {len(posts)} 篇文章，{len(products)} 個商品")
         
-        # 生成過去30天的數據
-        end_date = datetime.utcnow()
-        start_date = end_date - timedelta(days=30)
-        
+        # 生成基礎數據
         user_agents = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15",
-            "Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36"
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15",
+            "Mozilla/5.0 (Android 11; Mobile; rv:91.0) Gecko/91.0 Firefox/91.0"
         ]
         
-        device_types = ["desktop", "mobile", "tablet"]
-        browsers = ["Chrome 91.0", "Safari 14.0", "Firefox 89.0", "Edge 91.0"]
-        oses = ["Windows 10", "macOS 11.4", "iOS 14.6", "Android 11"]
+        device_types = ["Desktop", "Mobile", "Tablet"]
+        browsers = ["Chrome", "Safari", "Firefox", "Edge"]
+        oses = ["Windows", "macOS", "iOS", "Android"]
         
-        session_counter = 0
-        page_view_counter = 0
+        # 生成過去30天的流量數據
+        print("生成頁面瀏覽記錄...")
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=30)
         
-        # 為每一天生成數據
-        current_date = start_date
-        while current_date <= end_date:
-            # 每天生成 5-50 個瀏覽量
-            daily_views = random.randint(5, 50)
+        session_counter = 1
+        page_view_counter = 1
+        
+        # 每天生成20-50個瀏覽量
+        for day in range(30):
+            current_date = start_date + timedelta(days=day)
+            daily_views = random.randint(20, 50)
             
-            # 週末減少瀏覽量
-            if current_date.weekday() >= 5:
-                daily_views = int(daily_views * 0.7)
-            
-            # 最近幾天增加瀏覽量
-            days_ago = (end_date - current_date).days
-            if days_ago <= 3:
-                daily_views = int(daily_views * 1.5)
-            
-            # 為今天生成分時數據
-            if current_date.date() == end_date.date():
-                for hour in range(24):
-                    hour_views = random.randint(0, 5)
-                    if 9 <= hour <= 17:  # 上班時間增加流量
-                        hour_views = random.randint(2, 8)
-                    
-                    for _ in range(hour_views):
-                        create_page_view(
-                            db, current_date.replace(hour=hour, minute=random.randint(0, 59)),
-                            posts, products, user_agents, device_types, browsers, oses,
-                            session_counter, page_view_counter
-                        )
-                        session_counter += 1
-                        page_view_counter += 1
-            else:
-                # 為其他天生成數據
-                for _ in range(daily_views):
-                    # 隨機時間
-                    random_hour = random.randint(0, 23)
-                    random_minute = random.randint(0, 59)
-                    view_time = current_date.replace(hour=random_hour, minute=random_minute)
-                    
-                    create_page_view(
-                        db, view_time, posts, products, user_agents, device_types, 
-                        browsers, oses, session_counter, page_view_counter
-                    )
-                    session_counter += 1
-                    page_view_counter += 1
-            
-            current_date += timedelta(days=1)
+            for view in range(daily_views):
+                # 隨機時間
+                view_time = current_date.replace(
+                    hour=random.randint(0, 23),
+                    minute=random.randint(0, 59),
+                    second=random.randint(0, 59)
+                )
+                
+                # 創建頁面瀏覽記錄
+                create_page_view(
+                    db, view_time, posts, products, user_agents, 
+                    device_types, browsers, oses, session_counter, page_view_counter
+                )
+                
+                session_counter += 1
+                page_view_counter += 1
+        
+        # 提交基礎數據
+        db.commit()
+        print(f"生成了 {db.query(PageView).count()} 個頁面瀏覽記錄")
         
         # 生成熱門內容統計
         print("生成熱門內容統計...")
-        for post in posts:
-            views = db.query(PageView).filter(
-                PageView.content_id == post.id,
-                PageView.page_type == 'blog'
-            ).count()
-            
-            if views > 0:
-                popular = PopularContent(
-                    content_type='blog',
-                    content_id=post.id,
-                    content_title=post.title,
-                    content_url=f'/blog/{post.slug}',
-                    total_views=views,
-                    unique_views=max(1, int(views * 0.8)),
-                    today_views=random.randint(0, min(5, views))
-                )
-                db.add(popular)
         
-        for product in products:
-            views = db.query(PageView).filter(
-                PageView.content_id == product.id,
-                PageView.page_type == 'product'
-            ).count()
-            
-            if views > 0:
-                popular = PopularContent(
-                    content_type='product',
-                    content_id=product.id,
-                    content_title=product.name,
-                    content_url=f'/product/{product.slug}',
-                    total_views=views,
-                    unique_views=max(1, int(views * 0.8)),
-                    today_views=random.randint(0, min(5, views))
-                )
-                db.add(popular)
+        # 處理文章
+        blog_content_stats = db.query(
+            PageView.content_id,
+            func.count(PageView.id).label('views')
+        ).filter(
+            PageView.page_type == 'blog',
+            PageView.content_id.isnot(None)
+        ).group_by(PageView.content_id).all()
         
-        db.commit()
+        print(f"找到 {len(blog_content_stats)} 個部落格內容統計")
+        
+        for stat in blog_content_stats:
+            post = db.query(Post).filter(Post.id == stat.content_id).first()
+            if post:
+                try:
+                    popular = PopularContent(
+                        content_type='post',
+                        content_id=post.id,
+                        content_title=post.title,
+                        content_url=f'/blog/{post.slug}',
+                        total_views=stat.views,
+                        unique_views=max(1, int(stat.views * 0.8)),
+                        today_views=random.randint(0, min(5, stat.views))
+                    )
+                    db.add(popular)
+                    print(f"添加部落格內容統計: {post.title} ({stat.views} 次瀏覽)")
+                except Exception as e:
+                    print(f"添加部落格內容統計失敗: {e}")
+
+        # 處理商品
+        product_content_stats = db.query(
+            PageView.content_id,
+            func.count(PageView.id).label('views')
+        ).filter(
+            PageView.page_type == 'product',
+            PageView.content_id.isnot(None)
+        ).group_by(PageView.content_id).all()
+        
+        print(f"找到 {len(product_content_stats)} 個商品內容統計")
+        
+        for stat in product_content_stats:
+            product = db.query(Product).filter(Product.id == stat.content_id).first()
+            if product:
+                try:
+                    popular = PopularContent(
+                        content_type='product',
+                        content_id=product.id,
+                        content_title=product.name,
+                        content_url=f'/product/{product.slug}',
+                        total_views=stat.views,
+                        unique_views=max(1, int(stat.views * 0.8)),
+                        today_views=random.randint(0, min(5, stat.views))
+                    )
+                    db.add(popular)
+                    print(f"添加商品內容統計: {product.name} ({stat.views} 次瀏覽)")
+                except Exception as e:
+                    print(f"添加商品內容統計失敗: {e}")
+        
+        try:
+            db.commit()
+            print("成功提交PopularContent數據")
+        except Exception as e:
+            print(f"提交PopularContent數據失敗: {e}")
+            db.rollback()
         
         # 統計生成的數據
         total_page_views = db.query(PageView).count()
