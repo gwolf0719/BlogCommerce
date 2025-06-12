@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+當需要測試服務時，統一使用 start.sh dev 而不是用 python app.py

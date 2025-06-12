@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from decimal import Decimal
 from pydantic import validator
 from app.schemas.base import BaseSchema, BaseResponseSchema, SlugSchema
@@ -83,6 +83,4 @@ class ProductListResponse(BaseResponseSchema, SlugSchema):
     is_active: bool
     is_featured: bool
     current_price: Decimal
-    is_on_sale: bool
-    categories: List[CategoryResponse] = []
-    tags: List[TagResponse] = [] 
+    is_on_sale: bool 

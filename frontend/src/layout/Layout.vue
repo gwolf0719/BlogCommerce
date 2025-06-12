@@ -46,15 +46,7 @@
           <span>系統設定</span>
         </a-menu-item>
 
-        <a-menu-item key="categories" @click="$router.push('/categories')">
-          <folder-outlined />
-          <span>分類管理</span>
-        </a-menu-item>
 
-        <a-menu-item key="tags" @click="$router.push('/tags')">
-          <tag-outlined />
-          <span>標籤管理</span>
-        </a-menu-item>
       </a-menu>
     </a-layout-sider>
     
@@ -106,8 +98,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   DownOutlined,
-  FolderOutlined,
-  TagOutlined
+
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -127,9 +118,7 @@ const pageTitle = {
   orders: '訂單管理',
   users: '會員管理',
   analytics: '數據分析',
-  settings: '系統設定',
-  categories: '分類管理',
-  tags: '標籤管理'
+  settings: '系統設定'
 }
 
 const getPageTitle = () => {

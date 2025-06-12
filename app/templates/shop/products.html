@@ -19,15 +19,7 @@
                        placeholder="搜尋商品名稱或描述..."
                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
             </div>
-            <div class="md:w-48">
-                <select x-model="categoryFilter" @change="loadProducts()" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
-                    <option value="">所有分類</option>
-                    <template x-for="category in categories" :key="category.id">
-                        <option :value="category.id" x-text="category.name"></option>
-                    </template>
-                </select>
-            </div>
+            <!-- 分類篩選已移除 -->
             <div class="md:w-32">
                 <select x-model="sortBy" @change="loadProducts()" 
                         class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
@@ -104,14 +96,7 @@
                         </div>
                     </div>
                     
-                    <!-- 標籤 -->
-                    <div class="flex flex-wrap gap-1 mb-4" x-show="product.tags && product.tags.length > 0">
-                        <template x-for="tag in (product.tags || []).slice(0, 2)" :key="tag.id">
-                            <span class="inline-block bg-primary-50 text-primary-700 text-xs px-2 py-1 rounded-md font-medium border border-primary-200"
-                                  x-text="tag.name">
-                            </span>
-                        </template>
-                    </div>
+                    <!-- 標籤已移除 -->
                     
                     <!-- 庫存狀態 -->
                     <div class="mb-4 text-sm flex items-center">
@@ -214,28 +199,14 @@
 function productsApp() {
     return {
         products: [],
-        categories: [],
         searchTerm: '',
-        categoryFilter: '',
         sortBy: 'newest',
         currentPage: 1,
         hasMore: true,
         loading: false,
         
         init() {
-            this.loadCategories();
             this.loadProducts();
-        },
-        
-        async loadCategories() {
-            try {
-                const response = await fetch('/api/categories?type=PRODUCT');
-                if (response.ok) {
-                    this.categories = await response.json();
-                }
-            } catch (error) {
-                console.error('載入分類失敗:', error);
-            }
         },
         
         async loadProducts(reset = true) {
@@ -252,10 +223,6 @@ function productsApp() {
                 
                 if (this.searchTerm) {
                     url += `&search=${encodeURIComponent(this.searchTerm)}`;
-                }
-                
-                if (this.categoryFilter) {
-                    url += `&category_id=${this.categoryFilter}`;
                 }
                 
                 if (this.sortBy) {

@@ -31,4 +31,4 @@ class BaseResponseSchema(BaseSchema):
 
 
 class SlugSchema(BaseSchema):
-    slug: str 
+    slug: Optional[str] = None 

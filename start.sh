@@ -8,13 +8,156 @@
 # ./start.sh build  - 只構建前端
 
 MODE=${1:-"prod"}
+BACKEND_PORT=${2:-8000}
+FRONTEND_PORT=${3:-5173}
 
 # 顏色定義
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
+
+# 檢查埠口是否被佔用
+check_port() {
+    local port=$1
+    local service_name=$2
+    
+    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+        return 0  # 埠口被佔用
+    else
+        return 1  # 埠口可用
+    fi
+}
+
+# 獲取佔用埠口的進程信息
+get_port_info() {
+    local port=$1
+    echo $(lsof -Pi :$port -sTCP:LISTEN | tail -1 | awk '{print $2 " " $1}')
+}
+
+# 處理埠口衝突
+handle_port_conflict() {
+    local port=$1
+    local service_name=$2
+    local port_var_name=$3
+    
+    echo -e "${YELLOW}⚠️  埠口 $port 已被佔用！${NC}"
+    
+    # 獲取佔用進程的信息
+    local port_info=$(get_port_info $port)
+    local pid=$(echo $port_info | awk '{print $1}')
+    local process_name=$(echo $port_info | awk '{print $2}')
+    
+    if [ ! -z "$pid" ]; then
+        echo -e "${CYAN}📊 佔用進程: $process_name (PID: $pid)${NC}"
+    fi
+    
+    echo ""
+    echo -e "${BLUE}請選擇處理方式:${NC}"
+    echo -e "${GREEN}1)${NC} 自動選擇可用埠口"
+    echo -e "${GREEN}2)${NC} 停止佔用該埠口的進程"
+    echo -e "${GREEN}3)${NC} 手動指定新埠口"
+    echo -e "${GREEN}4)${NC} 退出"
+    echo ""
+    
+    while true; do
+        read -p "$(echo -e ${PURPLE}"請輸入選項 (1-4): "${NC})" choice
+        
+        case $choice in
+            1)
+                echo -e "${BLUE}🔍 搜尋可用埠口...${NC}"
+                local new_port=$((port + 1))
+                while check_port $new_port "$service_name"; do
+                    new_port=$((new_port + 1))
+                    if [ $new_port -gt 65535 ]; then
+                        echo -e "${RED}❌ 找不到可用埠口${NC}"
+                        exit 1
+                    fi
+                done
+                
+                echo -e "${GREEN}✅ 找到可用埠口: $new_port${NC}"
+                eval "$port_var_name=$new_port"
+                return 0
+                ;;
+            2)
+                if [ ! -z "$pid" ]; then
+                    echo -e "${YELLOW}⚠️  準備停止進程 $process_name (PID: $pid)${NC}"
+                    read -p "$(echo -e ${RED}"確認要停止此進程嗎？(y/N): "${NC})" confirm
+                    
+                    if [[ $confirm =~ ^[Yy]$ ]]; then
+                        echo -e "${BLUE}🛑 正在停止進程...${NC}"
+                        kill $pid 2>/dev/null
+                        sleep 2
+                        
+                        # 檢查進程是否還在運行
+                        if kill -0 $pid 2>/dev/null; then
+                            echo -e "${YELLOW}進程未響應，使用強制停止...${NC}"
+                            kill -9 $pid 2>/dev/null
+                            sleep 1
+                        fi
+                        
+                        # 再次檢查埠口
+                        if check_port $port "$service_name"; then
+                            echo -e "${RED}❌ 埠口仍被佔用，可能是其他進程${NC}"
+                            continue
+                        else
+                            echo -e "${GREEN}✅ 進程已停止，埠口 $port 現在可用${NC}"
+                            return 0
+                        fi
+                    else
+                        echo -e "${YELLOW}取消停止進程${NC}"
+                        continue
+                    fi
+                else
+                    echo -e "${RED}❌ 無法獲取進程信息${NC}"
+                    continue
+                fi
+                ;;
+            3)
+                while true; do
+                    read -p "$(echo -e ${PURPLE}"請輸入新的埠口號 (1024-65535): "${NC})" new_port
+                    
+                    if [[ $new_port =~ ^[0-9]+$ ]] && [ $new_port -ge 1024 ] && [ $new_port -le 65535 ]; then
+                        if check_port $new_port "$service_name"; then
+                            echo -e "${RED}❌ 埠口 $new_port 也被佔用，請選擇其他埠口${NC}"
+                        else
+                            echo -e "${GREEN}✅ 埠口 $new_port 可用${NC}"
+                            eval "$port_var_name=$new_port"
+                            return 0
+                        fi
+                    else
+                        echo -e "${RED}❌ 無效的埠口號，請輸入 1024-65535 之間的數字${NC}"
+                    fi
+                done
+                ;;
+            4)
+                echo -e "${YELLOW}用戶選擇退出${NC}"
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}❌ 無效選項，請輸入 1-4${NC}"
+                ;;
+        esac
+    done
+}
+
+# 檢查埠口可用性並處理衝突
+check_and_handle_port() {
+    local port=$1
+    local service_name=$2
+    local port_var_name=$3
+    
+    if check_port $port "$service_name"; then
+        handle_port_conflict $port "$service_name" $port_var_name
+        # 取得更新後的埠口值
+        eval "port=\$$port_var_name"
+    fi
+    
+    echo -e "${GREEN}✅ $service_name 將使用埠口: $port${NC}"
+}
 
 # 檢查是否安裝了必要的依賴
 check_requirements() {
@@ -36,6 +179,12 @@ check_requirements() {
     if ! command -v python3 &> /dev/null; then
         echo -e "${RED}❌ Python3 未安裝，請先安裝 Python3${NC}"
         exit 1
+    fi
+    
+    # 檢查 lsof（用於埠口檢查）
+    if ! command -v lsof &> /dev/null; then
+        echo -e "${YELLOW}⚠️  lsof 未安裝，埠口衝突檢測功能將受限${NC}"
+        echo -e "${YELLOW}💡 建議安裝 lsof: brew install lsof (macOS) 或 apt-get install lsof (Ubuntu)${NC}"
     fi
     
     echo -e "${GREEN}✅ 系統需求檢查完成${NC}"
@@ -109,23 +258,23 @@ start_backend() {
     fi
     
     # 啟動 FastAPI 服務（從項目根目錄運行）
-    python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload &
+    python -m uvicorn app.main:app --host 0.0.0.0 --port $BACKEND_PORT --reload &
     BACKEND_PID=$!
     
     echo -e "${GREEN}✅ 後端服務已啟動 (PID: $BACKEND_PID)${NC}"
-    echo -e "${BLUE}📡 後端服務地址: http://localhost:8000${NC}"
+    echo -e "${BLUE}📡 後端服務地址: http://localhost:$BACKEND_PORT${NC}"
 }
 
 # 啟動前端開發服務
 start_frontend_dev() {
     echo -e "${BLUE}🚀 啟動前端開發服務...${NC}"
     cd frontend
-    npm run dev &
+    npm run dev -- --port $FRONTEND_PORT &
     FRONTEND_PID=$!
     cd ..
     
     echo -e "${GREEN}✅ 前端開發服務已啟動 (PID: $FRONTEND_PID)${NC}"
-    echo -e "${BLUE}📡 前端服務地址: http://localhost:5173${NC}"
+    echo -e "${BLUE}📡 前端服務地址: http://localhost:$FRONTEND_PORT${NC}"
 }
 
 # 啟動前端自動構建監聽
@@ -237,12 +386,21 @@ trap cleanup SIGINT
 show_usage() {
     echo -e "${BLUE}📖 BlogCommerce 啟動腳本使用說明${NC}"
     echo -e "${YELLOW}使用方式:${NC}"
-    echo -e "  ./start.sh         - 生產模式（默認）"
-    echo -e "  ./start.sh dev     - 開發模式（自動重新構建）"
-    echo -e "  ./start.sh hot     - 熱重載模式（前後端分離）"
-    echo -e "  ./start.sh prod    - 生產模式"
-    echo -e "  ./start.sh build   - 只構建前端"
-    echo -e "  ./start.sh help    - 顯示此說明"
+    echo -e "  ./start.sh                    - 生產模式（默認）"
+    echo -e "  ./start.sh dev                - 開發模式（自動重新構建）"
+    echo -e "  ./start.sh hot                - 熱重載模式（前後端分離）"
+    echo -e "  ./start.sh prod               - 生產模式"
+    echo -e "  ./start.sh build              - 只構建前端"
+    echo -e "  ./start.sh help               - 顯示此說明"
+    echo ""
+    echo -e "${YELLOW}自定義埠口:${NC}"
+    echo -e "  ./start.sh dev 8080           - 開發模式，後端使用埠口 8080"
+    echo -e "  ./start.sh hot 8080 3000      - 熱重載模式，後端埠口 8080，前端埠口 3000"
+    echo ""
+    echo -e "${YELLOW}埠口衝突處理:${NC}"
+    echo -e "  - 自動檢測埠口衝突"
+    echo -e "  - 提供多種處理選項：自動換埠口、停止佔用進程、手動指定埠口"
+    echo -e "  - 顯示佔用進程的詳細信息"
     echo ""
     echo -e "${YELLOW}生產模式 (prod - 默認):${NC}"
     echo -e "  - 前端會先構建成靜態文件"
@@ -267,6 +425,10 @@ case $MODE in
     "dev")
         echo -e "${GREEN}🎯 啟動開發模式（自動重新構建）${NC}"
         check_requirements
+        
+        # 檢查後端埠口
+        check_and_handle_port $BACKEND_PORT "後端服務" "BACKEND_PORT"
+        
         setup_backend
         setup_frontend
         start_backend
@@ -274,9 +436,9 @@ case $MODE in
         start_frontend_watch
         
         echo -e "\n${GREEN}🎉 開發服務已啟動！${NC}"
-        echo -e "${BLUE}📡 管理後台: http://localhost:8000/admin${NC}"
-        echo -e "${BLUE}📡 後端 API: http://localhost:8000/api${NC}"
-        echo -e "${BLUE}📡 前端網站: http://localhost:8000${NC}"
+        echo -e "${BLUE}📡 管理後台: http://localhost:$BACKEND_PORT/admin${NC}"
+        echo -e "${BLUE}📡 後端 API: http://localhost:$BACKEND_PORT/api${NC}"
+        echo -e "${BLUE}📡 前端網站: http://localhost:$BACKEND_PORT${NC}"
         echo -e "${YELLOW}💡 按 Ctrl+C 停止服務${NC}"
         echo -e "${YELLOW}💡 前端代碼變化時會自動重新構建${NC}"
         
@@ -287,6 +449,11 @@ case $MODE in
     "hot")
         echo -e "${GREEN}🎯 啟動熱重載模式${NC}"
         check_requirements
+        
+        # 檢查前後端埠口
+        check_and_handle_port $BACKEND_PORT "後端服務" "BACKEND_PORT"
+        check_and_handle_port $FRONTEND_PORT "前端開發服務" "FRONTEND_PORT"
+        
         setup_backend
         setup_frontend
         start_backend
@@ -294,8 +461,8 @@ case $MODE in
         start_frontend_dev
         
         echo -e "\n${GREEN}🎉 熱重載服務已啟動！${NC}"
-        echo -e "${BLUE}📡 前端開發服務: http://localhost:5173${NC}"
-        echo -e "${BLUE}📡 後端 API 服務: http://localhost:8000${NC}"
+        echo -e "${BLUE}📡 前端開發服務: http://localhost:$FRONTEND_PORT${NC}"
+        echo -e "${BLUE}📡 後端 API 服務: http://localhost:$BACKEND_PORT${NC}"
         echo -e "${YELLOW}💡 按 Ctrl+C 停止所有服務${NC}"
         echo -e "${YELLOW}💡 前端支援熱重載，修改代碼後自動更新${NC}"
         
@@ -306,13 +473,18 @@ case $MODE in
     "prod")
         echo -e "${GREEN}🎯 啟動生產模式${NC}"
         check_requirements
+        
+        # 檢查後端埠口
+        check_and_handle_port $BACKEND_PORT "後端服務" "BACKEND_PORT"
+        
         setup_backend
         setup_frontend
         build_frontend
         start_backend
         
         echo -e "\n${GREEN}🎉 生產服務已啟動！${NC}"
-        echo -e "${BLUE}📡 服務地址: http://localhost:8000${NC}"
+        echo -e "${BLUE}📡 服務地址: http://localhost:$BACKEND_PORT${NC}"
+        echo -e "${BLUE}📡 管理後台: http://localhost:$BACKEND_PORT/admin${NC}"
         echo -e "${YELLOW}💡 按 Ctrl+C 停止服務${NC}"
         
         # 等待信號

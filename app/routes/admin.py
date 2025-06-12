@@ -171,7 +171,7 @@ def get_all_posts(
     if published is not None:
         query = query.filter(Post.is_published == published)
     
-    posts = query.order_by(Post.created_at.desc()).offset(skip).limit(limit).all()
+    posts = query.order_by(Post.id.desc()).offset(skip).limit(limit).all()
     return posts
 
 
@@ -218,7 +218,7 @@ def get_all_products(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     search: Optional[str] = Query(None, description="搜尋商品名稱或描述"),
-    category: Optional[str] = Query(None, description="分類篩選"),
+
     status: Optional[str] = Query(None, description="狀態篩選"),
     sort: Optional[str] = Query("created_at_desc", description="排序方式"),
     current_user: User = Depends(get_current_admin_user),
@@ -237,9 +237,7 @@ def get_all_products(
             Product.sku.contains(search)
         )
     
-    # 分類篩選
-    if category:
-        query = query.join(Product.categories).filter(Category.id == category)
+    # 分類篩選已移除
     
     # 狀態篩選
     if status == "active":
@@ -251,9 +249,9 @@ def get_all_products(
     
     # 排序
     if sort == "created_at_desc":
-        query = query.order_by(desc(Product.created_at))
+        query = query.order_by(desc(Product.id))
     elif sort == "created_at_asc":
-        query = query.order_by(asc(Product.created_at))
+        query = query.order_by(asc(Product.id))
     elif sort == "name_asc":
         query = query.order_by(asc(Product.name))
     elif sort == "name_desc":
@@ -263,7 +261,7 @@ def get_all_products(
     elif sort == "price_desc":
         query = query.order_by(desc(Product.price))
     else:
-        query = query.order_by(desc(Product.created_at))
+        query = query.order_by(desc(Product.id))
     
     # 計算總數
     total = query.count()
@@ -382,18 +380,7 @@ def admin_update_order(
     return update_order(order_id, order_update, current_user, db)
 
 
-# ==============================================
-# 分類管理
-# ==============================================
-
-@router.get("/categories")
-def get_all_categories(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """取得所有分類列表（管理員）"""
-    categories = db.query(Category).order_by(Category.name).all()
-    return categories
+# 分類管理功能已移除
 
 
 # ==============================================
@@ -405,26 +392,50 @@ async def get_admin_stats(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
-    """取得管理員儀表板即時統計資訊"""
-    from app.services.realtime_analytics import get_realtime_analytics
-    
-    # 使用即時分析服務獲取準確統計
-    analytics_service = await get_realtime_analytics()
-    dashboard_stats = await analytics_service.get_realtime_dashboard_stats(db)
-    
-    # 添加額外的管理統計
+    """取得管理員儀表板統計資訊"""
     from sqlalchemy import func
-    additional_stats = {
-        "total_tags": db.query(Tag).count(),
-        "processing_orders": db.query(Order).filter(
+    from app.models.analytics import PageView
+    
+    try:
+        # 基本統計
+        total_users = db.query(func.count(User.id)).scalar() or 0
+        total_posts = db.query(func.count(Post.id)).scalar() or 0
+        total_products = db.query(func.count(Product.id)).scalar() or 0
+        total_orders = db.query(func.count(Order.id)).scalar() or 0
+        
+        # 訂單統計
+        pending_orders = db.query(func.count(Order.id)).filter(
             Order.status.in_(["pending", "confirmed"])
-        ).count(),
-    }
-    
-    # 合併統計數據
-    stats = {**dashboard_stats, **additional_stats}
-    
-    return stats
+        ).scalar() or 0
+        
+        # 頁面瀏覽統計
+        total_page_views = db.query(func.count(PageView.id)).scalar() or 0
+        
+        # 商品統計
+        active_products = db.query(func.count(Product.id)).filter(
+            Product.is_active == True
+        ).scalar() or 0
+        
+        # 已發布文章統計
+        published_posts = db.query(func.count(Post.id)).filter(
+            Post.is_published == True
+        ).scalar() or 0
+        
+        stats = {
+            "total_users": total_users,
+            "total_posts": total_posts,
+            "published_posts": published_posts,
+            "total_products": total_products,
+            "active_products": active_products,
+            "total_orders": total_orders,
+            "pending_orders": pending_orders,
+            "total_page_views": total_page_views
+        }
+        
+        return stats
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取統計資料失敗: {str(e)}")
 
 
 # ==============================================
@@ -537,105 +548,7 @@ async def get_ai_status(
         }
 
 
-# ==============================================
-# 標籤管理
-# ==============================================
-
-@router.get("/tags", response_model=List[TagResponse])
-def get_all_tags_admin(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=100),
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """取得所有標籤列表（管理員）"""
-    tags = db.query(Tag).order_by(Tag.name).offset(skip).limit(limit).all()
-    return tags
-
-
-@router.post("/tags", response_model=TagResponse)
-def create_tag_admin(
-    tag: TagCreate,
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """建立新標籤（管理員）"""
-    existing = db.query(Tag).filter(Tag.name == tag.name, Tag.type == tag.type).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="標籤名稱已存在")
-
-    db_tag = Tag(**tag.model_dump())
-    db_tag.slug = db_tag.generate_slug(tag.name)
-
-    slug_exists = db.query(Tag).filter(Tag.slug == db_tag.slug).first()
-    if slug_exists:
-        db_tag.slug = f"{db_tag.slug}-{db_tag.type.value}"
-
-    db.add(db_tag)
-    db.commit()
-    db.refresh(db_tag)
-    return db_tag
-
-
-@router.get("/tags/{tag_id}", response_model=TagResponse)
-def get_tag_admin(
-    tag_id: int,
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """取得單一標籤（管理員）"""
-    tag = db.query(Tag).filter(Tag.id == tag_id).first()
-    if not tag:
-        raise HTTPException(status_code=404, detail="標籤不存在")
-    return tag
-
-
-@router.put("/tags/{tag_id}", response_model=TagResponse)
-def update_tag_admin(
-    tag_id: int,
-    tag_update: TagUpdate,
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """更新標籤（管理員）"""
-    tag = db.query(Tag).filter(Tag.id == tag_id).first()
-    if not tag:
-        raise HTTPException(status_code=404, detail="標籤不存在")
-
-    update_data = tag_update.model_dump(exclude_unset=True)
-
-    if "name" in update_data:
-        tag.slug = tag.generate_slug(update_data["name"])
-        slug_exists = db.query(Tag).filter(Tag.slug == tag.slug, Tag.id != tag_id).first()
-        if slug_exists:
-            tag.slug = f"{tag.slug}-{(update_data.get('type') or tag.type).value}"
-
-    for field, value in update_data.items():
-        setattr(tag, field, value)
-
-    db.commit()
-    db.refresh(tag)
-    return tag
-
-
-@router.delete("/tags/{tag_id}")
-def delete_tag_admin(
-    tag_id: int,
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """刪除標籤（管理員）"""
-    tag = db.query(Tag).filter(Tag.id == tag_id).first()
-    if not tag:
-        raise HTTPException(status_code=404, detail="標籤不存在")
-
-    if tag.posts or tag.products:
-        raise HTTPException(status_code=400, detail="無法刪除：此標籤仍有相關內容")
-
-    db.delete(tag)
-    db.commit()
-
-    return {"message": "標籤已刪除"}
+# 標籤管理功能已移除
 
 
 # ==============================================

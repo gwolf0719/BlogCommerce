@@ -222,26 +222,14 @@
                                  :alt="post.title"
                                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
                                  
-                            <!-- 分類標籤 -->
-                            <template x-if="post.categories && post.categories.length > 0">
-                                <div class="absolute top-4 left-4">
-                                    <span class="bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium" 
-                                          x-text="post.categories[0].name"></span>
-                                </div>
-                            </template>
+                            <!-- 分類標籤已移除 -->
                         </div>
                         
                         <!-- 沒有圖片時的佔位 -->
                         <div class="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden flex items-center justify-center" x-show="!post.featured_image">
                             <div class="text-6xl text-gray-400">📝</div>
                             
-                            <!-- 分類標籤 -->
-                            <template x-if="post.categories && post.categories.length > 0">
-                                <div class="absolute top-4 left-4">
-                                    <span class="bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium" 
-                                          x-text="post.categories[0].name"></span>
-                                </div>
-                            </template>
+                            <!-- 分類標籤已移除 -->
                         </div>
                         
                         <!-- 文章內容 -->

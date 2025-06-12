@@ -19,15 +19,7 @@
                        placeholder="搜尋文章標題或內容..."
                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
             </div>
-            <div class="md:w-48">
-                <select x-model="categoryFilter" @change="loadPosts()" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
-                    <option value="">所有分類</option>
-                    <template x-for="category in categories" :key="category.id">
-                        <option :value="category.id" x-text="category.name"></option>
-                    </template>
-                </select>
-            </div>
+            <!-- 分類篩選已移除 -->
         </div>
     </div>
 
@@ -41,26 +33,14 @@
                          :alt="post.title"
                          class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
                          
-                    <!-- 分類標籤 -->
-                    <template x-if="post.categories && post.categories.length > 0">
-                        <div class="absolute top-4 left-4">
-                            <span class="bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium" 
-                                  x-text="post.categories[0].name"></span>
-                        </div>
-                    </template>
+                    <!-- 分類標籤已移除 -->
                 </div>
                 
                 <!-- 沒有圖片時的佔位 -->
                 <div class="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden flex items-center justify-center" x-show="!post.featured_image">
                     <div class="text-6xl text-gray-400">📝</div>
                     
-                    <!-- 分類標籤 -->
-                    <template x-if="post.categories && post.categories.length > 0">
-                        <div class="absolute top-4 left-4">
-                            <span class="bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-medium" 
-                                  x-text="post.categories[0].name"></span>
-                        </div>
-                    </template>
+                    <!-- 分類標籤已移除 -->
                 </div>
                 
                 <!-- 文章內容 -->
@@ -86,14 +66,7 @@
                     
                     <p class="text-gray-600 mb-4 line-clamp-3 flex-grow" x-text="post.excerpt || (post.content?.substring(0, 150) + '...' || '')"></p>
                     
-                    <!-- 標籤 -->
-                    <div class="flex flex-wrap gap-1 mb-4" x-show="post.tags && post.tags.length > 0">
-                        <template x-for="tag in (post.tags || []).slice(0, 3)" :key="tag.id">
-                            <span class="inline-block bg-primary-50 text-primary-700 text-xs px-2 py-1 rounded-md font-medium border border-primary-200"
-                                  x-text="tag.name">
-                            </span>
-                        </template>
-                    </div>
+                    <!-- 標籤已移除 -->
                     
                     <div class="flex justify-between items-center mt-auto">
                         <a :href="'/blog/' + post.slug" 
@@ -159,27 +132,13 @@
 function blogApp() {
     return {
         posts: [],
-        categories: [],
         searchTerm: '',
-        categoryFilter: '',
         currentPage: 1,
         hasMore: true,
         loading: false,
         
         init() {
-            this.loadCategories();
             this.loadPosts();
-        },
-        
-        async loadCategories() {
-            try {
-                const response = await fetch('/api/categories/blog');
-                if (response.ok) {
-                    this.categories = await response.json();
-                }
-            } catch (error) {
-                console.error('載入分類失敗:', error);
-            }
         },
         
         async loadPosts(reset = true) {
@@ -196,10 +155,6 @@ function blogApp() {
                 
                 if (this.searchTerm) {
                     url += `&search=${encodeURIComponent(this.searchTerm)}`;
-                }
-                
-                if (this.categoryFilter) {
-                    url += `&category_id=${this.categoryFilter}`;
                 }
                 
                 const response = await fetch(url);

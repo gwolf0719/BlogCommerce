@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import validator
 from app.schemas.base import BaseSchema, BaseResponseSchema, SlugSchema
+
 
 
 class PostBase(BaseSchema):
@@ -46,6 +47,4 @@ class PostListResponse(BaseResponseSchema, SlugSchema):
     title: str
     excerpt: Optional[str] = None
     featured_image: Optional[str] = None
-    is_published: bool
-    categories: List[CategoryResponse] = []
-    tags: List[TagResponse] = [] 
+    is_published: bool 

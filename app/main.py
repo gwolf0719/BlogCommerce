@@ -171,26 +171,7 @@ async def terms_page(request: Request):
 async def admin_spa(path: str = ""):
     return FileResponse(Path("app/static/index.html"))
 
-# 標籤相關路由
-@app.get("/tags")
-async def tags_page(request: Request):
-    return templates.TemplateResponse("tags/index.html", {"request": request, "settings": settings})
-
-@app.get("/tags/{tag_slug}")
-async def tag_detail_page(request: Request, tag_slug: str):
-    return templates.TemplateResponse("tags/detail.html", {"request": request, "tag_slug": tag_slug, "settings": settings})
-
-@app.get("/tags/{tag_slug}/posts")
-async def tag_posts_page(request: Request, tag_slug: str):
-    return templates.TemplateResponse("tags/posts.html", {"request": request, "tag_slug": tag_slug, "settings": settings})
-
-@app.get("/tags/{tag_slug}/products")
-async def tag_products_page(request: Request, tag_slug: str):
-    return templates.TemplateResponse("tags/products.html", {"request": request, "tag_slug": tag_slug, "settings": settings})
-
-@app.get("/category/{category_slug}")
-async def category_posts_page(request: Request, category_slug: str):
-    return templates.TemplateResponse("categories/posts.html", {"request": request, "category_slug": category_slug, "settings": settings})
+# 標籤和分類路由已移除
 
 # API 根路徑
 @app.get("/api")

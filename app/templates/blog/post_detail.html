@@ -25,14 +25,7 @@
         <!-- 文章標題區 -->
         <header class="mb-8">
             <div class="text-center">
-                <!-- 分類標籤 -->
-                <div class="mb-4" x-show="post.categories && post.categories.length">
-                    <template x-for="category in post.categories" :key="category.id">
-                        <a :href="'/category/' + category.slug" 
-                           class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm mr-2 hover:bg-blue-200 transition-colors"
-                           x-text="category.name"></a>
-                    </template>
-                </div>
+                <!-- 分類功能已移除 -->
 
                 <!-- 文章標題 -->
                 <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4" x-text="post.title"></h1>
@@ -70,17 +63,7 @@
             <div x-html="post.content"></div>
         </article>
 
-        <!-- 標籤 -->
-        <div class="mb-8" x-show="post.tags && post.tags.length">
-            <h3 class="text-lg font-semibold text-gray-900 mb-3">標籤</h3>
-            <div class="flex flex-wrap gap-2">
-                <template x-for="tag in post.tags" :key="tag.id">
-                    <a :href="'/tags/' + tag.slug + '/posts'" 
-                       class="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors"
-                       x-text="'#' + tag.name"></a>
-                </template>
-            </div>
-        </div>
+        <!-- 標籤功能已移除 -->
 
         <!-- 分享按鈕 -->
         <div class="mb-12">

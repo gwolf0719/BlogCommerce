@@ -7,8 +7,7 @@ import Orders from '../views/Orders.vue'
 import Users from '../views/Users.vue'
 import Analytics from '../views/Analytics.vue'
 import Settings from '../views/Settings.vue'
-import Categories from '../views/Categories.vue'
-import Tags from '../views/Tags.vue'
+
 
 const routes = [
   {
@@ -56,16 +55,7 @@ const routes = [
         name: 'Settings',
         component: Settings
       },
-      {
-        path: '/categories',
-        name: 'Categories',
-        component: Categories
-      },
-      {
-        path: '/tags',
-        name: 'Tags',
-        component: Tags
-      }
+
     ]
   }
 ]
