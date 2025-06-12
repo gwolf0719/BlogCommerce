@@ -63,13 +63,13 @@ blogcommerce/
 │   │   ├── auth/         # 認證相關頁面
 │   │   ├── blog/         # 部落格頁面
 │   │   ├── shop/         # 電商頁面
-│   │   ├── admin/        # 管理後台頁面
 │   │   ├── pages/        # 靜態頁面
 │   │   └── tags/         # 標籤頁面
 │   └── static/            # 靜態資源
 │       ├── css/          # 樣式檔案
 │       ├── js/           # JavaScript 檔案
 │       └── images/       # 圖片資源
+├── frontend/             # Vue3 + Ant Design 管理前端
 ├── venv/                  # Python 虛擬環境
 ├── requirements.txt       # Python 相依套件
 ├── .env                   # 環境變數設定
@@ -122,15 +122,23 @@ blogcommerce/
    python create_test_data.py  # 建立測試資料（可選）
    ```
 
-6. **啟動應用程式**
+6. **編譯前端**
+   ```bash
+   cd frontend
+   npm install
+   npm run build
+   cd ..
+   ```
+
+7. **啟動應用程式**
    ```bash
    python run.py
    ```
 
-7. **開啟瀏覽器**
+8. **開啟瀏覽器**
    - 前台網站：http://localhost:8000
    - API 文檔：http://localhost:8000/docs
-   - 管理後台：http://localhost:8000/admin/login
+   - 管理後台：http://localhost:8000/admin
 
 ---
 
@@ -139,7 +147,7 @@ blogcommerce/
 ### 管理員帳號
 - **帳號**：admin
 - **密碼**：admin123456
-- **登入網址**：http://localhost:8000/admin/login
+- **登入網址**：http://localhost:8000/admin
 
 ### 測試會員帳號
 - **帳號**：user@example.com
@@ -170,7 +178,6 @@ blogcommerce/
 ### 管理後台路由
 | 路由 | 說明 |
 |------|------|
-| `/admin/login` | 管理員登入 |
 | `/admin` | 控制台首頁 |
 | `/admin/users` | 用戶管理 |
 | `/admin/posts` | 文章管理 |
@@ -187,6 +194,14 @@ blogcommerce/
 | POST | `/api/posts` | 建立新文章 |
 | GET | `/api/products` | 取得商品列表 |
 | POST | `/api/orders` | 建立訂單 |
+| GET | `/api/admin/tags` | 取得標籤列表（管理） |
+| POST | `/api/admin/tags` | 新增標籤（管理） |
+| PUT | `/api/admin/tags/{id}` | 更新標籤（管理） |
+| DELETE | `/api/admin/tags/{id}` | 刪除標籤（管理） |
+| GET | `/api/admin/newsletter/subscribers` | 取得訂閱者列表 |
+| POST | `/api/admin/newsletter/subscribers` | 新增訂閱者 |
+| PUT | `/api/admin/newsletter/subscribers/{id}` | 更新訂閱者 |
+| DELETE | `/api/admin/newsletter/subscribers/{id}` | 刪除訂閱者 |
 | POST | `/api/auth/login` | 用戶登入 |
 | POST | `/api/auth/register` | 用戶註冊 |
 | GET | `/api/cart` | 取得購物車 |

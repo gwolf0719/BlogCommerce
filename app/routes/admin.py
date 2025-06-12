@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
@@ -7,13 +7,22 @@ from app.models.user import User
 from app.models.post import Post
 from app.models.product import Product
 from app.models.order import Order
-from app.models.category import Category
-from app.models.tag import Tag
+# 分類和標籤已移除
+from app.models.newsletter import NewsletterSubscriber
 from app.schemas.user import UserResponse, UserUpdate
 from app.schemas.post import PostResponse, PostCreate, PostUpdate
 from app.schemas.product import ProductResponse, ProductCreate, ProductUpdate
 from app.schemas.order import OrderResponse, OrderUpdate, OrderListResponse
+# 標籤schemas已移除
+from app.schemas.newsletter import (
+    NewsletterSubscriberResponse,
+    NewsletterSubscriberCreate,
+    NewsletterSubscriberUpdate,
+)
 from app.config import settings
+import os
+import uuid
+from PIL import Image
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -94,6 +103,47 @@ def toggle_user_status(
     db.commit()
     
     return {"message": f"使用者帳號已{'啟用' if user.is_active else '停用'}"}
+
+
+@router.get("/users/stats")
+def get_users_stats(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """獲取會員統計數據"""
+    from sqlalchemy import func
+    from datetime import datetime, timedelta
+    
+    try:
+        today = datetime.now().date()
+        
+        # 總會員數
+        total_users = db.query(func.count(User.id)).scalar() or 0
+        
+        # 活躍會員（使用is_active狀態）
+        active_users = db.query(func.count(User.id)).filter(
+            User.is_active == True
+        ).scalar() or 0
+        
+        # 今日新增會員
+        today_new_users = db.query(func.count(User.id)).filter(
+            func.date(User.created_at) == today
+        ).scalar() or 0
+        
+        # 管理員數量
+        admin_users = db.query(func.count(User.id)).filter(
+            User.role == 'admin'
+        ).scalar() or 0
+        
+        return {
+            "total_users": total_users,
+            "active_users": active_users,
+            "today_new_users": today_new_users,
+            "admin_users": admin_users
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取會員統計失敗: {str(e)}")
 
 
 # ==============================================
@@ -351,30 +401,28 @@ def get_all_categories(
 # ==============================================
 
 @router.get("/stats")
-def get_admin_stats(
+async def get_admin_stats(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
-    """取得管理員儀表板統計資訊"""
-    stats = {
-        "total_users": db.query(User).count(),
-        "total_posts": db.query(Post).count(),
-        "published_posts": db.query(Post).filter(Post.is_published == True).count(),
-        "total_products": db.query(Product).count(),
-        "active_products": db.query(Product).filter(Product.is_active == True).count(),
-        "total_orders": db.query(Order).count(),
-        "pending_orders": db.query(Order).filter(Order.status == "pending").count(),
-        "total_categories": db.query(Category).count(),
+    """取得管理員儀表板即時統計資訊"""
+    from app.services.realtime_analytics import get_realtime_analytics
+    
+    # 使用即時分析服務獲取準確統計
+    analytics_service = await get_realtime_analytics()
+    dashboard_stats = await analytics_service.get_realtime_dashboard_stats(db)
+    
+    # 添加額外的管理統計
+    from sqlalchemy import func
+    additional_stats = {
         "total_tags": db.query(Tag).count(),
+        "processing_orders": db.query(Order).filter(
+            Order.status.in_(["pending", "confirmed"])
+        ).count(),
     }
     
-    # 計算總銷售額
-    from sqlalchemy import func
-    total_sales = db.query(func.sum(Order.total_amount)).filter(
-        Order.status.in_(["confirmed", "shipped", "delivered"])
-    ).scalar() or 0
-    
-    stats["total_sales"] = float(total_sales)
+    # 合併統計數據
+    stats = {**dashboard_stats, **additional_stats}
     
     return stats
 
@@ -486,4 +534,441 @@ async def get_ai_status(
             "ai_enabled": False,
             "image_generation_enabled": False,
             "error": str(e)
-        } 
+        }
+
+
+# ==============================================
+# 標籤管理
+# ==============================================
+
+@router.get("/tags", response_model=List[TagResponse])
+def get_all_tags_admin(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """取得所有標籤列表（管理員）"""
+    tags = db.query(Tag).order_by(Tag.name).offset(skip).limit(limit).all()
+    return tags
+
+
+@router.post("/tags", response_model=TagResponse)
+def create_tag_admin(
+    tag: TagCreate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """建立新標籤（管理員）"""
+    existing = db.query(Tag).filter(Tag.name == tag.name, Tag.type == tag.type).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="標籤名稱已存在")
+
+    db_tag = Tag(**tag.model_dump())
+    db_tag.slug = db_tag.generate_slug(tag.name)
+
+    slug_exists = db.query(Tag).filter(Tag.slug == db_tag.slug).first()
+    if slug_exists:
+        db_tag.slug = f"{db_tag.slug}-{db_tag.type.value}"
+
+    db.add(db_tag)
+    db.commit()
+    db.refresh(db_tag)
+    return db_tag
+
+
+@router.get("/tags/{tag_id}", response_model=TagResponse)
+def get_tag_admin(
+    tag_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """取得單一標籤（管理員）"""
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="標籤不存在")
+    return tag
+
+
+@router.put("/tags/{tag_id}", response_model=TagResponse)
+def update_tag_admin(
+    tag_id: int,
+    tag_update: TagUpdate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """更新標籤（管理員）"""
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="標籤不存在")
+
+    update_data = tag_update.model_dump(exclude_unset=True)
+
+    if "name" in update_data:
+        tag.slug = tag.generate_slug(update_data["name"])
+        slug_exists = db.query(Tag).filter(Tag.slug == tag.slug, Tag.id != tag_id).first()
+        if slug_exists:
+            tag.slug = f"{tag.slug}-{(update_data.get('type') or tag.type).value}"
+
+    for field, value in update_data.items():
+        setattr(tag, field, value)
+
+    db.commit()
+    db.refresh(tag)
+    return tag
+
+
+@router.delete("/tags/{tag_id}")
+def delete_tag_admin(
+    tag_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """刪除標籤（管理員）"""
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="標籤不存在")
+
+    if tag.posts or tag.products:
+        raise HTTPException(status_code=400, detail="無法刪除：此標籤仍有相關內容")
+
+    db.delete(tag)
+    db.commit()
+
+    return {"message": "標籤已刪除"}
+
+
+# ==============================================
+# 電子報訂閱管理
+# ==============================================
+
+@router.get("/newsletter/subscribers", response_model=List[NewsletterSubscriberResponse])
+def get_newsletter_subscribers_admin(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """取得電子報訂閱者列表（管理員）"""
+    subscribers = db.query(NewsletterSubscriber).order_by(NewsletterSubscriber.subscribed_at.desc()).offset(skip).limit(limit).all()
+    return subscribers
+
+
+@router.post("/newsletter/subscribers", response_model=NewsletterSubscriberResponse)
+def create_newsletter_subscriber_admin(
+    subscriber: NewsletterSubscriberCreate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """新增電子報訂閱者（管理員）"""
+    existing = db.query(NewsletterSubscriber).filter(NewsletterSubscriber.email == subscriber.email).first()
+    if existing:
+        if existing.is_active:
+            raise HTTPException(status_code=400, detail="此電子郵件已訂閱")
+        for field, value in subscriber.model_dump().items():
+            setattr(existing, field, value)
+        existing.is_active = True
+        existing.subscribed_at = datetime.utcnow()
+        existing.unsubscribed_at = None
+        db.commit()
+        db.refresh(existing)
+        return existing
+
+    db_subscriber = NewsletterSubscriber(**subscriber.model_dump())
+    db.add(db_subscriber)
+    db.commit()
+    db.refresh(db_subscriber)
+    return db_subscriber
+
+
+@router.get("/newsletter/subscribers/{subscriber_id}", response_model=NewsletterSubscriberResponse)
+def get_newsletter_subscriber_admin(
+    subscriber_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """取得單一電子報訂閱者（管理員）"""
+    subscriber = db.query(NewsletterSubscriber).filter(NewsletterSubscriber.id == subscriber_id).first()
+    if not subscriber:
+        raise HTTPException(status_code=404, detail="訂閱者不存在")
+    return subscriber
+
+
+@router.put("/newsletter/subscribers/{subscriber_id}", response_model=NewsletterSubscriberResponse)
+def update_newsletter_subscriber_admin(
+    subscriber_id: int,
+    subscriber_update: NewsletterSubscriberUpdate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """更新電子報訂閱者（管理員）"""
+    subscriber = db.query(NewsletterSubscriber).filter(NewsletterSubscriber.id == subscriber_id).first()
+    if not subscriber:
+        raise HTTPException(status_code=404, detail="訂閱者不存在")
+
+    update_data = subscriber_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(subscriber, field, value)
+
+    db.commit()
+    db.refresh(subscriber)
+    return subscriber
+
+
+@router.delete("/newsletter/subscribers/{subscriber_id}")
+def delete_newsletter_subscriber_admin(
+    subscriber_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """刪除電子報訂閱者（管理員）"""
+    subscriber = db.query(NewsletterSubscriber).filter(NewsletterSubscriber.id == subscriber_id).first()
+    if not subscriber:
+        raise HTTPException(status_code=404, detail="訂閱者不存在")
+
+    db.delete(subscriber)
+    db.commit()
+
+    return {"message": "訂閱者已刪除"}
+
+
+@router.post("/upload/image")
+async def upload_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """上傳圖片"""
+    try:
+        # 檢查檔案類型
+        allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+        if file.content_type not in allowed_types:
+            raise HTTPException(status_code=400, detail="不支援的檔案格式")
+        
+        # 檢查檔案大小 (5MB)
+        if file.size > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="檔案大小不能超過5MB")
+        
+        # 生成唯一檔名
+        file_extension = file.filename.split('.')[-1].lower()
+        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        
+        # 建立上傳目錄
+        upload_dir = "app/static/uploads"
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # 儲存檔案
+        file_path = os.path.join(upload_dir, unique_filename)
+        content = await file.read()
+        
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        # 如果是圖片，生成縮圖
+        try:
+            if file.content_type.startswith("image/"):
+                with Image.open(file_path) as img:
+                    # 建立縮圖目錄
+                    thumbnail_dir = os.path.join(upload_dir, "thumbnails")
+                    os.makedirs(thumbnail_dir, exist_ok=True)
+                    
+                    # 生成縮圖
+                    img.thumbnail((300, 300), Image.Resampling.LANCZOS)
+                    thumbnail_path = os.path.join(thumbnail_dir, unique_filename)
+                    img.save(thumbnail_path, optimize=True, quality=85)
+        except Exception as e:
+            print(f"縮圖生成失敗: {e}")
+        
+        return {
+            "success": True,
+            "filename": unique_filename,
+            "url": f"/static/uploads/{unique_filename}",
+            "thumbnail_url": f"/static/uploads/thumbnails/{unique_filename}",
+            "message": "檔案上傳成功"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"檔案上傳失敗: {str(e)}")
+
+
+# ==============================================
+# 系統設定管理
+# ==============================================
+
+@router.get("/settings")
+async def get_admin_settings(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """獲取所有系統設定"""
+    from app.models.settings import SystemSettings
+    
+    try:
+        # 從數據庫獲取所有設定
+        settings_db = db.query(SystemSettings).all()
+        
+        # 轉換為字典格式
+        settings_dict = {}
+        for setting in settings_db:
+            settings_dict[setting.key] = setting.parse_value()
+        
+        # 設定預設值
+        defaults = {
+            # 基本設定
+            'site_name': 'BlogCommerce',
+            'site_tagline': '部落格與電商整合平台',
+            'site_description': '一個結合部落格與電商功能的現代化平台',
+            'site_url': 'http://localhost:8000',
+            'admin_email': 'admin@example.com',
+            'timezone': 'Asia/Taipei',
+            'language': 'zh-TW',
+            'site_logo': '',
+            'site_favicon': '',
+            
+            # 功能開關
+            'blog_enabled': True,
+            'shop_enabled': True,
+            'user_registration': True,
+            'comment_enabled': True,
+            'search_enabled': True,
+            'analytics_enabled': True,
+            'newsletter_enabled': False,
+            'maintenance_mode': False,
+            
+            # 郵件設定
+            'email_provider': 'smtp',
+            'smtp_host': '',
+            'smtp_port': 587,
+            'smtp_username': '',
+            'smtp_password': '',
+            'smtp_encryption': 'tls',
+            'email_from_name': '',
+            'email_from_address': '',
+            
+            # 數據分析
+            'google_analytics_id': '',
+            'google_tag_manager_id': '',
+            'facebook_pixel_id': '',
+            'analytics_retention_days': 365,
+            
+            # AI 設定
+            'openai_api_key': '',
+            'ai_model': 'gpt-3.5-turbo',
+            'ai_content_generation': False,
+            'ai_image_generation': False,
+            'ai_temperature': 0.7,
+            
+            # 安全設定
+            'login_attempts_limit': 5,
+            'lockout_duration': 15,
+            'session_timeout': 24,
+            'password_min_length': 8,
+            'force_https': False,
+            'two_factor_auth': False,
+            'allowed_file_types': ['jpg', 'png', 'gif', 'webp'],
+            'max_file_size': 10
+        }
+        
+        # 合併預設值和數據庫設定
+        for key, default_value in defaults.items():
+            if key not in settings_dict:
+                settings_dict[key] = default_value
+        
+        return settings_dict
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取設定失敗: {str(e)}")
+
+
+@router.put("/settings")
+async def update_admin_settings(
+    settings_data: dict,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """更新系統設定"""
+    from app.models.settings import SystemSettings
+    
+    try:
+        for key, value in settings_data.items():
+            # 查找現有設定
+            setting = db.query(SystemSettings).filter(
+                SystemSettings.key == key
+            ).first()
+            
+            # 確定設定分類
+            if key.startswith(('blog_', 'shop_', 'user_', 'comment_', 'search_', 'analytics_', 'newsletter_', 'maintenance_')):
+                category = "features"
+            elif key.startswith(('email_', 'smtp_')):
+                category = "email"
+            elif key.startswith(('google_', 'facebook_', 'analytics_')):
+                category = "analytics"
+            elif key.startswith(('openai_', 'ai_')):
+                category = "ai"
+            elif key.startswith(('login_', 'lockout_', 'session_', 'password_', 'force_', 'two_factor_', 'allowed_', 'max_')):
+                category = "security"
+            else:
+                category = "general"
+            
+            # 確定數據類型
+            if isinstance(value, bool):
+                data_type = "boolean"
+                str_value = "true" if value else "false"
+            elif isinstance(value, int):
+                data_type = "integer"
+                str_value = str(value)
+            elif isinstance(value, float):
+                data_type = "float"
+                str_value = str(value)
+            elif isinstance(value, list):
+                data_type = "json"
+                import json
+                str_value = json.dumps(value)
+            else:
+                data_type = "string"
+                str_value = str(value) if value is not None else ""
+            
+            # 確定是否公開
+            is_public = key.endswith('_enabled') or key in ['blog_enabled', 'shop_enabled', 'user_registration']
+            
+            if setting:
+                # 更新現有設定
+                setting.value = str_value
+                setting.data_type = data_type
+                setting.category = category
+                setting.is_public = is_public
+            else:
+                # 創建新設定
+                setting = SystemSettings(
+                    key=key,
+                    value=str_value,
+                    description=f"系統設定：{key}",
+                    category=category,
+                    data_type=data_type,
+                    is_public=is_public
+                )
+                db.add(setting)
+        
+        db.commit()
+        return {"message": "設定已儲存"}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"儲存設定失敗: {str(e)}")
+
+
+@router.post("/test-email")
+async def test_email_settings(
+    email_data: dict,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """測試郵件設定"""
+    try:
+        # 這裡可以實現實際的郵件發送邏輯
+        # 目前返回成功訊息（模擬）
+        return {"message": "測試郵件已發送"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"發送測試郵件失敗: {str(e)}")

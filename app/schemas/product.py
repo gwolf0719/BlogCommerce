@@ -1,9 +1,7 @@
-from typing import Optional, List
+from typing import Optional
 from decimal import Decimal
 from pydantic import validator
 from app.schemas.base import BaseSchema, BaseResponseSchema, SlugSchema
-from app.schemas.category import CategoryResponse
-from app.schemas.tag import TagResponse
 
 
 class ProductBase(BaseSchema):
@@ -23,8 +21,7 @@ class ProductBase(BaseSchema):
 
 
 class ProductCreate(ProductBase):
-    category_ids: Optional[List[int]] = []
-    tag_ids: Optional[List[int]] = []
+    pass
     
     @validator('name')
     def name_must_not_be_empty(cls, v):
@@ -68,13 +65,9 @@ class ProductUpdate(BaseSchema):
     is_featured: Optional[bool] = None
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
-    category_ids: Optional[List[int]] = None
-    tag_ids: Optional[List[int]] = None
 
 
 class ProductResponse(ProductBase, BaseResponseSchema, SlugSchema):
-    categories: List[CategoryResponse] = []
-    tags: List[TagResponse] = []
     current_price: Decimal
     is_on_sale: bool
 

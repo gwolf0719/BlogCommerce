@@ -1,8 +1,6 @@
-from typing import Optional, List
+from typing import Optional
 from pydantic import validator
 from app.schemas.base import BaseSchema, BaseResponseSchema, SlugSchema
-from app.schemas.category import CategoryResponse
-from app.schemas.tag import TagResponse
 
 
 class PostBase(BaseSchema):
@@ -16,9 +14,6 @@ class PostBase(BaseSchema):
 
 
 class PostCreate(PostBase):
-    category_ids: Optional[List[int]] = []
-    tag_ids: Optional[List[int]] = []
-    
     @validator('title')
     def title_must_not_be_empty(cls, v):
         if not v or not v.strip():
@@ -40,13 +35,10 @@ class PostUpdate(BaseSchema):
     is_published: Optional[bool] = None
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
-    category_ids: Optional[List[int]] = None
-    tag_ids: Optional[List[int]] = None
 
 
 class PostResponse(PostBase, BaseResponseSchema, SlugSchema):
-    categories: List[CategoryResponse] = []
-    tags: List[TagResponse] = []
+    pass
 
 
 class PostListResponse(BaseResponseSchema, SlugSchema):

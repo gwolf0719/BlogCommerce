@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 import json
@@ -333,26 +333,5 @@ async def admin_settings_page(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """設定管理頁面"""
-    manager = SettingsManager(db)
-    
-    # 獲取各類別設定
-    features = FeatureSettings(
-        blog_enabled=manager.get_setting("blog_enabled", True),
-        shop_enabled=manager.get_setting("shop_enabled", True),
-        comment_enabled=manager.get_setting("comment_enabled", True),
-        analytics_enabled=manager.get_setting("analytics_enabled", True),
-        search_enabled=manager.get_setting("search_enabled", True),
-        newsletter_enabled=manager.get_setting("newsletter_enabled", False)
-    )
-    
-    # 獲取AI設定
-    ai_settings = manager.get_category_settings("ai")
-    
-    return templates.TemplateResponse("admin/settings.html", {
-        "request": request,
-        "features": features,
-        "ai_settings": ai_settings,
-        "active_tab": "settings",
-        "settings": manager.get_public_settings()  # 添加全局設定
-    }) 
+    """設定管理頁面 (前端SPA 渲染)"""
+    return FileResponse("app/static/index.html") 

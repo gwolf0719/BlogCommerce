@@ -3,8 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
 from app.models.post import Post
-from app.models.category import Category, CategoryType
-from app.models.tag import Tag, TagType
+# 分類和標籤已移除
 from app.schemas.post import PostCreate, PostUpdate, PostResponse, PostListResponse
 
 router = APIRouter(prefix="/api/posts", tags=["posts"])

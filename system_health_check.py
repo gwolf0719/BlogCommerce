@@ -151,7 +151,7 @@ def main():
         ("/", "首頁"),
         ("/products", "商品頁面"),
         ("/blog", "部落格頁面"),
-        ("/admin/login", "管理員登入頁面"),
+        ("/admin", "管理員前端"),
     ]
     
     for page, description in frontend_pages:
