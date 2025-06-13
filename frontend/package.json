@@ -10,15 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.21",
-    "vue-router": "^4.3.0",
-    "axios": "^1.6.8",
-    "ant-design-vue": "^4.1.2",
     "@ant-design/icons-vue": "^7.0.1",
-    "pinia": "^2.1.7"
+    "@vueup/vue-quill": "^1.2.0",
+    "ant-design-vue": "^4.1.2",
+    "axios": "^1.6.8",
+    "marked": "^15.0.12",
+    "pinia": "^2.1.7",
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
     "vite": "^5.2.0"
   }
-} 
+}

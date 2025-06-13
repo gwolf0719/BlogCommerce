@@ -242,6 +242,7 @@ import {
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '../stores/auth'
 import dayjs from 'dayjs'
+import { formatDate } from '../utils/dateUtils'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -553,10 +554,7 @@ const formatCurrency = (amount) => {
   }).format(amount || 0)
 }
 
-const formatDate = (dateString) => {
-  if (!dateString) return '-'
-  return dayjs(dateString).format('YYYY/MM/DD HH:mm')
-}
+// formatDate 已移至 utils/dateUtils.js
 
 // 初始化
 onMounted(() => {

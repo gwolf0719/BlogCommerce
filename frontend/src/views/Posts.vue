@@ -1,58 +1,103 @@
 <template>
-  <div class="p-6">
-    <!-- 頁面標題和新增按鈕 -->
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">文章管理</h1>
-      <a-button type="primary" @click="handleCreate">
-        <template #icon><PlusOutlined /></template>
-        新增文章
-      </a-button>
-    </div>
+  <div class="posts-page">
+    <!-- 頁面標題 -->
+    <a-page-header 
+      title="文章管理" 
+      sub-title="管理您的部落格文章內容"
+      class="page-header"
+    >
+      <template #extra>
+        <a-button type="primary" @click="showCreateModal" size="large">
+          <PlusOutlined /> 新增文章
+        </a-button>
+      </template>
+    </a-page-header>
 
-    <!-- 搜尋和篩選 -->
-    <a-card class="mb-6">
-      <a-row :gutter="16">
-        <a-col :span="8">
-          <a-input
+    <!-- 統計卡片 -->
+    <a-row :gutter="24" class="stats-row">
+      <a-col :span="6">
+        <a-card>
+          <a-statistic
+            title="總文章數"
+            :value="posts.length"
+            prefix="📄"
+            :value-style="{ color: '#1890ff' }"
+          />
+        </a-card>
+      </a-col>
+      <a-col :span="6">
+        <a-card>
+          <a-statistic
+            title="已發布"
+            :value="publishedCount"
+            prefix="✅"
+            :value-style="{ color: '#52c41a' }"
+          />
+        </a-card>
+      </a-col>
+      <a-col :span="6">
+        <a-card>
+          <a-statistic
+            title="草稿"
+            :value="draftCount"
+            prefix="📝"
+            :value-style="{ color: '#faad14' }"
+          />
+        </a-card>
+      </a-col>
+      <a-col :span="6">
+        <a-card>
+          <a-statistic
+            title="發布率"
+            :value="publishRate"
+            suffix="%"
+            prefix="📊"
+            :precision="1"
+            :value-style="{ color: '#722ed1' }"
+          />
+        </a-card>
+      </a-col>
+    </a-row>
+
+    <!-- 搜尋和篩選區塊 -->
+    <a-card title="搜尋與篩選" class="filter-card">
+      <a-form layout="inline" :model="searchForm">
+        <a-form-item label="搜尋內容">
+          <a-input-search
             v-model:value="searchForm.search"
             placeholder="搜尋文章標題或內容"
-            @change="handleSearch"
-            allowClear
-          >
-            <template #prefix><SearchOutlined /></template>
-          </a-input>
-        </a-col>
-        <a-col :span="6">
+            allow-clear
+            enter-button
+            @search="handleSearch"
+            style="width: 280px"
+          />
+        </a-form-item>
+        
+        <a-form-item label="發布狀態">
           <a-select
-            v-model:value="searchForm.published"
-            placeholder="發布狀態"
-            allowClear
+            v-model:value="searchForm.status"
+            placeholder="選擇狀態"
+            style="width: 140px"
+            allow-clear
             @change="handleSearch"
           >
-            <a-select-option :value="true">已發布</a-select-option>
-            <a-select-option :value="false">草稿</a-select-option>
-          </a-select>
-        </a-col>
-        <a-col :span="6">
-          <a-select
-            v-model:value="searchForm.category_id"
-            placeholder="選擇分類"
-            allowClear
-            @change="handleSearch"
-          >
-            <a-select-option v-for="category in categories" :key="category.id" :value="category.id">
-              {{ category.name }}
+            <a-select-option value="published">
+              <a-tag color="green" size="small">已發布</a-tag>
+            </a-select-option>
+            <a-select-option value="draft">
+              <a-tag color="orange" size="small">草稿</a-tag>
             </a-select-option>
           </a-select>
-        </a-col>
-        <a-col :span="4">
-          <a-button @click="resetSearch">重置</a-button>
-        </a-col>
-      </a-row>
+        </a-form-item>
+        
+        <a-form-item>
+          <a-button @click="resetFilters" icon="reload">重置</a-button>
+        </a-form-item>
+      </a-form>
     </a-card>
 
-    <!-- 文章列表 -->
-    <a-card>
+    <!-- 文章列表區塊 -->
+    <a-card title="文章列表" class="table-card">
       <a-table
         :columns="columns"
         :data-source="posts"
@@ -60,209 +105,158 @@
         :pagination="paginationConfig"
         @change="handleTableChange"
         row-key="id"
+        :scroll="{ x: 800 }"
       >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'title'">
-            <div>
-              <a-typography-title :level="5" class="mb-1">{{ record.title }}</a-typography-title>
-              <a-typography-text type="secondary" class="text-sm">{{ record.excerpt }}</a-typography-text>
+        <template #status="{ record }">
+          <a-tag :color="record.is_published ? 'green' : 'orange'" size="default">
+            <template #icon>
+              <span>{{ record.is_published ? '✅' : '📝' }}</span>
+            </template>
+            {{ record.is_published ? '已發布' : '草稿' }}
+          </a-tag>
+        </template>
+
+        <template #title="{ record }">
+          <div class="title-cell">
+            <div class="post-title">{{ record.title }}</div>
+            <div class="post-excerpt" v-if="record.excerpt">
+              {{ record.excerpt.substring(0, 50) }}{{ record.excerpt.length > 50 ? '...' : '' }}
             </div>
-          </template>
-          
-          <template v-if="column.key === 'is_published'">
-            <a-tag :color="record.is_published ? 'green' : 'orange'">
-              {{ record.is_published ? '已發布' : '草稿' }}
-            </a-tag>
-          </template>
-          
-          <template v-if="column.key === 'categories'">
-            <a-tag v-for="category in record.categories" :key="category.id" color="blue">
-              {{ category.name }}
-            </a-tag>
-          </template>
-          
-          <template v-if="column.key === 'tags'">
-            <a-tag v-for="tag in record.tags" :key="tag.id" color="cyan">
-              {{ tag.name }}
-            </a-tag>
-          </template>
-          
-          <template v-if="column.key === 'created_at'">
-            {{ formatDateTime(record.created_at) }}
-          </template>
-          
-          <template v-if="column.key === 'action'">
-            <a-space>
-              <a-button type="link" size="small" @click="handleEdit(record)">
-                <EditOutlined />
+          </div>
+        </template>
+
+        <template #created_at="{ record }">
+          <div class="date-cell">
+            <div>{{ formatDate(record.created_at) }}</div>
+            <small class="text-gray-500">{{ formatTime(record.created_at) }}</small>
+          </div>
+        </template>
+
+        <template #actions="{ record }">
+          <a-space>
+            <a-button size="small" type="primary" @click="editPost(record)">
+              <EditOutlined /> 編輯
+            </a-button>
+            <a-popconfirm
+              title="確定要刪除這篇文章嗎？"
+              description="此操作不可恢復，請謹慎操作"
+              @confirm="deletePost(record.id)"
+              ok-text="確定"
+              cancel-text="取消"
+            >
+              <a-button size="small" danger>
+                <DeleteOutlined /> 刪除
               </a-button>
-              <a-popconfirm
-                title="確定要刪除這篇文章嗎？"
-                ok-text="確定"
-                cancel-text="取消"
-                @confirm="handleDelete(record.id)"
-              >
-                <a-button type="link" size="small" danger>
-                  <DeleteOutlined />
-                </a-button>
-              </a-popconfirm>
-            </a-space>
-          </template>
+            </a-popconfirm>
+          </a-space>
         </template>
       </a-table>
     </a-card>
 
-    <!-- 新增/編輯文章彈窗 -->
+    <!-- 新增/編輯文章對話框 -->
     <a-modal
       v-model:open="modalVisible"
-      :title="isEdit ? '編輯文章' : '新增文章'"
-      width="80%"
-      @ok="handleSubmit"
+      :title="isEditing ? '編輯文章' : '新增文章'"
+      width="1000px"
+      :footer="null"
       @cancel="handleCancel"
-      :confirm-loading="submitLoading"
-      :keyboard="false"
-      :mask-closable="false"
+      class="post-modal"
     >
       <a-form
-        ref="formRef"
         :model="form"
         :rules="rules"
-        layout="vertical"
+        :label-col="{ span: 4 }"
+        :wrapper-col="{ span: 20 }"
+        ref="formRef"
+        layout="horizontal"
       >
-        <a-row :gutter="16">
-          <a-col :span="16">
-            <a-form-item label="文章標題" name="title">
-              <a-input v-model:value="form.title" placeholder="請輸入文章標題" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="8">
-            <a-form-item label="發布狀態" name="is_published">
-              <a-switch
-                v-model:checked="form.is_published"
-                checked-children="發布"
-                un-checked-children="草稿"
-              />
-            </a-form-item>
-          </a-col>
-        </a-row>
-
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="分類" name="category_ids">
-              <a-select
-                v-model:value="form.category_ids"
-                mode="multiple"
-                placeholder="選擇分類"
-              >
-                <a-select-option v-for="category in categories" :key="category.id" :value="category.id">
-                  {{ category.name }}
-                </a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="標籤" name="tag_ids">
-              <a-select
-                v-model:value="form.tag_ids"
-                mode="multiple"
-                placeholder="選擇標籤"
-              >
-                <a-select-option v-for="tag in tags" :key="tag.id" :value="tag.id">
-                  {{ tag.name }}
-                </a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-        </a-row>
-
-        <a-form-item label="特色圖片" name="featured_image">
-          <div class="space-y-3">
-            <!-- 圖片預覽 -->
-            <div v-if="form.featured_image" class="relative inline-block">
-              <img 
-                :src="form.featured_image" 
-                alt="特色圖片預覽" 
-                class="w-32 h-32 object-cover rounded-lg border border-gray-200"
-                @error="handleImageError"
-              />
-              <a-button 
-                type="text" 
-                danger 
-                size="small"
-                class="absolute -top-2 -right-2 bg-white rounded-full shadow"
-                @click="removeImage"
-              >
-                <DeleteOutlined />
-              </a-button>
-            </div>
-            
-            <!-- 圖片上傳 -->
-            <div class="flex gap-2">
-              <a-upload
-                :show-upload-list="false"
-                :before-upload="beforeUpload"
-                @change="handleUploadChange"
-                accept="image/*"
-                action="/api/admin/upload/image"
-                :headers="{ 'Authorization': `Bearer ${authStore.token}` }"
-                name="file"
-              >
-                <a-button type="default">
-                  <UploadOutlined />
-                  選擇圖片
-                </a-button>
-              </a-upload>
-              
-              <!-- 手動輸入URL -->
-              <a-input
-                v-model:value="imageUrlInput"
-                placeholder="或輸入圖片URL"
-                class="flex-1"
-                @blur="handleImageUrlInput"
-              />
-            </div>
-            
-            <!-- 上傳進度 -->
-            <a-progress
-              v-if="uploadProgress > 0 && uploadProgress < 100"
-              :percent="uploadProgress"
-              size="small"
+        <!-- 基本信息 -->
+        <a-card title="基本信息" size="small" class="form-card">
+          <a-form-item label="文章標題" name="title">
+            <a-input 
+              v-model:value="form.title" 
+              placeholder="請輸入文章標題"
+              show-count
+              :maxlength="100"
             />
-          </div>
-        </a-form-item>
+          </a-form-item>
 
-        <a-form-item label="文章摘要" name="excerpt">
-          <a-textarea
-            v-model:value="form.excerpt"
-            placeholder="請輸入文章摘要"
-            :rows="3"
-          />
-        </a-form-item>
+          <a-form-item label="文章內容" name="content">
+            <MarkdownEditor 
+              v-model="form.content" 
+              :rows="15" 
+              placeholder="請輸入文章內容（支援 Markdown 語法）..." 
+            />
+          </a-form-item>
 
-        <a-form-item label="文章內容" name="content">
-          <a-textarea
-            v-model:value="form.content"
-            placeholder="請輸入文章內容（支援HTML）"
-            :rows="10"
-          />
-        </a-form-item>
+          <a-form-item label="文章摘要" name="excerpt">
+            <a-textarea 
+              v-model:value="form.excerpt" 
+              :rows="3" 
+              placeholder="可選，如果不填寫會自動從內容中提取"
+              show-count
+              :maxlength="200"
+            />
+          </a-form-item>
 
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="SEO標題" name="meta_title">
-              <a-input v-model:value="form.meta_title" placeholder="請輸入SEO標題" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="SEO描述" name="meta_description">
-              <a-textarea
-                v-model:value="form.meta_description"
-                placeholder="請輸入SEO描述"
-                :rows="2"
+          <a-form-item label="特色圖片" name="featured_image">
+            <UploadImage v-model="form.featured_image" />
+          </a-form-item>
+        </a-card>
+
+        <!-- 發布設定 -->
+        <a-card title="發布設定" size="small" class="form-card">
+          <a-form-item label="發布狀態" name="is_published">
+            <a-radio-group v-model:value="form.is_published" size="large">
+              <a-radio-button :value="false">
+                <FileTextOutlined /> 保存為草稿
+              </a-radio-button>
+              <a-radio-button :value="true">
+                <CheckCircleOutlined /> 立即發布
+              </a-radio-button>
+            </a-radio-group>
+            <div class="form-help-text">
+              <a-alert
+                :message="form.is_published ? '文章將立即對外可見' : '草稿不會顯示在前台'"
+                :type="form.is_published ? 'info' : 'warning'"
+                show-icon
+                banner
               />
-            </a-form-item>
-          </a-col>
-        </a-row>
+            </div>
+          </a-form-item>
+        </a-card>
+
+        <!-- SEO 設定 -->
+        <a-card title="SEO 設定" size="small" class="form-card">
+          <a-form-item label="SEO 標題" name="meta_title">
+            <a-input 
+              v-model:value="form.meta_title" 
+              placeholder="用於搜尋引擎優化，建議 50-60 個字符"
+              show-count
+              :maxlength="60"
+            />
+          </a-form-item>
+
+          <a-form-item label="SEO 描述" name="meta_description">
+            <a-textarea 
+              v-model:value="form.meta_description" 
+              :rows="3" 
+              placeholder="用於搜尋引擎優化，建議 150-160 個字符"
+              show-count
+              :maxlength="160"
+            />
+          </a-form-item>
+        </a-card>
+
+        <!-- 操作按鈕 -->
+        <div class="form-actions">
+          <a-space>
+            <a-button @click="handleCancel" size="large">取消</a-button>
+            <a-button type="primary" @click="handleSubmit" :loading="submitting" size="large">
+              <SaveOutlined /> {{ isEditing ? '更新文章' : '新增文章' }}
+            </a-button>
+          </a-space>
+        </div>
       </a-form>
     </a-modal>
   </div>
@@ -271,58 +265,60 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
-import {
-  PlusOutlined,
-  SearchOutlined,
-  EditOutlined,
+import { 
+  PlusOutlined, 
+  EditOutlined, 
   DeleteOutlined,
-  UploadOutlined
+  FileTextOutlined,
+  CheckCircleOutlined,
+  SaveOutlined
 } from '@ant-design/icons-vue'
-import { useAuthStore } from '../stores/auth'
+import axios from '../utils/axios'
+import MarkdownEditor from '../components/MarkdownEditor.vue'
+import UploadImage from '../components/UploadImage.vue'
+import { formatDate } from '../utils/dateUtils'
 
-const authStore = useAuthStore()
-
-// 數據
+// 響應式數據
 const posts = ref([])
-const categories = ref([])
-const tags = ref([])
 const loading = ref(false)
-const submitLoading = ref(false)
 const modalVisible = ref(false)
-const isEdit = ref(false)
+const isEditing = ref(false)
+const submitting = ref(false)
 const formRef = ref()
-const imageUrlInput = ref('')
-const uploadProgress = ref(0)
 
 // 搜尋表單
 const searchForm = reactive({
   search: '',
-  published: undefined,
-  category_id: undefined
+  status: undefined
 })
 
-// 分頁配置
+// 分頁
 const pagination = reactive({
   current: 1,
   pageSize: 10,
   total: 0,
   showSizeChanger: true,
-  showQuickJumper: true,
-  showTotal: (total, range) => `第 ${range[0]}-${range[1]} 項，共 ${total} 項`
+  showQuickJumper: true
 })
 
+// 計算統計數據
+const publishedCount = computed(() => 
+  posts.value.filter(post => post.is_published).length
+)
+const draftCount = computed(() => 
+  posts.value.filter(post => !post.is_published).length
+)
+const publishRate = computed(() => 
+  posts.value.length > 0 ? (publishedCount.value / posts.value.length) * 100 : 0
+)
+
+// 分頁設定
 const paginationConfig = computed(() => ({
   ...pagination,
-  onChange: (page, pageSize) => {
-    pagination.current = page
-    pagination.pageSize = pageSize
-    fetchPosts()
-  },
-  onShowSizeChange: (current, size) => {
-    pagination.current = 1
-    pagination.pageSize = size
-    fetchPosts()
-  }
+  showTotal: (total, range) => `顯示 ${range[0]}-${range[1]} 項，共 ${total} 項`,
+  pageSizeOptions: ['10', '20', '50', '100'],
+  showSizeChanger: true,
+  showQuickJumper: true
 }))
 
 // 表格欄位
@@ -330,32 +326,32 @@ const columns = [
   {
     title: '文章標題',
     key: 'title',
-    width: '30%'
+    slots: { customRender: 'title' },
+    width: 300
   },
   {
-    title: '狀態',
-    key: 'is_published',
-    width: '80px'
+    title: '發布狀態',
+    key: 'status',
+    slots: { customRender: 'status' },
+    width: 120,
+    filters: [
+      { text: '已發布', value: 'published' },
+      { text: '草稿', value: 'draft' }
+    ]
   },
   {
-    title: '分類',
-    key: 'categories',
-    width: '150px'
-  },
-  {
-    title: '標籤',
-    key: 'tags',
-    width: '150px'
-  },
-  {
-    title: '創建時間',
+    title: '建立時間',
     key: 'created_at',
-    width: '150px'
+    slots: { customRender: 'created_at' },
+    width: 150,
+    sorter: true
   },
   {
     title: '操作',
-    key: 'action',
-    width: '100px'
+    key: 'actions',
+    slots: { customRender: 'actions' },
+    width: 150,
+    fixed: 'right'
   }
 ]
 
@@ -367,284 +363,202 @@ const form = reactive({
   featured_image: '',
   is_published: false,
   meta_title: '',
-  meta_description: '',
-  category_ids: [],
-  tag_ids: []
+  meta_description: ''
 })
 
 // 表單驗證規則
 const rules = {
   title: [
-    { required: true, message: '請輸入文章標題', trigger: 'blur' }
+    { required: true, message: '請輸入文章標題' },
+    { min: 5, max: 100, message: '標題長度應在5-100字符之間' }
   ],
   content: [
-    { required: true, message: '請輸入文章內容', trigger: 'blur' }
+    { required: true, message: '請輸入文章內容' },
+    { min: 10, message: '內容至少需要10個字符' }
   ]
 }
 
-// 初始化
-onMounted(() => {
-  fetchPosts()
-  fetchCategories()
-  fetchTags()
-})
+// 日期格式化（已移至 utils/dateUtils.js）
 
-// 獲取文章列表
-const fetchPosts = async () => {
-  loading.value = true
+// 載入文章列表
+const loadPosts = async () => {
   try {
-    const params = new URLSearchParams({
-      skip: ((pagination.current - 1) * pagination.pageSize).toString(),
-      limit: pagination.pageSize.toString()
-    })
-
-    if (searchForm.search) {
-      params.append('search', searchForm.search)
+    loading.value = true
+    const params = new URLSearchParams()
+    
+    if (searchForm.search) params.append('search', searchForm.search)
+    
+    // 處理發布狀態篩選
+    if (searchForm.status === 'published') {
+      params.append('published_only', 'true')
+    } else if (searchForm.status === 'draft') {
+      params.append('published_only', 'false')
     }
-    if (searchForm.published !== undefined) {
-      params.append('published', searchForm.published.toString())
-    }
-    if (searchForm.category_id) {
-      params.append('category_id', searchForm.category_id.toString())
-    }
-
-    const response = await fetch(`/api/admin/posts?${params}`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      posts.value = data
-      // 注意：這裡假設後端沒有返回總數，實際使用時可能需要調整
-      pagination.total = data.length >= pagination.pageSize ? 
-        (pagination.current * pagination.pageSize) + 1 : 
-        (pagination.current - 1) * pagination.pageSize + data.length
-    } else {
-      message.error('獲取文章列表失敗')
-    }
+    
+    params.append('skip', ((pagination.current - 1) * pagination.pageSize).toString())
+    params.append('limit', pagination.pageSize.toString())
+    
+    const response = await axios.get(`/api/posts?${params}`)
+    posts.value = response.data
+    // 注意：實際應用中可能需要從響應頭或其他方式獲取總數
+    // pagination.total = response.headers['x-total-count'] || posts.value.length
   } catch (error) {
-    console.error('獲取文章列表錯誤:', error)
-    message.error('獲取文章列表失敗')
+    console.error('載入文章列表錯誤:', error)
+    message.error('載入文章列表失敗')
   } finally {
     loading.value = false
-  }
-}
-
-// 獲取分類列表
-const fetchCategories = async () => {
-  try {
-    const response = await fetch('/api/categories')
-    if (response.ok) {
-      const data = await response.json()
-      categories.value = data
-    }
-  } catch (error) {
-    console.error('獲取分類列表錯誤:', error)
-  }
-}
-
-// 獲取標籤列表
-const fetchTags = async () => {
-  try {
-    const response = await fetch('/api/tags')
-    if (response.ok) {
-      const data = await response.json()
-      tags.value = data
-    }
-  } catch (error) {
-    console.error('獲取標籤列表錯誤:', error)
   }
 }
 
 // 搜尋處理
 const handleSearch = () => {
   pagination.current = 1
-  fetchPosts()
+  loadPosts()
 }
 
-// 重置搜尋
-const resetSearch = () => {
-  searchForm.search = ''
-  searchForm.published = undefined
-  searchForm.category_id = undefined
+// 重置篩選
+const resetFilters = () => {
+  Object.assign(searchForm, { search: '', status: undefined })
   pagination.current = 1
-  fetchPosts()
+  loadPosts()
 }
 
 // 表格變化處理
-const handleTableChange = (pag, filters, sorter) => {
+const handleTableChange = (pag) => {
   pagination.current = pag.current
   pagination.pageSize = pag.pageSize
-  fetchPosts()
+  loadPosts()
 }
 
-// 新增文章
-const handleCreate = () => {
-  isEdit.value = false
-  resetForm()
+// 顯示新增對話框
+const showCreateModal = () => {
+  isEditing.value = false
   modalVisible.value = true
+  resetForm()
 }
 
 // 編輯文章
-const handleEdit = (record) => {
-  isEdit.value = true
-  Object.assign(form, {
-    ...record,
-    category_ids: record.categories.map(cat => cat.id),
-    tag_ids: record.tags.map(tag => tag.id)
-  })
-  imageUrlInput.value = record.featured_image || ''
+const editPost = (post) => {
+  isEditing.value = true
   modalVisible.value = true
-}
-
-// 刪除文章
-const handleDelete = async (id) => {
-  try {
-    const response = await fetch(`/api/admin/posts/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (response.ok) {
-      message.success('刪除成功')
-      fetchPosts()
-    } else {
-      message.error('刪除失敗')
-    }
-  } catch (error) {
-    console.error('刪除文章錯誤:', error)
-    message.error('刪除失敗')
-  }
-}
-
-// 提交表單
-const handleSubmit = async () => {
-  try {
-    await formRef.value.validate()
-    submitLoading.value = true
-
-    const url = isEdit.value ? `/api/admin/posts/${form.id}` : '/api/admin/posts'
-    const method = isEdit.value ? 'PUT' : 'POST'
-
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify(form)
-    })
-
-    if (response.ok) {
-      message.success(isEdit.value ? '更新成功' : '創建成功')
-      modalVisible.value = false
-      fetchPosts()
-    } else {
-      const errorData = await response.json()
-      message.error(errorData.detail || (isEdit.value ? '更新失敗' : '創建失敗'))
-    }
-  } catch (error) {
-    console.error('提交表單錯誤:', error)
-    message.error(isEdit.value ? '更新失敗' : '創建失敗')
-  } finally {
-    submitLoading.value = false
-  }
-}
-
-// 取消操作
-const handleCancel = () => {
-  modalVisible.value = false
-  resetForm()
+  Object.assign(form, post)
 }
 
 // 重置表單
 const resetForm = () => {
   Object.assign(form, {
-    title: '',
-    content: '',
-    excerpt: '',
-    featured_image: '',
-    is_published: false,
-    meta_title: '',
-    meta_description: '',
-    category_ids: [],
-    tag_ids: []
-  })
-  imageUrlInput.value = ''
-  uploadProgress.value = 0
-  formRef.value?.resetFields()
-}
-
-// 格式化日期時間
-const formatDateTime = (dateString) => {
-  if (!dateString) return ''
-  const date = new Date(dateString)
-  return date.toLocaleDateString('zh-TW') + ' ' + date.toLocaleTimeString('zh-TW', {
-    hour: '2-digit',
-    minute: '2-digit'
+    title: '', content: '', excerpt: '', featured_image: '', is_published: false, meta_title: '', meta_description: ''
   })
 }
 
-// 處理圖片上傳
-const beforeUpload = (file) => {
-  const isImage = file.type.startsWith('image/')
-  if (!isImage) {
-    message.error('只能上傳圖片')
-    return false
-  }
-  return true
-}
-
-const handleUploadChange = async (info) => {
-  if (info.file.status === 'uploading') {
-    uploadProgress.value = info.file.percent || 0
-  } else if (info.file.status === 'done') {
-    uploadProgress.value = 100
-    setTimeout(() => {
-      uploadProgress.value = 0
-    }, 1000)
+// 提交表單
+const handleSubmit = async () => {
+  try {
+    submitting.value = true
+    await formRef.value.validate()
     
-    // 處理上傳結果
-    if (info.file.response && info.file.response.success) {
-      form.featured_image = info.file.response.url
-      imageUrlInput.value = info.file.response.url
-      message.success('圖片上傳成功')
+    const data = { ...form }
+    
+    if (isEditing.value) {
+      await axios.put(`/api/posts/${form.id}`, data)
+      message.success('文章更新成功')
     } else {
-      message.error('圖片上傳失敗')
+      await axios.post('/api/posts', data)
+      message.success('文章新增成功')
     }
-  } else if (info.file.status === 'error') {
-    uploadProgress.value = 0
-    message.error('圖片上傳失敗')
+    
+    modalVisible.value = false
+    loadPosts()
+  } catch (error) {
+    console.error('操作失敗:', error)
+    message.error('操作失敗')
+  } finally {
+    submitting.value = false
   }
 }
 
-const handleImageError = () => {
-  message.error('圖片加載失敗')
+// 取消對話框
+const handleCancel = () => {
+  modalVisible.value = false
+  resetForm()
 }
 
-const removeImage = () => {
-  form.featured_image = ''
+// 刪除文章
+const deletePost = async (id) => {
+  try {
+    await axios.delete(`/api/posts/${id}`)
+    message.success('文章刪除成功')
+    loadPosts()
+  } catch (error) {
+    console.error('刪除失敗:', error)
+    message.error('刪除失敗')
+  }
 }
 
-const handleImageUrlInput = () => {
-  form.featured_image = imageUrlInput.value
-}
+// 掛載時載入數據
+onMounted(() => {
+  loadPosts()
+})
 </script>
 
 <style scoped>
-.ant-table-tbody > tr > td {
-  padding: 12px 16px;
+.posts-page {
+  padding: 20px;
 }
 
-.ant-typography-title {
-  margin-bottom: 0 !important;
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
-.text-sm {
-  font-size: 12px;
+.filters {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 6px;
+}
+
+.stats-row {
+  margin-bottom: 20px;
+}
+
+.filter-card {
+  margin-bottom: 20px;
+}
+
+.table-card {
+  margin-bottom: 20px;
+}
+
+.title-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.post-title {
+  font-weight: bold;
+}
+
+.post-excerpt {
+  color: #666;
+  margin-top: 5px;
+}
+
+.date-cell {
+  text-align: right;
+}
+
+.form-card {
+  margin-bottom: 20px;
+}
+
+.form-actions {
+  text-align: right;
+}
+
+.post-modal {
+  width: 1000px;
 }
 </style> 

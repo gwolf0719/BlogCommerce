@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_, or_
 from app.database import get_db
@@ -260,7 +260,6 @@ class RealtimeAnalyticsService:
             "active_products": db.query(func.count(Product.id)).filter(Product.is_active == True).scalar() or 0,
             "total_orders": db.query(func.count(Order.id)).scalar() or 0,
             "pending_orders": db.query(func.count(Order.id)).filter(Order.status == "pending").scalar() or 0,
-            "total_categories": db.query(func.count(Category.id)).scalar() or 0,
         }
         
         # 計算總銷售額（即時）

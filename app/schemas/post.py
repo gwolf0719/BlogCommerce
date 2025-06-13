@@ -39,7 +39,8 @@ class PostUpdate(BaseSchema):
 
 
 class PostResponse(PostBase, BaseResponseSchema, SlugSchema):
-    pass
+    content_html: Optional[str] = None  # Markdown 渲染後的 HTML
+    toc: Optional[str] = None           # 目錄
 
 
 class PostListResponse(BaseResponseSchema, SlugSchema):

@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
 from app.models.product import Product
-# 分類和標籤已移除
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse, ProductListResponse
 from app.auth import get_current_admin_user
 
@@ -14,8 +13,6 @@ router = APIRouter(prefix="/api/products", tags=["products"])
 def get_products(
     active_only: bool = Query(True, description="僅顯示啟用的商品"),
     featured_only: bool = Query(False, description="僅顯示推薦商品"),
-    category_id: Optional[int] = Query(None, description="按分類過濾"),
-    tag_id: Optional[int] = Query(None, description="按標籤過濾"),
     search: Optional[str] = Query(None, description="搜尋商品名稱或描述"),
     min_price: Optional[float] = Query(None, description="最低價格"),
     max_price: Optional[float] = Query(None, description="最高價格"),
@@ -31,12 +28,6 @@ def get_products(
     
     if featured_only:
         query = query.filter(Product.is_featured == True)
-    
-    if category_id:
-        query = query.join(Product.categories).filter(Category.id == category_id)
-    
-    if tag_id:
-        query = query.join(Product.tags).filter(Tag.id == tag_id)
     
     if search:
         query = query.filter(
@@ -84,7 +75,7 @@ def create_product(
         raise HTTPException(status_code=400, detail="商品編號已存在")
     
     # 建立商品
-    product_data = product.model_dump(exclude={"category_ids", "tag_ids"})
+    product_data = product.model_dump()
     db_product = Product(**product_data)
     db_product.slug = db_product.generate_slug(product.name)
     
@@ -95,24 +86,6 @@ def create_product(
         db_product.slug = f"{db_product.slug}-{int(time.time())}"
     
     db.add(db_product)
-    db.flush()  # 先取得 ID
-    
-    # 處理分類關聯
-    if product.category_ids:
-        categories = db.query(Category).filter(
-            Category.id.in_(product.category_ids),
-            Category.type == CategoryType.PRODUCT
-        ).all()
-        db_product.categories = categories
-    
-    # 處理標籤關聯
-    if product.tag_ids:
-        tags = db.query(Tag).filter(
-            Tag.id.in_(product.tag_ids),
-            Tag.type == TagType.PRODUCT
-        ).all()
-        db_product.tags = tags
-    
     db.commit()
     db.refresh(db_product)
     return db_product
@@ -131,25 +104,6 @@ def update_product(
         raise HTTPException(status_code=404, detail="商品不存在")
     
     update_data = product_update.model_dump(exclude_unset=True)
-    
-    # 處理分類和標籤更新
-    if "category_ids" in update_data:
-        category_ids = update_data.pop("category_ids")
-        if category_ids is not None:
-            categories = db.query(Category).filter(
-                Category.id.in_(category_ids),
-                Category.type == CategoryType.PRODUCT
-            ).all()
-            product.categories = categories
-    
-    if "tag_ids" in update_data:
-        tag_ids = update_data.pop("tag_ids")
-        if tag_ids is not None:
-            tags = db.query(Tag).filter(
-                Tag.id.in_(tag_ids),
-                Tag.type == TagType.PRODUCT
-            ).all()
-            product.tags = tags
     
     # 如果更新名稱，需要重新生成 slug
     if "name" in update_data:
@@ -210,37 +164,17 @@ def get_related_products(
     db: Session = Depends(get_db)
 ):
     """取得相關商品"""
-    # 取得當前商品
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
+    current_product = db.query(Product).filter(Product.id == product_id).first()
+    if not current_product:
         raise HTTPException(status_code=404, detail="商品不存在")
     
-    # 取得同分類的其他商品
+    # 取得其他商品（排除目前商品）
     query = db.query(Product).filter(
         Product.id != product_id,
         Product.is_active == True
     )
     
-    # 如果有分類，優先取得同分類商品
-    if product.categories:
-        category_ids = [cat.id for cat in product.categories]
-        query = query.join(Product.categories).filter(
-            Category.id.in_(category_ids)
-        )
+    # 如果沒有足夠的相關商品，補足其他商品
+    other_products = query.order_by(Product.created_at.desc()).limit(limit).all()
     
-    related_products = query.order_by(Product.is_featured.desc(), Product.created_at.desc()).limit(limit).all()
-    
-    # 如果同分類商品不足，補足其他商品
-    if len(related_products) < limit:
-        remaining = limit - len(related_products)
-        related_ids = [p.id for p in related_products]
-        
-        additional_products = db.query(Product).filter(
-            Product.id != product_id,
-            Product.is_active == True,
-            Product.id.notin_(related_ids) if related_ids else True
-        ).order_by(Product.is_featured.desc(), Product.created_at.desc()).limit(remaining).all()
-        
-        related_products.extend(additional_products)
-    
-    return related_products 
+    return other_products 

@@ -45,7 +45,11 @@
           <setting-outlined />
           <span>系統設定</span>
         </a-menu-item>
-
+        
+        <a-menu-item key="error-logs" @click="$router.push('/error-logs')">
+          <warning-outlined />
+          <span>錯誤日誌</span>
+        </a-menu-item>
 
       </a-menu>
     </a-layout-sider>
@@ -98,7 +102,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   DownOutlined,
-
+  WarningOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -118,7 +122,8 @@ const pageTitle = {
   orders: '訂單管理',
   users: '會員管理',
   analytics: '數據分析',
-  settings: '系統設定'
+  settings: '系統設定',
+  'error-logs': '錯誤日誌'
 }
 
 const getPageTitle = () => {

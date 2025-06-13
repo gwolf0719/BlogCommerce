@@ -58,9 +58,15 @@
                  class="w-full h-96 object-cover rounded-lg shadow-lg">
         </div>
 
+        <!-- 目錄 (如果有的話) -->
+        <div x-show="post.toc" class="mb-8 bg-gray-50 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold mb-3">目錄</h3>
+            <div x-html="post.toc" class="toc-content"></div>
+        </div>
+
         <!-- 文章內容 -->
         <article class="prose prose-lg max-w-none mb-12">
-            <div x-html="post.content"></div>
+            <div x-html="post.content_html || post.content"></div>
         </article>
 
         <!-- 標籤功能已移除 -->

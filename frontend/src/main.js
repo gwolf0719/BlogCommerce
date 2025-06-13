@@ -5,6 +5,7 @@ import Antd from 'ant-design-vue'
 import 'ant-design-vue/dist/reset.css'
 import App from './App.vue'
 import routes from './router'
+import errorHandler from './utils/errorHandler'
 
 const router = createRouter({
   history: createWebHistory('/admin'),

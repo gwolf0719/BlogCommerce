@@ -130,9 +130,10 @@ def get_users_stats(
             func.date(User.created_at) == today
         ).scalar() or 0
         
-        # 管理員數量
+        # 管理員數量  
+        from app.models.user import UserRole
         admin_users = db.query(func.count(User.id)).filter(
-            User.role == 'admin'
+            User.role == UserRole.ADMIN
         ).scalar() or 0
         
         return {
@@ -436,6 +437,109 @@ async def get_admin_stats(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"獲取統計資料失敗: {str(e)}")
+
+
+@router.get("/quick-stats")
+async def get_quick_stats(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """獲取快速統計數據（數據分析頁面使用）"""
+    from sqlalchemy import func
+    from app.models.analytics import PageView
+    
+    try:
+        stats = {
+            "total_users": db.query(func.count(User.id)).scalar() or 0,
+            "total_posts": db.query(func.count(Post.id)).scalar() or 0,
+            "total_products": db.query(func.count(Product.id)).scalar() or 0,
+            "total_orders": db.query(func.count(Order.id)).scalar() or 0,
+            "total_page_views": db.query(func.count(PageView.id)).scalar() or 0,
+            "active_products": db.query(func.count(Product.id)).filter(Product.is_active == True).scalar() or 0,
+            "published_posts": db.query(func.count(Post.id)).filter(Post.is_published == True).scalar() or 0,
+            "pending_orders": db.query(func.count(Order.id)).filter(Order.status == "pending").scalar() or 0
+        }
+        return stats
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取快速統計失敗: {str(e)}")
+
+
+@router.get("/recent-activity")
+async def get_recent_activity(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+    limit: int = Query(default=10, ge=1, le=50)
+):
+    """獲取最近活動記錄"""
+    try:
+        from datetime import datetime, timedelta
+        from sqlalchemy import desc, union_all, literal_column
+        
+        # 最近7天的數據
+        recent_date = datetime.now() - timedelta(days=7)
+        
+        activities = []
+        
+        # 最近的用戶註冊
+        recent_users = db.query(User).filter(
+            User.created_at >= recent_date
+        ).order_by(desc(User.created_at)).limit(5).all()
+        
+        for user in recent_users:
+            activities.append({
+                "type": "user",
+                "title": user.username,
+                "action": "新用戶註冊",
+                "time": user.created_at.isoformat() if user.created_at else None
+            })
+        
+        # 最近的訂單
+        recent_orders = db.query(Order).filter(
+            Order.created_at >= recent_date
+        ).order_by(desc(Order.created_at)).limit(5).all()
+        
+        for order in recent_orders:
+            activities.append({
+                "type": "order",
+                "title": order.order_number,
+                "action": "新訂單",
+                "time": order.created_at.isoformat() if order.created_at else None
+            })
+        
+        # 最近的文章
+        recent_posts = db.query(Post).filter(
+            Post.created_at >= recent_date,
+            Post.is_published == True
+        ).order_by(desc(Post.created_at)).limit(5).all()
+        
+        for post in recent_posts:
+            activities.append({
+                "type": "post",
+                "title": post.title,
+                "action": "文章發布",
+                "time": post.created_at.isoformat() if post.created_at else None
+            })
+        
+        # 最近的商品
+        recent_products = db.query(Product).filter(
+            Product.created_at >= recent_date,
+            Product.is_active == True
+        ).order_by(desc(Product.created_at)).limit(5).all()
+        
+        for product in recent_products:
+            activities.append({
+                "type": "product",
+                "title": product.name,
+                "action": "商品上架",
+                "time": product.created_at.isoformat() if product.created_at else None
+            })
+        
+        # 按時間排序並限制數量
+        activities.sort(key=lambda x: x["time"] or "", reverse=True)
+        return activities[:limit]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取最近活動失敗: {str(e)}")
 
 
 # ==============================================

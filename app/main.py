@@ -51,12 +51,55 @@ app.include_router(api_router)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
     """處理HTTP異常"""
     log_api_error(f"{request.method} {request.url.path}", exc, {"status_code": exc.status_code})
+    
+    # 同時記錄到錯誤日誌系統
+    try:
+        from app.database import SessionLocal
+        from app.services.error_log_service import ErrorLogService
+        from app.models.error_log import ErrorSeverity
+        
+        db = SessionLocal()
+        try:
+            error_service = ErrorLogService(db)
+            severity = ErrorSeverity.CRITICAL if exc.status_code >= 500 else ErrorSeverity.MEDIUM
+            error_service.log_backend_error(
+                error=exc,
+                request=request,
+                severity=severity,
+                tags=['http_exception', f'status_{exc.status_code}']
+            )
+        finally:
+            db.close()
+    except Exception as e:
+        app_logger.error(f"記錄HTTP異常到錯誤日誌系統失敗: {e}")
+    
     return await http_exception_handler(request, exc)
 
 @app.exception_handler(ValidationError)
 async def validation_exception_handler(request: Request, exc: ValidationError):
     """處理驗證錯誤"""
     log_validation_error("Request", exc.errors(), None)
+    
+    # 同時記錄到錯誤日誌系統
+    try:
+        from app.database import SessionLocal
+        from app.services.error_log_service import ErrorLogService
+        from app.models.error_log import ErrorSeverity
+        
+        db = SessionLocal()
+        try:
+            error_service = ErrorLogService(db)
+            error_service.log_backend_error(
+                error=exc,
+                request=request,
+                severity=ErrorSeverity.MEDIUM,
+                tags=['validation', 'pydantic']
+            )
+        finally:
+            db.close()
+    except Exception as e:
+        app_logger.error(f"記錄驗證錯誤到錯誤日誌系統失敗: {e}")
+    
     return JSONResponse(
         status_code=422,
         content={"detail": "驗證錯誤", "errors": exc.errors()}
@@ -66,6 +109,27 @@ async def validation_exception_handler(request: Request, exc: ValidationError):
 async def general_exception_handler(request: Request, exc: Exception):
     """處理一般異常"""
     log_api_error(f"{request.method} {request.url.path}", exc)
+    
+    # 同時記錄到錯誤日誌系統
+    try:
+        from app.database import SessionLocal
+        from app.services.error_log_service import ErrorLogService
+        from app.models.error_log import ErrorSeverity
+        
+        db = SessionLocal()
+        try:
+            error_service = ErrorLogService(db)
+            error_service.log_backend_error(
+                error=exc,
+                request=request,
+                severity=ErrorSeverity.CRITICAL,
+                tags=['unhandled_exception', 'server_error']
+            )
+        finally:
+            db.close()
+    except Exception as e:
+        app_logger.error(f"記錄一般異常到錯誤日誌系統失敗: {e}")
+    
     return JSONResponse(
         status_code=500,
         content={"detail": "內部服務器錯誤"}

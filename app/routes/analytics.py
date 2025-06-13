@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Request, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_, extract
 from datetime import datetime, timedelta, date
@@ -17,7 +17,7 @@ from app.models.analytics import PageView, DailyStats, PopularContent, UserSessi
 from app.models.post import Post
 from app.models.product import Product
 from app.models.user import User
-from app.models.order import Order
+from app.models.order import Order, OrderItem
 from app.schemas.analytics import (
     PageViewCreate, 
     HeartbeatRequest,
@@ -1138,4 +1138,169 @@ async def get_device_stats(
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取設備統計失敗: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"獲取設備統計失敗: {str(e)}")
+
+
+@router.get("/popular-products")
+async def get_popular_products(
+    limit: int = Query(default=5, ge=1, le=20),
+    days: int = Query(default=30, ge=1, le=365),
+    db: Session = Depends(get_db)
+):
+    """獲取熱門商品列表（基於真實訂單數據）"""
+    try:
+        from datetime import datetime, timedelta
+        from sqlalchemy import func, desc, and_
+        
+        # 計算時間範圍
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # 優先基於訂單項目統計熱門商品（真實銷售數據）
+        popular_products = db.query(
+            Product.name,
+            Product.id,
+            func.sum(OrderItem.quantity).label('sales_count'),
+            func.sum(OrderItem.quantity * OrderItem.product_price).label('total_revenue')
+        ).join(OrderItem, Product.id == OrderItem.product_id
+        ).join(Order, OrderItem.order_id == Order.id
+        ).filter(
+            and_(
+                Order.created_at >= start_date,
+                Order.status.in_(['confirmed', 'shipped', 'delivered']),
+                Product.is_active == True
+            )
+        ).group_by(Product.id, Product.name).order_by(
+            desc('sales_count')
+        ).limit(limit).all()
+        
+        if popular_products:
+            return [
+                {
+                    "name": product.name,
+                    "id": product.id,
+                    "sales_count": int(product.sales_count),
+                    "total_revenue": float(product.total_revenue),
+                    "data_source": "sales"
+                }
+                for product in popular_products
+            ]
+        
+        # 如果沒有銷售數據，則基於瀏覽量統計（但仍是真實數據）
+        popular_by_views = db.query(
+            Product.name,
+            Product.id,
+            func.count(PageView.id).label('view_count')
+        ).join(
+            PageView, 
+            and_(
+                PageView.content_id == Product.id,
+                PageView.page_type == 'product'
+            )
+        ).filter(
+            and_(
+                PageView.created_at >= start_date,
+                Product.is_active == True
+            )
+        ).group_by(Product.id, Product.name).order_by(
+            desc('view_count')
+        ).limit(limit).all()
+        
+        if popular_by_views:
+            return [
+                {
+                    "name": product.name,
+                    "id": product.id,
+                    "sales_count": 0,
+                    "view_count": int(product.view_count),
+                    "data_source": "views"
+                }
+                for product in popular_by_views
+            ]
+        
+        # 如果都沒有數據，返回活躍商品列表（真實但無統計數據）
+        active_products = db.query(Product).filter(
+            Product.is_active == True
+        ).order_by(desc(Product.created_at)).limit(limit).all()
+        
+        return [
+            {
+                "name": product.name,
+                "id": product.id,
+                "sales_count": 0,
+                "view_count": 0,
+                "data_source": "no_data"
+            }
+            for product in active_products
+        ]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取熱門商品失敗: {str(e)}")
+
+
+@router.get("/popular-posts")
+async def get_popular_posts(
+    limit: int = Query(default=5, ge=1, le=20),
+    days: int = Query(default=30, ge=1, le=365),
+    db: Session = Depends(get_db)
+):
+    """獲取熱門文章列表（基於真實瀏覽量數據）"""
+    try:
+        from datetime import datetime, timedelta
+        from sqlalchemy import func, desc, and_
+        
+        # 計算時間範圍
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # 優先基於頁面瀏覽統計熱門文章（真實瀏覽數據）
+        popular_posts = db.query(
+            Post.title,
+            Post.id,
+            func.count(PageView.id).label('views'),
+            func.count(func.distinct(PageView.session_id)).label('unique_views')
+        ).join(
+            PageView,
+            and_(
+                PageView.content_id == Post.id,
+                PageView.page_type == 'blog'
+            )
+        ).filter(
+            and_(
+                PageView.created_at >= start_date,
+                Post.is_published == True
+            )
+        ).group_by(Post.id, Post.title).order_by(
+            desc('views')
+        ).limit(limit).all()
+        
+        if popular_posts:
+            return [
+                {
+                    "title": post.title,
+                    "id": post.id,
+                    "views": int(post.views),
+                    "unique_views": int(post.unique_views),
+                    "data_source": "views"
+                }
+                for post in popular_posts
+            ]
+        
+        # 如果沒有瀏覽數據，返回最新發布的文章（真實但無統計數據）
+        recent_posts = db.query(Post).filter(
+            Post.is_published == True
+        ).order_by(desc(Post.created_at)).limit(limit).all()
+        
+        return [
+            {
+                "title": post.title,
+                "id": post.id,
+                "views": 0,
+                "unique_views": 0,
+                "data_source": "no_data"
+            }
+            for post in recent_posts
+        ]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取熱門文章失敗: {str(e)}")

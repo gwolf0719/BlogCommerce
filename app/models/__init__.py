@@ -8,6 +8,7 @@ from .settings import SystemSettings
 from .newsletter import NewsletterSubscriber, NewsletterCampaign
 from .analytics import PageView, DailyStats, PopularContent, UserSession
 from .favorite import Favorite
+from .error_log import ErrorLog, ErrorSource, ErrorSeverity
 
 __all__ = [
     "BaseModel",
@@ -18,5 +19,6 @@ __all__ = [
     "SystemSettings",
     "NewsletterSubscriber", "NewsletterCampaign",
     "PageView", "DailyStats", "PopularContent", "UserSession",
-    "Favorite"
+    "Favorite",
+    "ErrorLog", "ErrorSource", "ErrorSeverity"
 ] 

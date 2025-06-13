@@ -3,17 +3,41 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
 from app.models.post import Post
-# 分類和標籤已移除
 from app.schemas.post import PostCreate, PostUpdate, PostResponse, PostListResponse
+from app.services.markdown_service import markdown_service
 
 router = APIRouter(prefix="/api/posts", tags=["posts"])
+
+
+def process_post_content(post: Post) -> dict:
+    """處理文章內容，添加 Markdown 渲染結果"""
+    post_dict = {
+        "id": post.id,
+        "title": post.title,
+        "content": post.content,
+        "excerpt": post.excerpt,
+        "featured_image": post.featured_image,
+        "is_published": post.is_published,
+        "meta_title": post.meta_title,
+        "meta_description": post.meta_description,
+        "slug": post.slug,
+        "created_at": post.created_at,
+        "updated_at": post.updated_at,
+        # 添加 Markdown 處理結果
+        "content_html": markdown_service.render(post.content),
+        "toc": markdown_service.get_toc(post.content)
+    }
+    
+    # 如果沒有摘要，自動生成
+    if not post.excerpt and post.content:
+        post_dict["excerpt"] = markdown_service.extract_excerpt(post.content)
+    
+    return post_dict
 
 
 @router.get("/", response_model=List[PostListResponse])
 def get_posts(
     published_only: bool = Query(True, description="僅顯示已發布的文章"),
-    category_id: Optional[int] = Query(None, description="按分類過濾"),
-    tag_id: Optional[int] = Query(None, description="按標籤過濾"),
     search: Optional[str] = Query(None, description="搜尋標題或內容"),
     skip: int = Query(0, ge=0, description="跳過的項目數"),
     limit: int = Query(10, ge=1, le=50, description="限制項目數"),
@@ -24,12 +48,6 @@ def get_posts(
     
     if published_only:
         query = query.filter(Post.is_published == True)
-    
-    if category_id:
-        query = query.join(Post.categories).filter(Category.id == category_id)
-    
-    if tag_id:
-        query = query.join(Post.tags).filter(Tag.id == tag_id)
     
     if search:
         query = query.filter(
@@ -47,7 +65,7 @@ def get_post(post_id: int, db: Session = Depends(get_db)):
     post = db.query(Post).filter(Post.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="文章不存在")
-    return post
+    return process_post_content(post)
 
 
 @router.get("/slug/{slug}", response_model=PostResponse)
@@ -56,7 +74,7 @@ def get_post_by_slug(slug: str, db: Session = Depends(get_db)):
     post = db.query(Post).filter(Post.slug == slug).first()
     if not post:
         raise HTTPException(status_code=404, detail="文章不存在")
-    return post
+    return process_post_content(post)
 
 
 @router.post("/", response_model=PostResponse)
@@ -68,7 +86,12 @@ def create_post(post: PostCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="文章標題已存在")
     
     # 建立文章
-    post_data = post.model_dump(exclude={"category_ids", "tag_ids"})
+    post_data = post.model_dump()
+    
+    # 如果沒有摘要，自動從內容生成
+    if not post_data.get('excerpt') and post_data.get('content'):
+        post_data['excerpt'] = markdown_service.extract_excerpt(post_data['content'])
+    
     db_post = Post(**post_data)
     db_post.slug = db_post.generate_slug(post.title)
     
@@ -79,27 +102,9 @@ def create_post(post: PostCreate, db: Session = Depends(get_db)):
         db_post.slug = f"{db_post.slug}-{int(time.time())}"
     
     db.add(db_post)
-    db.flush()  # 先取得 ID
-    
-    # 處理分類關聯
-    if post.category_ids:
-        categories = db.query(Category).filter(
-            Category.id.in_(post.category_ids),
-            Category.type == CategoryType.BLOG
-        ).all()
-        db_post.categories = categories
-    
-    # 處理標籤關聯
-    if post.tag_ids:
-        tags = db.query(Tag).filter(
-            Tag.id.in_(post.tag_ids),
-            Tag.type == TagType.BLOG
-        ).all()
-        db_post.tags = tags
-    
     db.commit()
     db.refresh(db_post)
-    return db_post
+    return process_post_content(db_post)
 
 
 @router.put("/{post_id}", response_model=PostResponse)
@@ -115,24 +120,9 @@ def update_post(
     
     update_data = post_update.model_dump(exclude_unset=True)
     
-    # 處理分類和標籤更新
-    if "category_ids" in update_data:
-        category_ids = update_data.pop("category_ids")
-        if category_ids is not None:
-            categories = db.query(Category).filter(
-                Category.id.in_(category_ids),
-                Category.type == CategoryType.BLOG
-            ).all()
-            post.categories = categories
-    
-    if "tag_ids" in update_data:
-        tag_ids = update_data.pop("tag_ids")
-        if tag_ids is not None:
-            tags = db.query(Tag).filter(
-                Tag.id.in_(tag_ids),
-                Tag.type == TagType.BLOG
-            ).all()
-            post.tags = tags
+    # 如果更新內容但沒有摘要，自動生成摘要
+    if "content" in update_data and update_data["content"] and not update_data.get("excerpt"):
+        update_data["excerpt"] = markdown_service.extract_excerpt(update_data["content"])
     
     # 如果更新標題，需要重新生成 slug
     if "title" in update_data:
@@ -151,7 +141,7 @@ def update_post(
     
     db.commit()
     db.refresh(post)
-    return post
+    return process_post_content(post)
 
 
 @router.delete("/{post_id}")
