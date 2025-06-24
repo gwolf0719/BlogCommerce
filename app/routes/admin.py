@@ -24,7 +24,7 @@ import os
 import uuid
 from PIL import Image
 
-router = APIRouter(prefix="/api/admin", tags=["admin"])
+router = APIRouter(prefix="/api/admin", tags=["管理員"])
 
 # ==============================================
 # 使用者管理

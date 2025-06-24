@@ -6,7 +6,7 @@ from app.models.product import Product
 from pydantic import BaseModel
 import json
 
-router = APIRouter(prefix="/api/cart", tags=["cart"])
+router = APIRouter(prefix="/api/cart", tags=["購物車"])
 
 
 class CartItem(BaseModel):

@@ -6,7 +6,7 @@ from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse, ProductListResponse
 from app.auth import get_current_admin_user
 
-router = APIRouter(prefix="/api/products", tags=["products"])
+router = APIRouter(prefix="/api/products", tags=["商品"])
 
 
 @router.get("/", response_model=List[ProductListResponse])

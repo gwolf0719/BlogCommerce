@@ -22,7 +22,7 @@ def create_test_users(db: Session):
         {
             "username": "admin",
             "email": "admin@example.com",
-            "password": "admin123",
+            "password": "admin123456",
             "full_name": "系統管理員",
             "role": UserRole.ADMIN
         },

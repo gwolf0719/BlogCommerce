@@ -9,7 +9,7 @@ from app.models.favorite import Favorite
 from app.schemas.product import ProductResponse
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/favorites", tags=["favorites"])
+router = APIRouter(prefix="/api/favorites", tags=["收藏"])
 
 
 class FavoriteRequest(BaseModel):
@@ -49,7 +49,7 @@ async def get_favorites(
     return result
 
 
-@router.post("/add")
+@router.post("/")
 async def add_favorite(
     request: FavoriteRequest,
     current_user: User = Depends(get_current_user),

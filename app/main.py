@@ -13,13 +13,131 @@ from pathlib import Path
 from fastapi.responses import FileResponse
 from app.api import router as api_router
 from app.utils.logger import app_logger, log_api_error, log_validation_error, LoggingMiddleware
+from datetime import datetime
 
 # 建立 FastAPI 應用程式
 app = FastAPI(
-    title=settings.site_name,
-    description=settings.site_description,
+    title="BlogCommerce API",
+    description="""
+    # BlogCommerce API 文檔
+    
+    ## 簡介
+    BlogCommerce 是一個功能完整的電商部落格系統，集成了內容管理、電商功能、用戶管理和分析統計等模組。
+    
+    ## 主要功能
+    
+    ### 🔐 認證與用戶系統
+    - 用戶註冊、登入、密碼管理
+    - JWT Token 認證
+    - 用戶資料管理
+    
+    ### 📝 內容管理系統
+    - 文章 CRUD 操作
+    - Markdown 支援
+    - SEO 友好的 URL
+    
+    ### 🛒 電商系統
+    - 商品管理
+    - 購物車功能
+    - 訂單處理
+    - 收藏功能
+    
+    ### 📊 分析統計
+    - 頁面瀏覽統計
+    - 用戶行為分析
+    - 即時數據追蹤
+    
+    ### 🔧 系統管理
+    - 系統設定管理
+    - 錯誤日誌記錄
+    - 電子報系統
+    
+    ## 認證方式
+    
+    大部分 API 端點需要 JWT Token 認證：
+    ```
+    Authorization: Bearer <your_jwt_token>
+    ```
+    
+    ## 狀態碼說明
+    
+    - `200` - 請求成功
+    - `201` - 資源創建成功
+    - `400` - 請求參數錯誤
+    - `401` - 未授權（需要登入）
+    - `403` - 權限不足
+    - `404` - 資源不存在
+    - `422` - 資料驗證失敗
+    - `500` - 服務器內部錯誤
+    
+    ## 開發者資訊
+    
+    - 版本: 1.0.0
+    - 開發環境: FastAPI + SQLAlchemy + Vue.js
+    - 文檔更新: 自動生成（基於代碼註解）
+    """,
     version="1.0.0",
-    debug=settings.debug
+    terms_of_service="/terms",
+    contact={
+        "name": "BlogCommerce 開發團隊",
+        "url": "https://blogcommerce.com/contact",
+        "email": "admin@blogcommerce.com",
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    debug=settings.debug,
+    openapi_tags=[
+        {
+            "name": "認證",
+            "description": "用戶認證相關操作，包括登入、註冊、密碼管理等。",
+        },
+        {
+            "name": "文章",
+            "description": "部落格文章的 CRUD 操作，支援 Markdown 格式。",
+        },
+        {
+            "name": "商品",
+            "description": "電商商品管理，包括商品資訊、庫存、價格等。",
+        },
+        {
+            "name": "購物車",
+            "description": "購物車功能，支援商品加入、移除、數量調整等操作。",
+        },
+        {
+            "name": "訂單",
+            "description": "訂單管理系統，包括訂單創建、狀態更新、歷史記錄等。",
+        },
+        {
+            "name": "收藏",
+            "description": "用戶收藏功能，允許收藏商品並管理收藏清單。",
+        },
+        {
+            "name": "分析統計",
+            "description": "網站分析統計，包括頁面瀏覽、用戶行為、即時數據等。",
+        },
+        {
+            "name": "系統設定",
+            "description": "系統配置管理，包括網站設定、功能開關等。",
+        },
+        {
+            "name": "錯誤日誌",
+            "description": "系統錯誤日誌記錄與查詢功能。",
+        },
+        {
+            "name": "電子報",
+            "description": "電子報系統，包括訂閱管理、內容發送等功能。",
+        },
+        {
+            "name": "管理員",
+            "description": "管理員專用功能，需要管理員權限。",
+        },
+        {
+            "name": "健康檢查",
+            "description": "系統健康狀態檢查和監控。",
+        }
+    ]
 )
 
 # 日誌中間件
@@ -247,9 +365,25 @@ async def api_root():
     }
 
 # 健康檢查
-@app.get("/health")
+@app.get("/health", tags=["健康檢查"])
 async def health_check():
-    return {"status": "ok", "app_name": settings.site_name}
+    """檢查應用程式健康狀態"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0"
+    }
+
+# 增強版 ReDoc 文檔
+@app.get("/api-docs", include_in_schema=False)
+async def enhanced_redoc():
+    """提供增強版的 ReDoc API 文檔，包含測試功能"""
+    return FileResponse("app/static/enhanced-redoc.html")
+
+# 404 處理
+@app.get("/{path:path}", include_in_schema=False)
+async def catch_all(path: str, request: Request):
+    """捕捉所有其他路由，返回前端頁面"""
 
 if __name__ == "__main__":
     import uvicorn

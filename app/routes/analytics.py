@@ -27,7 +27,7 @@ from app.schemas.analytics import (
 )
 from app.services.realtime_analytics import get_realtime_analytics
 
-router = APIRouter(prefix="/api/analytics", tags=["analytics"])
+router = APIRouter(prefix="/api/analytics", tags=["分析統計"])
 
 
 def get_client_info(request: Request) -> Dict[str, Any]:

@@ -12,7 +12,7 @@ from app.schemas.error_log import (
 from app.models.error_log import ErrorSource, ErrorSeverity
 from app.auth import get_current_admin_user
 
-router = APIRouter(prefix="/api/error-logs", tags=["error-logs"])
+router = APIRouter(prefix="/api/error-logs", tags=["錯誤日誌"])
 
 def get_error_log_service(db: Session = Depends(get_db)) -> ErrorLogService:
     return ErrorLogService(db)

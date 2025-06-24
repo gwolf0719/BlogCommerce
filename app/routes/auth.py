@@ -12,7 +12,7 @@ from app.auth import (
 )
 from app.config import settings
 
-router = APIRouter(prefix="/api/auth", tags=["authentication"])
+router = APIRouter(prefix="/api/auth", tags=["認證"])
 
 
 @router.post("/register", response_model=UserResponse)

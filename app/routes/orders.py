@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from decimal import Decimal
@@ -14,8 +14,13 @@ from app.schemas.order import (
 from app.auth import get_current_active_user, get_current_admin_user
 from datetime import datetime
 from sqlalchemy import func, and_
+from pydantic import BaseModel
 
-router = APIRouter(prefix="/api/orders", tags=["orders"])
+router = APIRouter(prefix="/api/orders", tags=["訂單"])
+
+
+class OrderStatusUpdate(BaseModel):
+    status: OrderStatus
 
 
 def generate_order_number() -> str:
@@ -360,4 +365,41 @@ async def get_order_stats_alias(
     db: Session = Depends(get_db)
 ):
     """獲取訂單統計（別名路由）"""
-    return await get_order_stats_overview(db) 
+    return await get_order_stats_overview(db)
+
+
+@router.put("/{order_id}/status")
+def update_order_status(
+    order_id: int,
+    status_update: OrderStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """更新訂單狀態 (管理員用)"""
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="訂單不存在"
+        )
+    
+    # 檢查狀態轉換是否合理
+    if order.status == OrderStatus.CANCELLED and status_update.status != OrderStatus.CANCELLED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="已取消的訂單無法變更狀態"
+        )
+    
+    if order.status == OrderStatus.DELIVERED and status_update.status not in [OrderStatus.DELIVERED, OrderStatus.CANCELLED]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="已送達的訂單只能設為取消"
+        )
+    
+    order.status = status_update.status
+    order.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(order)
+    
+    return {"message": f"訂單狀態已更新為 {status_update.status.value}", "order": order} 

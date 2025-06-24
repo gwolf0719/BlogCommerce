@@ -68,7 +68,7 @@ def get_admin_token():
     try:
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "username": "admin",
-            "password": "admin123"
+            "password": "admin123456"
         }, timeout=10)
         
         if response.status_code == 200:
@@ -119,9 +119,9 @@ def main():
     
     endpoints = [
         ("/api", "GET", "API根路徑"),
-        ("/api/categories/", "GET", "分類列表"),
         ("/api/products/", "GET", "商品列表"),
         ("/api/posts/", "GET", "文章列表"),
+        ("/api/analytics/overview", "GET", "系統統計"),
     ]
     
     for endpoint, method, description in endpoints:

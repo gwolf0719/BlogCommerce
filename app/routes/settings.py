@@ -14,7 +14,7 @@ from ..schemas.settings import (
 )
 from ..auth import get_current_user, get_current_admin_user
 
-router = APIRouter()
+router = APIRouter(prefix="/api/settings", tags=["系統設定"])
 templates = Jinja2Templates(directory="app/templates")
 
 # 設定工具類
@@ -85,7 +85,7 @@ class SettingsManager:
 
 
 # API 路由
-@router.get("/api/settings", response_model=List[SystemSettingResponse])
+@router.get("/", response_model=List[SystemSettingResponse])
 async def get_all_settings(
     category: Optional[str] = None,
     db: Session = Depends(get_db),
@@ -100,14 +100,14 @@ async def get_all_settings(
     return [SystemSettingResponse.from_orm(setting) for setting in settings]
 
 
-@router.get("/api/settings/public")
+@router.get("/public")
 async def get_public_settings(db: Session = Depends(get_db)):
     """獲取公開設定（不需要認證）"""
     manager = SettingsManager(db)
     return manager.get_public_settings()
 
 
-@router.get("/api/settings/{key}")
+@router.get("/{key}")
 async def get_setting(
     key: str,
     db: Session = Depends(get_db),
@@ -120,7 +120,7 @@ async def get_setting(
     return SystemSettingResponse.from_orm(setting)
 
 
-@router.post("/api/settings", response_model=SystemSettingResponse)
+@router.post("/", response_model=SystemSettingResponse)
 async def create_setting(
     setting_data: SystemSettingCreate,
     db: Session = Depends(get_db),
@@ -141,7 +141,7 @@ async def create_setting(
     return SystemSettingResponse.from_orm(setting)
 
 
-@router.put("/api/settings/{key}", response_model=SystemSettingResponse)
+@router.put("/{key}", response_model=SystemSettingResponse)
 async def update_setting(
     key: str,
     setting_data: SystemSettingUpdate,
@@ -162,7 +162,7 @@ async def update_setting(
     return SystemSettingResponse.from_orm(setting)
 
 
-@router.delete("/api/settings/{key}")
+@router.delete("/{key}")
 async def delete_setting(
     key: str,
     db: Session = Depends(get_db),
@@ -178,7 +178,7 @@ async def delete_setting(
     return {"message": "設定已刪除"}
 
 
-@router.post("/api/settings/bulk-update")
+@router.post("/bulk-update")
 async def bulk_update_settings(
     data: SystemSettingBulkUpdate,
     db: Session = Depends(get_db),
@@ -206,7 +206,7 @@ async def bulk_update_settings(
     return {"message": "設定已更新"}
 
 
-@router.get("/api/settings/features")
+@router.get("/features")
 async def get_feature_settings(db: Session = Depends(get_db)):
     """獲取功能設定（公開 API）"""
     manager = SettingsManager(db)
@@ -220,7 +220,7 @@ async def get_feature_settings(db: Session = Depends(get_db)):
     )
 
 
-@router.put("/api/settings/features")
+@router.put("/features")
 async def update_feature_settings(
     features: FeatureSettings,
     db: Session = Depends(get_db),
@@ -241,7 +241,7 @@ async def update_feature_settings(
     return {"message": "功能設定已更新"}
 
 
-@router.get("/api/settings/ai")
+@router.get("/ai")
 async def get_ai_settings(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_admin_user)
@@ -271,7 +271,7 @@ async def get_ai_settings(
     return ai_settings
 
 
-@router.put("/api/settings/ai")
+@router.put("/ai")
 async def update_ai_settings(
     ai_data: Dict[str, Any],
     db: Session = Depends(get_db),

@@ -15,7 +15,7 @@ from app.auth import get_password_hash, verify_password
 from app.utils.logger import auth_logger, db_logger
 from app.models.user import UserRole
 
-def reset_admin_password(username: str = "admin", new_password: str = "admin123"):
+def reset_admin_password(username: str = "admin", new_password: str = "admin123456"):
     """重置管理員密碼"""
     db = SessionLocal()
     try:
@@ -64,7 +64,7 @@ def reset_admin_password(username: str = "admin", new_password: str = "admin123"
     finally:
         db.close()
 
-def verify_admin_login(username: str = "admin", password: str = "admin123"):
+def verify_admin_login(username: str = "admin", password: str = "admin123456"):
     """驗證管理員登入"""
     
     db = SessionLocal()

@@ -6,7 +6,7 @@ from app.models.post import Post
 from app.schemas.post import PostCreate, PostUpdate, PostResponse, PostListResponse
 from app.services.markdown_service import markdown_service
 
-router = APIRouter(prefix="/api/posts", tags=["posts"])
+router = APIRouter(prefix="/api/posts", tags=["文章"])
 
 
 def process_post_content(post: Post) -> dict:
