@@ -5,6 +5,8 @@ from app.database import get_db
 from app.models.post import Post
 from app.schemas.post import PostCreate, PostUpdate, PostResponse, PostListResponse
 from app.services.markdown_service import markdown_service
+from app.auth import get_current_admin_user
+from app.models.user import User
 
 router = APIRouter(prefix="/api/posts", tags=["文章"])
 
@@ -35,26 +37,25 @@ def process_post_content(post: Post) -> dict:
     return post_dict
 
 
-@router.get("/", response_model=List[PostListResponse])
+@router.get("", response_model=List[PostListResponse])
 def get_posts(
-    published_only: bool = Query(True, description="僅顯示已發布的文章"),
+    published_only: Optional[bool] = Query(None, description="僅顯示已發布的文章"),
     search: Optional[str] = Query(None, description="搜尋標題或內容"),
     skip: int = Query(0, ge=0, description="跳過的項目數"),
     limit: int = Query(10, ge=1, le=50, description="限制項目數"),
     db: Session = Depends(get_db)
 ):
-    """取得文章列表"""
+    """
+    取得文章列表，預設顯示所有（不論發布狀態），除非有指定 published_only
+    """
     query = db.query(Post)
-    
-    if published_only:
-        query = query.filter(Post.is_published == True)
-    
+    if published_only is not None:
+        query = query.filter(Post.is_published == published_only)
     if search:
         query = query.filter(
-            Post.title.contains(search) | 
+            Post.title.contains(search) |
             Post.content.contains(search)
         )
-    
     posts = query.order_by(Post.created_at.desc()).offset(skip).limit(limit).all()
     return posts
 
@@ -77,8 +78,12 @@ def get_post_by_slug(slug: str, db: Session = Depends(get_db)):
     return process_post_content(post)
 
 
-@router.post("/", response_model=PostResponse)
-def create_post(post: PostCreate, db: Session = Depends(get_db)):
+@router.post("", response_model=PostResponse)
+def create_post(
+    post: PostCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
     """建立新文章"""
     # 檢查標題是否重複
     existing = db.query(Post).filter(Post.title == post.title).first()
@@ -111,7 +116,8 @@ def create_post(post: PostCreate, db: Session = Depends(get_db)):
 def update_post(
     post_id: int,
     post_update: PostUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
 ):
     """更新文章"""
     post = db.query(Post).filter(Post.id == post_id).first()
@@ -145,7 +151,11 @@ def update_post(
 
 
 @router.delete("/{post_id}")
-def delete_post(post_id: int, db: Session = Depends(get_db)):
+def delete_post(
+    post_id: int, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
     """刪除文章"""
     post = db.query(Post).filter(Post.id == post_id).first()
     if not post:

@@ -334,7 +334,7 @@ function homeApp() {
         
         async loadLatestPosts() {
             try {
-                const response = await fetch('/api/posts/?limit=3&published=true');
+                const response = await fetch('/api/posts/?limit=3&published_only=true');
                 if (response.ok) {
                     this.latestPosts = await response.json();
                 }

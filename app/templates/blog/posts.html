@@ -151,7 +151,7 @@ function blogApp() {
             this.loading = true;
             
             try {
-                let url = `/api/posts?skip=${(this.currentPage - 1) * 12}&limit=12&published=true`;
+                let url = `/api/posts?skip=${(this.currentPage - 1) * 12}&limit=12&published_only=true`;
                 
                 if (this.searchTerm) {
                     url += `&search=${encodeURIComponent(this.searchTerm)}`;
