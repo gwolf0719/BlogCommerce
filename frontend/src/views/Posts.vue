@@ -107,48 +107,63 @@
         row-key="id"
         :scroll="{ x: 800 }"
       >
-        <template #status="{ record }">
-          <a-tag :color="record.is_published ? 'green' : 'orange'" size="default">
-            <template #icon>
-              <span>{{ record.is_published ? '✅' : '📝' }}</span>
-            </template>
-            {{ record.is_published ? '已發布' : '草稿' }}
-          </a-tag>
-        </template>
-
-        <template #title="{ record }">
-          <div class="title-cell">
-            <div class="post-title">{{ record.title }}</div>
-            <div class="post-excerpt" v-if="record.excerpt">
-              {{ record.excerpt.substring(0, 50) }}{{ record.excerpt.length > 50 ? '...' : '' }}
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'view_count'">
+            <div class="view-count-cell">
+              <a-statistic 
+                :value="record.view_count || 0" 
+                :value-style="{ fontSize: '14px' }"
+              >
+                <template #suffix>
+                  <span style="font-size: 12px; color: #999;">次</span>
+                </template>
+              </a-statistic>
             </div>
-          </div>
-        </template>
+          </template>
 
-        <template #created_at="{ record }">
-          <div class="date-cell">
-            <div>{{ formatDate(record.created_at) }}</div>
-            <small class="text-gray-500">{{ formatTime(record.created_at) }}</small>
-          </div>
-        </template>
+          <template v-if="column.key === 'status'">
+            <a-tag :color="record.is_published ? 'green' : 'orange'" size="default">
+              <template #icon>
+                <span>{{ record.is_published ? '✅' : '📝' }}</span>
+              </template>
+              {{ record.is_published ? '已發布' : '草稿' }}
+            </a-tag>
+          </template>
 
-        <template #actions="{ record }">
-          <a-space>
-            <a-button size="small" type="primary" @click="editPost(record)">
-              <EditOutlined /> 編輯
-            </a-button>
-            <a-popconfirm
-              title="確定要刪除這篇文章嗎？"
-              description="此操作不可恢復，請謹慎操作"
-              @confirm="deletePost(record.id)"
-              ok-text="確定"
-              cancel-text="取消"
-            >
-              <a-button size="small" danger>
-                <DeleteOutlined /> 刪除
+          <template v-if="column.key === 'title'">
+            <div class="title-cell">
+              <div class="post-title">{{ record.title }}</div>
+              <div class="post-excerpt" v-if="record.excerpt">
+                {{ record.excerpt.substring(0, 50) }}{{ record.excerpt.length > 50 ? '...' : '' }}
+              </div>
+            </div>
+          </template>
+
+          <template v-if="column.key === 'created_at'">
+            <div class="date-cell">
+              <div>{{ formatDate(record.created_at) }}</div>
+              <small class="text-gray-500">{{ formatTime(record.created_at) }}</small>
+            </div>
+          </template>
+
+          <template v-if="column.key === 'actions'">
+            <a-space>
+              <a-button size="small" type="primary" @click="editPost(record)">
+                <EditOutlined /> 編輯
               </a-button>
-            </a-popconfirm>
-          </a-space>
+              <a-popconfirm
+                title="確定要刪除這篇文章嗎？"
+                description="此操作不可恢復，請謹慎操作"
+                @confirm="deletePost(record.id)"
+                ok-text="確定"
+                cancel-text="取消"
+              >
+                <a-button size="small" danger>
+                  <DeleteOutlined /> 刪除
+                </a-button>
+              </a-popconfirm>
+            </a-space>
+          </template>
         </template>
       </a-table>
     </a-card>
@@ -276,7 +291,10 @@ import {
 import axios from '../utils/axios'
 import MarkdownEditor from '../components/MarkdownEditor.vue'
 import UploadImage from '../components/UploadImage.vue'
-import { formatDate } from '../utils/dateUtils'
+import { formatDate, formatTimeOnly } from '../utils/dateUtils'
+
+// 為了向後兼容，建立 formatTime 別名
+const formatTime = formatTimeOnly
 
 // 響應式數據
 const posts = ref([])
@@ -326,13 +344,17 @@ const columns = [
   {
     title: '文章標題',
     key: 'title',
-    slots: { customRender: 'title' },
     width: 300
+  },
+  {
+    title: '瀏覽量',
+    key: 'view_count',
+    width: 100,
+    sorter: true
   },
   {
     title: '發布狀態',
     key: 'status',
-    slots: { customRender: 'status' },
     width: 120,
     filters: [
       { text: '已發布', value: 'published' },
@@ -342,14 +364,12 @@ const columns = [
   {
     title: '建立時間',
     key: 'created_at',
-    slots: { customRender: 'created_at' },
     width: 150,
     sorter: true
   },
   {
     title: '操作',
     key: 'actions',
-    slots: { customRender: 'actions' },
     width: 150,
     fixed: 'right'
   }

@@ -8,7 +8,7 @@
             title="會員總數" 
             :value="stats.users" 
             :loading="loading"
-            value-style="color: #1890ff"
+            :value-style="{ color: '#1890ff' }"
           />
           <div class="mt-2 text-sm text-gray-500">
             當前在線: {{ stats.activeUsers || 0 }}
@@ -21,7 +21,7 @@
             title="文章總數" 
             :value="stats.posts" 
             :loading="loading"
-            value-style="color: #52c41a"
+            :value-style="{ color: '#52c41a' }"
           />
           <div class="mt-2 text-sm text-gray-500">
             已發布: {{ stats.publishedPosts || 0 }}
@@ -34,7 +34,7 @@
             title="商品總數" 
             :value="stats.products" 
             :loading="loading"
-            value-style="color: #fa8c16"
+            :value-style="{ color: '#fa8c16' }"
           />
           <div class="mt-2 text-sm text-gray-500">
             上架中: {{ stats.activeProducts || 0 }}
@@ -47,7 +47,7 @@
             title="訂單總數" 
             :value="stats.orders" 
             :loading="loading"
-            value-style="color: #722ed1"
+            :value-style="{ color: '#722ed1' }"
           />
           <div class="mt-2 text-sm text-gray-500">
             待處理: {{ stats.pendingOrders || 0 }}
@@ -66,7 +66,7 @@
             prefix="$"
             :precision="2"
             :loading="loading"
-            value-style="color: #13c2c2"
+            :value-style="{ color: '#13c2c2' }"
           />
         </a-card>
       </a-col>
@@ -76,7 +76,7 @@
             title="今日訂單" 
             :value="stats.todayOrders" 
             :loading="loading"
-            value-style="color: #eb2f96"
+            :value-style="{ color: '#eb2f96' }"
           />
         </a-card>
       </a-col>
@@ -88,7 +88,7 @@
             prefix="$"
             :precision="2"
             :loading="loading"
-            value-style="color: #f5222d"
+            :value-style="{ color: '#f5222d' }"
           />
         </a-card>
       </a-col>

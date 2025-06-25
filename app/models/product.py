@@ -26,6 +26,9 @@ class Product(BaseModel, SlugMixin):
     meta_title = Column(String(200), nullable=True)
     meta_description = Column(Text, nullable=True)
     
+    # 瀏覽統計
+    view_count = Column(Integer, default=0, nullable=False)
+    
     # 關聯
     order_items = relationship("OrderItem", back_populates="product")
     favorited_by = relationship("Favorite", back_populates="product", cascade="all, delete-orphan")

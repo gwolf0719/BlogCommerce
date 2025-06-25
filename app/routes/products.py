@@ -1,15 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
 from app.models.product import Product
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse, ProductListResponse
-from app.auth import get_current_admin_user
+from app.services.view_tracking_service import ViewTrackingService
+from app.auth import get_current_admin_user, get_current_user_optional
+from app.models.user import User
 
 router = APIRouter(prefix="/api/products", tags=["商品"])
 
 
-@router.get("/", response_model=List[ProductListResponse])
+@router.get("", response_model=List[ProductListResponse])
 def get_products(
     active_only: bool = Query(True, description="僅顯示啟用的商品"),
     featured_only: bool = Query(False, description="僅顯示推薦商品"),
@@ -46,20 +48,52 @@ def get_products(
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
-def get_product(product_id: int, db: Session = Depends(get_db)):
+def get_product(
+    product_id: int, 
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """取得單一商品"""
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="商品不存在")
+    
+    # 記錄瀏覽量
+    ViewTrackingService.record_view(
+        db=db,
+        content_type="product",
+        content_id=product_id,
+        user_id=current_user.id if current_user else None,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent", "")
+    )
+    
     return product
 
 
 @router.get("/slug/{slug}", response_model=ProductResponse)
-def get_product_by_slug(slug: str, db: Session = Depends(get_db)):
+def get_product_by_slug(
+    slug: str, 
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """透過 slug 取得商品"""
     product = db.query(Product).filter(Product.slug == slug).first()
     if not product:
         raise HTTPException(status_code=404, detail="商品不存在")
+    
+    # 記錄瀏覽量
+    ViewTrackingService.record_view(
+        db=db,
+        content_type="product",
+        content_id=product.id,
+        user_id=current_user.id if current_user else None,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent", "")
+    )
+    
     return product
 
 

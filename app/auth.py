@@ -11,6 +11,7 @@ from app.schemas.user import TokenData
 
 # JWT 設定
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 
 
 def get_password_hash(password: str) -> str:
@@ -86,6 +87,27 @@ def get_current_admin_user(current_user: User = Depends(get_current_active_user)
             detail="權限不足"
         )
     return current_user
+
+
+def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials = Depends(optional_security),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """取得目前登入的使用者（可選）"""
+    if credentials is None:
+        return None
+    
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+        
+        user = db.query(User).filter(User.username == username).first()
+        return user
+    except JWTError:
+        return None
 
 
 def authenticate_user(db: Session, username: str, password: str):

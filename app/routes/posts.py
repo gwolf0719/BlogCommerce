@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
 from app.models.post import Post
 from app.schemas.post import PostCreate, PostUpdate, PostResponse, PostListResponse
 from app.services.markdown_service import markdown_service
-from app.auth import get_current_admin_user
+from app.services.view_tracking_service import ViewTrackingService
+from app.auth import get_current_admin_user, get_current_user_optional
 from app.models.user import User
 
 router = APIRouter(prefix="/api/posts", tags=["文章"])
@@ -23,6 +24,7 @@ def process_post_content(post: Post) -> dict:
         "meta_title": post.meta_title,
         "meta_description": post.meta_description,
         "slug": post.slug,
+        "view_count": post.view_count,
         "created_at": post.created_at,
         "updated_at": post.updated_at,
         # 添加 Markdown 處理結果
@@ -61,20 +63,52 @@ def get_posts(
 
 
 @router.get("/{post_id}", response_model=PostResponse)
-def get_post(post_id: int, db: Session = Depends(get_db)):
+def get_post(
+    post_id: int, 
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """取得單一文章"""
     post = db.query(Post).filter(Post.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="文章不存在")
+    
+    # 記錄瀏覽量
+    ViewTrackingService.record_view(
+        db=db,
+        content_type="post",
+        content_id=post_id,
+        user_id=current_user.id if current_user else None,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent", "")
+    )
+    
     return process_post_content(post)
 
 
 @router.get("/slug/{slug}", response_model=PostResponse)
-def get_post_by_slug(slug: str, db: Session = Depends(get_db)):
+def get_post_by_slug(
+    slug: str, 
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     """透過 slug 取得文章"""
     post = db.query(Post).filter(Post.slug == slug).first()
     if not post:
         raise HTTPException(status_code=404, detail="文章不存在")
+    
+    # 記錄瀏覽量
+    ViewTrackingService.record_view(
+        db=db,
+        content_type="post",
+        content_id=post.id,
+        user_id=current_user.id if current_user else None,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent", "")
+    )
+    
     return process_post_content(post)
 
 

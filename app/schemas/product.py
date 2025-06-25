@@ -68,6 +68,7 @@ class ProductUpdate(BaseSchema):
 
 
 class ProductResponse(ProductBase, BaseResponseSchema, SlugSchema):
+    view_count: int = 0
     current_price: Decimal
     is_on_sale: bool
 
@@ -82,5 +83,6 @@ class ProductListResponse(BaseResponseSchema, SlugSchema):
     stock_quantity: int
     is_active: bool
     is_featured: bool
+    view_count: int = 0
     current_price: Decimal
     is_on_sale: bool 

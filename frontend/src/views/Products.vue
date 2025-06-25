@@ -119,88 +119,103 @@
         row-key="id"
         :scroll="{ x: 1000 }"
       >
-        <template #image="{ record }">
-          <div class="product-image">
-            <a-image
-              :src="record.featured_image || '/static/images/default-product.jpg'"
-              :alt="record.name"
-              width="60"
-              height="60"
-              :preview="true"
-              fallback="/static/images/default-product.jpg"
-            />
-          </div>
-        </template>
-
-        <template #name="{ record }">
-          <div class="product-info">
-            <div class="product-name">{{ record.name }}</div>
-            <div class="product-sku" v-if="record.sku">
-              <a-tag size="small">SKU: {{ record.sku }}</a-tag>
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'image'">
+            <div class="product-image">
+              <a-image
+                :src="record.featured_image || '/static/images/default-product.jpg'"
+                :alt="record.name"
+                width="60"
+                height="60"
+                :preview="true"
+                fallback="/static/images/default-product.jpg"
+              />
             </div>
-            <div class="product-description" v-if="record.short_description">
-              {{ record.short_description.substring(0, 50) }}{{ record.short_description.length > 50 ? '...' : '' }}
+          </template>
+
+          <template v-if="column.key === 'view_count'">
+            <div class="view-count-cell">
+              <a-statistic 
+                :value="record.view_count || 0" 
+                :value-style="{ fontSize: '14px' }"
+              >
+                <template #suffix>
+                  <span style="font-size: 12px; color: #999;">次</span>
+                </template>
+              </a-statistic>
             </div>
-          </div>
-        </template>
+          </template>
 
-        <template #featured="{ record }">
-          <a-tag :color="record.is_featured ? 'gold' : 'default'" size="default">
-            <template #icon>
-              <span>{{ record.is_featured ? '⭐' : '📦' }}</span>
-            </template>
-            {{ record.is_featured ? '推薦' : '一般' }}
-          </a-tag>
-        </template>
-
-        <template #status="{ record }">
-          <a-tag :color="record.is_active ? 'green' : 'red'" size="default">
-            <template #icon>
-              <span>{{ record.is_active ? '✅' : '❌' }}</span>
-            </template>
-            {{ record.is_active ? '啟用' : '停用' }}
-          </a-tag>
-        </template>
-
-        <template #price="{ record }">
-          <div class="price-cell">
-            <div v-if="record.sale_price" class="sale-price">
-              特價: ${{ record.sale_price }}
+          <template v-if="column.key === 'name'">
+            <div class="product-info">
+              <div class="product-name">{{ record.name }}</div>
+              <div class="product-sku" v-if="record.sku">
+                <a-tag size="small">SKU: {{ record.sku }}</a-tag>
+              </div>
+              <div class="product-description" v-if="record.short_description">
+                {{ record.short_description.substring(0, 50) }}{{ record.short_description.length > 50 ? '...' : '' }}
+              </div>
             </div>
-            <div :class="{ 'original-price': record.sale_price, 'regular-price': !record.sale_price }">
-              {{ record.sale_price ? '原價:' : '價格:' }} ${{ record.price }}
-            </div>
-          </div>
-        </template>
+          </template>
 
-        <template #stock="{ record }">
-          <div class="stock-cell">
-            <a-tag 
-              :color="getStockColor(record.stock_quantity)"
-              size="default"
-            >
-              {{ record.stock_quantity }} 件
+          <template v-if="column.key === 'featured'">
+            <a-tag :color="record.is_featured ? 'gold' : 'default'" size="default">
+              <template #icon>
+                <span>{{ record.is_featured ? '⭐' : '📦' }}</span>
+              </template>
+              {{ record.is_featured ? '推薦' : '一般' }}
             </a-tag>
-          </div>
-        </template>
+          </template>
 
-        <template #actions="{ record }">
-          <a-space>
-            <a-button size="small" type="primary" @click="editProduct(record)">
-              <EditOutlined /> 編輯
-            </a-button>
-            <a-popconfirm
-              title="確定要刪除這個商品嗎？"
-              description="此操作不可恢復，請謹慎操作"
-              @confirm="deleteProduct(record.id)"
-              ok-text="確定"
-              cancel-text="取消"
-            >
-              <a-button size="small" danger>
-                <DeleteOutlined /> 刪除
+          <template v-if="column.key === 'status'">
+            <a-tag :color="record.is_active ? 'green' : 'red'" size="default">
+              <template #icon>
+                <span>{{ record.is_active ? '✅' : '❌' }}</span>
+              </template>
+              {{ record.is_active ? '啟用' : '停用' }}
+            </a-tag>
+          </template>
+
+          <template v-if="column.key === 'price'">
+            <div class="price-cell">
+              <div v-if="record.sale_price" class="sale-price">
+                特價: ${{ record.sale_price }}
+              </div>
+              <div :class="{ 'original-price': record.sale_price, 'regular-price': !record.sale_price }">
+                {{ record.sale_price ? '原價:' : '價格:' }} ${{ record.price }}
+              </div>
+            </div>
+          </template>
+
+          <template v-if="column.key === 'stock'">
+            <div class="stock-cell">
+              <a-tag 
+                :color="getStockColor(record.stock_quantity)"
+                size="default"
+              >
+                {{ record.stock_quantity }} 件
+              </a-tag>
+            </div>
+          </template>
+
+          <template v-if="column.key === 'actions'">
+            <a-space>
+              <a-button size="small" type="primary" @click="editProduct(record)">
+                <EditOutlined /> 編輯
               </a-button>
-            </a-popconfirm>
-          </a-space>
+              <a-popconfirm
+                title="確定要刪除這個商品嗎？"
+                description="此操作不可恢復，請謹慎操作"
+                @confirm="deleteProduct(record.id)"
+                ok-text="確定"
+                cancel-text="取消"
+              >
+                <a-button size="small" danger>
+                  <DeleteOutlined /> 刪除
+                </a-button>
+              </a-popconfirm>
+            </a-space>
+          </template>
         </template>
       </a-table>
     </a-card>
@@ -454,33 +469,34 @@ const columns = [
   {
     title: '商品圖片',
     key: 'image',
-    slots: { customRender: 'image' },
     width: 80
   },
   {
     title: '商品信息',
     key: 'name',
-    slots: { customRender: 'name' },
     width: 250
+  },
+  {
+    title: '瀏覽量',
+    key: 'view_count',
+    width: 100,
+    sorter: true
   },
   {
     title: '價格',
     key: 'price',
-    slots: { customRender: 'price' },
     width: 120,
     sorter: true
   },
   {
     title: '庫存',
     key: 'stock',
-    slots: { customRender: 'stock' },
     width: 100,
     sorter: true
   },
   {
     title: '推薦',
     key: 'featured',
-    slots: { customRender: 'featured' },
     width: 100,
     filters: [
       { text: '推薦', value: true },
@@ -490,7 +506,6 @@ const columns = [
   {
     title: '狀態',
     key: 'status',
-    slots: { customRender: 'status' },
     width: 100,
     filters: [
       { text: '啟用', value: true },
@@ -500,7 +515,6 @@ const columns = [
   {
     title: '操作',
     key: 'actions',
-    slots: { customRender: 'actions' },
     width: 150,
     fixed: 'right'
   }

@@ -162,9 +162,9 @@
                             <div class="flex items-center space-x-2 mb-4">
                                 <span x-show="product.sale_price && product.sale_price < product.price" 
                                       class="text-xl font-bold text-red-600" 
-                                      x-text="'NT$ ' + product.sale_price.toLocaleString()"></span>
+                                      x-text="'NT$ ' + (product.sale_price || 0).toLocaleString()"></span>
                                 <span :class="product.sale_price && product.sale_price < product.price ? 'text-sm text-gray-500 line-through' : 'text-xl font-bold text-gray-900'" 
-                                      x-text="'NT$ ' + product.price.toLocaleString()"></span>
+                                      x-text="'NT$ ' + (product.price || 0).toLocaleString()"></span>
                             </div>
                             
                             <!-- 查看詳情按鈕 -->
@@ -321,7 +321,7 @@ function homeApp() {
         
         async loadFeaturedProducts() {
             try {
-                const response = await fetch('/api/products/?limit=4&featured=true&active=true');
+                const response = await fetch('/api/products?limit=4&featured=true&active=true');
                 if (response.ok) {
                     this.featuredProducts = await response.json();
                 }
@@ -333,8 +333,9 @@ function homeApp() {
         },
         
         async loadLatestPosts() {
+            console.log('載入最新文章');
             try {
-                const response = await fetch('/api/posts/?limit=3&published_only=true');
+                const response = await fetch('/api/posts?limit=3&published_only=true');
                 if (response.ok) {
                     this.latestPosts = await response.json();
                 }

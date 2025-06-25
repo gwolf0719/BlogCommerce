@@ -98,8 +98,8 @@
                     
                     <!-- 標籤已移除 -->
                     
-                    <!-- 庫存狀態 -->
-                    <div class="mb-4 text-sm flex items-center">
+                    <!-- 庫存狀態和瀏覽量 -->
+                    <div class="mb-4 text-sm flex items-center justify-between">
                         <div class="flex items-center">
                             <div x-show="product.stock_quantity > 10" class="flex items-center text-green-600">
                                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -119,6 +119,14 @@
                                 </svg>
                                 缺貨中
                             </div>
+                        </div>
+                        <!-- 瀏覽量 -->
+                        <div class="flex items-center text-gray-400">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            <span x-text="product.view_count || 0"></span>
                         </div>
                     </div>
                     

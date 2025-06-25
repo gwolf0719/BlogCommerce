@@ -81,10 +81,12 @@
             :pagination="{ pageSize: 10 }"
             size="small"
           >
-            <template #type="{ record }">
-              <a-tag :color="getActivityColor(record.type)">
-                {{ getActivityLabel(record.type) }}
-              </a-tag>
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'type'">
+                <a-tag :color="getActivityColor(record.type)">
+                  {{ getActivityLabel(record.type) }}
+                </a-tag>
+              </template>
             </template>
           </a-table>
         </a-card>
@@ -142,8 +144,7 @@ const postColumns = [
 const activityColumns = [
   {
     title: '類型',
-    key: 'type',
-    slots: { customRender: 'type' }
+    key: 'type'
   },
   {
     title: '標題',

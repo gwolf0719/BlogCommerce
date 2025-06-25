@@ -58,7 +58,7 @@
             title="總訂單數"
             :value="stats.total_orders"
             prefix-icon="OrderedListOutlined"
-            value-style="color: #3f8600"
+            :value-style="{ color: '#3f8600' }"
           />
         </a-card>
       </a-col>
@@ -68,7 +68,7 @@
             title="待處理"
             :value="stats.processing_orders"
             prefix-icon="ClockCircleOutlined"
-            value-style="color: #cf1322"
+            :value-style="{ color: '#cf1322' }"
           />
         </a-card>
       </a-col>
@@ -78,7 +78,7 @@
             title="今日訂單"
             :value="stats.today_orders"
             prefix-icon="CalendarOutlined"
-            value-style="color: #1890ff"
+            :value-style="{ color: '#1890ff' }"
           />
         </a-card>
       </a-col>
@@ -89,7 +89,7 @@
             :value="stats.total_revenue"
             prefix="$"
             :precision="2"
-            value-style="color: #3f8600"
+            :value-style="{ color: '#3f8600' }"
           />
         </a-card>
       </a-col>

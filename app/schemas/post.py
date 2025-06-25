@@ -39,6 +39,7 @@ class PostUpdate(BaseSchema):
 
 
 class PostResponse(PostBase, BaseResponseSchema, SlugSchema):
+    view_count: int = 0                 # 瀏覽次數
     content_html: Optional[str] = None  # Markdown 渲染後的 HTML
     toc: Optional[str] = None           # 目錄
 
@@ -48,4 +49,5 @@ class PostListResponse(BaseResponseSchema, SlugSchema):
     title: str
     excerpt: Optional[str] = None
     featured_image: Optional[str] = None
-    is_published: bool 
+    is_published: bool
+    view_count: int = 0 
