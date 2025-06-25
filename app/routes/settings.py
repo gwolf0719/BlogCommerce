@@ -327,6 +327,119 @@ async def get_ai_models(
             raise HTTPException(status_code=400, detail=str(e))
 
 
+# 金流設定專用端點
+@router.get("/payment_transfer")
+async def get_payment_transfer_settings(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """獲取轉帳設定"""
+    manager = SettingsManager(db)
+    setting = manager.get_setting("payment_transfer")
+    return {"key": "payment_transfer", "value": setting}
+
+
+@router.put("/payment_transfer") 
+async def update_payment_transfer_settings(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """更新轉帳設定"""
+    manager = SettingsManager(db)
+    manager.set_setting(
+        "payment_transfer", 
+        data, 
+        description="轉帳金流設定", 
+        category="payment"
+    )
+    return {"message": "轉帳設定已更新"}
+
+
+@router.get("/payment_linepay")
+async def get_payment_linepay_settings(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """獲取 Line Pay 設定"""
+    manager = SettingsManager(db)
+    setting = manager.get_setting("payment_linepay")
+    return {"key": "payment_linepay", "value": setting}
+
+
+@router.put("/payment_linepay")
+async def update_payment_linepay_settings(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """更新 Line Pay 設定"""
+    manager = SettingsManager(db)
+    manager.set_setting(
+        "payment_linepay", 
+        data, 
+        description="Line Pay 金流設定", 
+        category="payment"
+    )
+    return {"message": "Line Pay 設定已更新"}
+
+
+@router.get("/payment_ecpay")
+async def get_payment_ecpay_settings(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """獲取綠界設定"""
+    manager = SettingsManager(db)
+    setting = manager.get_setting("payment_ecpay")
+    return {"key": "payment_ecpay", "value": setting}
+
+
+@router.put("/payment_ecpay")
+async def update_payment_ecpay_settings(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """更新綠界設定"""
+    manager = SettingsManager(db)
+    manager.set_setting(
+        "payment_ecpay", 
+        data, 
+        description="綠界金流設定", 
+        category="payment"
+    )
+    return {"message": "綠界設定已更新"}
+
+
+@router.get("/payment_paypal")
+async def get_payment_paypal_settings(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """獲取 PayPal 設定"""
+    manager = SettingsManager(db)
+    setting = manager.get_setting("payment_paypal")
+    return {"key": "payment_paypal", "value": setting}
+
+
+@router.put("/payment_paypal")
+async def update_payment_paypal_settings(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """更新 PayPal 設定"""
+    manager = SettingsManager(db)
+    manager.set_setting(
+        "payment_paypal", 
+        data, 
+        description="PayPal 金流設定", 
+        category="payment"
+    )
+    return {"message": "PayPal 設定已更新"}
+
+
 # 管理後台頁面路由（認證由前端JavaScript處理）
 @router.get("/admin/settings", response_class=HTMLResponse)
 async def admin_settings_page(

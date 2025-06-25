@@ -1,9 +1,10 @@
-from typing import Optional, List
+from typing import Optional, List, Any
 from decimal import Decimal
 from datetime import datetime
 from pydantic import validator, field_serializer
 from app.schemas.base import BaseSchema, BaseResponseSchema
 from app.models.order import OrderStatus
+from enum import Enum
 
 
 class OrderItemBase(BaseSchema):
@@ -54,12 +55,31 @@ class CartResponse(BaseSchema):
     total_amount: Decimal
 
 
+class PaymentMethod(str, Enum):
+    transfer = "transfer"
+    linepay = "linepay"
+    ecpay = "ecpay"
+    paypal = "paypal"
+
+
+class PaymentStatus(str, Enum):
+    unpaid = "unpaid"
+    paid = "paid"
+    failed = "failed"
+    refunded = "refunded"
+    pending = "pending"
+    partial = "partial"
+
+
 class OrderBase(BaseSchema):
     customer_name: str
     customer_email: str
     customer_phone: Optional[str] = None
     shipping_address: str
-    payment_method: Optional[str] = "credit_card"
+    payment_method: Optional[PaymentMethod] = None
+    payment_status: Optional[PaymentStatus] = PaymentStatus.unpaid
+    payment_info: Optional[Any] = None
+    payment_updated_at: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -91,6 +111,10 @@ class OrderUpdate(BaseSchema):
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
     shipping_address: Optional[str] = None
+    payment_method: Optional[PaymentMethod] = None
+    payment_status: Optional[PaymentStatus] = None
+    payment_info: Optional[Any] = None
+    payment_updated_at: Optional[str] = None
 
 
 class OrderResponse(OrderBase, BaseResponseSchema):

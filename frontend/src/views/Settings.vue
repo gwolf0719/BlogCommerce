@@ -43,6 +43,10 @@
               <template #icon><SafetyOutlined /></template>
               安全設定
             </a-menu-item>
+            <a-menu-item key="payment">
+              <template #icon><span class="anticon"><i class="fa fa-credit-card"></i></span></template>
+              金流設定
+            </a-menu-item>
           </a-menu>
         </a-card>
       </a-col>
@@ -379,6 +383,81 @@
             </a-form-item>
           </a-form>
         </a-card>
+
+        <!-- 金流設定 -->
+        <a-card v-if="activeTab === 'payment'" title="金流設定" :loading="loading">
+          <a-form layout="vertical">
+            <a-form-item label="啟用金流方式">
+              <a-checkbox-group v-model:value="payment.enabledMethods">
+                <a-checkbox value="transfer">轉帳</a-checkbox>
+                <a-checkbox value="linepay">Line Pay</a-checkbox>
+                <a-checkbox value="ecpay">綠界全方位金流</a-checkbox>
+                <a-checkbox value="paypal">PayPal</a-checkbox>
+              </a-checkbox-group>
+            </a-form-item>
+            <template v-if="payment.enabledMethods.includes('transfer')">
+              <a-divider>轉帳設定</a-divider>
+              <a-form-item label="銀行名稱">
+                <a-input v-model:value="payment.transfer.bank" placeholder="請輸入銀行名稱" />
+              </a-form-item>
+              <a-form-item label="帳號">
+                <a-input v-model:value="payment.transfer.account" placeholder="請輸入帳號" />
+              </a-form-item>
+              <a-form-item label="戶名">
+                <a-input v-model:value="payment.transfer.name" placeholder="請輸入戶名" />
+              </a-form-item>
+            </template>
+            <template v-if="payment.enabledMethods.includes('linepay')">
+              <a-divider>Line Pay 設定</a-divider>
+              <a-form-item label="Channel ID">
+                <a-input v-model:value="payment.linepay.channel_id" placeholder="請輸入 Channel ID" />
+              </a-form-item>
+              <a-form-item label="Channel Secret">
+                <a-input v-model:value="payment.linepay.channel_secret" placeholder="請輸入 Channel Secret" />
+              </a-form-item>
+              <a-form-item label="商店名稱">
+                <a-input v-model:value="payment.linepay.store_name" placeholder="請輸入商店名稱" />
+              </a-form-item>
+            </template>
+            <template v-if="payment.enabledMethods.includes('ecpay')">
+              <a-divider>綠界全方位金流設定</a-divider>
+              <a-form-item label="Merchant ID">
+                <a-input v-model:value="payment.ecpay.merchant_id" placeholder="請輸入 Merchant ID" />
+              </a-form-item>
+              <a-form-item label="HashKey">
+                <a-input v-model:value="payment.ecpay.hash_key" placeholder="請輸入 HashKey" />
+              </a-form-item>
+              <a-form-item label="HashIV">
+                <a-input v-model:value="payment.ecpay.hash_iv" placeholder="請輸入 HashIV" />
+              </a-form-item>
+              <a-form-item label="API URL">
+                <a-input v-model:value="payment.ecpay.api_url" placeholder="請輸入 API URL" />
+              </a-form-item>
+            </template>
+            
+            <!-- PayPal 設定 -->
+            <template v-if="payment.enabledMethods.includes('paypal')">
+              <a-divider>PayPal 設定</a-divider>
+              <a-form-item label="Client ID">
+                <a-input v-model:value="payment.paypal.client_id" placeholder="請輸入 PayPal Client ID" />
+              </a-form-item>
+              <a-form-item label="Client Secret">
+                <a-input-password v-model:value="payment.paypal.client_secret" placeholder="請輸入 PayPal Client Secret" />
+              </a-form-item>
+              <a-form-item label="環境">
+                <a-select v-model:value="payment.paypal.environment">
+                  <a-select-option value="sandbox">Sandbox (測試)</a-select-option>
+                  <a-select-option value="live">Live (正式)</a-select-option>
+                </a-select>
+              </a-form-item>
+            </template>
+            
+            <a-form-item>
+              <a-button type="primary" @click="savePaymentSettings" :loading="savingPayment">儲存金流設定</a-button>
+              <a-button @click="loadPaymentSettings" style="margin-left: 8px">重新載入</a-button>
+            </a-form-item>
+          </a-form>
+        </a-card>
       </a-col>
     </a-row>
   </div>
@@ -464,6 +543,15 @@ const settings = reactive({
   allowed_file_types: ['jpg', 'png', 'gif', 'webp'],
   max_file_size: 10
 })
+
+const payment = reactive({
+  enabledMethods: [],
+  transfer: { bank: '', account: '', name: '' },
+  linepay: { channel_id: '', channel_secret: '', store_name: '' },
+  ecpay: { merchant_id: '', hash_key: '', hash_iv: '', api_url: '' },
+  paypal: { client_id: '', client_secret: '', environment: 'sandbox' }
+})
+const savingPayment = ref(false)
 
 // 方法
 const handleMenuClick = ({ key }) => {
@@ -559,9 +647,122 @@ const testEmail = async () => {
   }
 }
 
+const loadPaymentSettings = async () => {
+  loading.value = true
+  try {
+    // 取得四種金流設定
+    const [transferRes, linepayRes, ecpayRes, paypalRes] = await Promise.all([
+      fetch('/api/settings/payment_transfer', { headers: { 'Authorization': `Bearer ${authStore.token}` } }),
+      fetch('/api/settings/payment_linepay', { headers: { 'Authorization': `Bearer ${authStore.token}` } }),
+      fetch('/api/settings/payment_ecpay', { headers: { 'Authorization': `Bearer ${authStore.token}` } }),
+      fetch('/api/settings/payment_paypal', { headers: { 'Authorization': `Bearer ${authStore.token}` } })
+    ])
+    payment.enabledMethods = []
+    if (transferRes.ok) {
+      const t = await transferRes.json()
+      if (t.value) {
+        payment.transfer = t.value
+        payment.enabledMethods.push('transfer')
+      }
+    }
+    if (linepayRes.ok) {
+      const l = await linepayRes.json()
+      if (l.value) {
+        payment.linepay = l.value
+        payment.enabledMethods.push('linepay')
+      }
+    }
+    if (ecpayRes.ok) {
+      const e = await ecpayRes.json()
+      if (e.value) {
+        payment.ecpay = e.value
+        payment.enabledMethods.push('ecpay')
+      }
+    }
+    if (paypalRes.ok) {
+      const p = await paypalRes.json()
+      if (p.value) {
+        payment.paypal = p.value
+        payment.enabledMethods.push('paypal')
+      }
+    }
+  } catch (e) {
+    message.error('載入金流設定失敗')
+  } finally {
+    loading.value = false
+  }
+}
+
+const savePaymentSettings = async () => {
+  savingPayment.value = true
+  try {
+    // 依啟用狀態分別儲存
+    const reqs = []
+    if (payment.enabledMethods.includes('transfer')) {
+      reqs.push(fetch('/api/settings/payment_transfer', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
+        body: JSON.stringify({ value: payment.transfer, category: 'payment', data_type: 'json' })
+      }))
+    } else {
+      reqs.push(fetch('/api/settings/payment_transfer', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
+        body: JSON.stringify({ value: null, category: 'payment', data_type: 'json' })
+      }))
+    }
+    if (payment.enabledMethods.includes('linepay')) {
+      reqs.push(fetch('/api/settings/payment_linepay', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
+        body: JSON.stringify({ value: payment.linepay, category: 'payment', data_type: 'json' })
+      }))
+    } else {
+      reqs.push(fetch('/api/settings/payment_linepay', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
+        body: JSON.stringify({ value: null, category: 'payment', data_type: 'json' })
+      }))
+    }
+    if (payment.enabledMethods.includes('ecpay')) {
+      reqs.push(fetch('/api/settings/payment_ecpay', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
+        body: JSON.stringify({ value: payment.ecpay, category: 'payment', data_type: 'json' })
+      }))
+    } else {
+      reqs.push(fetch('/api/settings/payment_ecpay', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
+        body: JSON.stringify({ value: null, category: 'payment', data_type: 'json' })
+      }))
+    }
+    if (payment.enabledMethods.includes('paypal')) {
+      reqs.push(fetch('/api/settings/payment_paypal', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
+        body: JSON.stringify(payment.paypal)
+      }))
+    } else {
+      reqs.push(fetch('/api/settings/payment_paypal', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
+        body: JSON.stringify(null)
+      }))
+    }
+    await Promise.all(reqs)
+    message.success('金流設定已儲存')
+  } catch (e) {
+    message.error('儲存金流設定失敗')
+  } finally {
+    savingPayment.value = false
+  }
+}
+
 // 初始化
 onMounted(() => {
   loadSettings()
+  loadPaymentSettings()
 })
 </script>
 

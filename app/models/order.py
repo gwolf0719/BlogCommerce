@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Numeric, Integer, Enum, ForeignKey
+from sqlalchemy import Column, String, Text, Numeric, Integer, Enum, ForeignKey, DateTime, JSON
 from sqlalchemy.orm import relationship
 import enum
 from app.models.base import BaseModel
@@ -10,6 +10,22 @@ class OrderStatus(enum.Enum):
     SHIPPED = "shipped"      # 已出貨
     DELIVERED = "delivered"  # 已送達
     CANCELLED = "cancelled"  # 已取消
+
+
+class PaymentMethod(enum.Enum):
+    TRANSFER = "transfer"   # 轉帳
+    LINEPAY = "linepay"     # Line Pay
+    ECPAY = "ecpay"         # 綠界
+    PAYPAL = "paypal"       # PayPal
+
+
+class PaymentStatus(enum.Enum):
+    UNPAID = "unpaid"           # 未付款
+    PAID = "paid"               # 已付款
+    FAILED = "failed"           # 付款失敗
+    REFUNDED = "refunded"       # 已退款
+    PENDING = "pending"         # 等待付款/確認
+    PARTIAL = "partial"         # 部分付款
 
 
 class Order(BaseModel):
@@ -39,6 +55,12 @@ class Order(BaseModel):
     
     # 備註
     notes = Column(Text, nullable=True)
+    
+    # 金流相關欄位
+    payment_method = Column(Enum(PaymentMethod), nullable=True)
+    payment_status = Column(Enum(PaymentStatus), default=PaymentStatus.UNPAID)
+    payment_info = Column(JSON, nullable=True)  # 儲存金流回傳資訊
+    payment_updated_at = Column(DateTime, nullable=True)
     
     # 關聯
     user = relationship("User", back_populates="orders")

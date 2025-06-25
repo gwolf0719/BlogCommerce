@@ -11,6 +11,7 @@ from app.schemas.order import (
     OrderCreate, OrderUpdate, OrderResponse, OrderListResponse,
     CartItem, CartResponse, OrderStatus, OrderItemCreate, OrderItemResponse
 )
+from app.services.payment_service import PaymentService
 from app.auth import get_current_active_user, get_current_admin_user
 from datetime import datetime
 from sqlalchemy import func, and_
@@ -142,7 +143,6 @@ def create_order(
         shipping_fee=shipping_fee,
         total_amount=total_amount,
         status=OrderStatus.PENDING,
-
         notes=order.notes
     )
     
@@ -156,6 +156,33 @@ def create_order(
             **item_data
         )
         db.add(order_item)
+    
+    # 如果指定了付款方式，自動建立付款訂單
+    payment_data = None
+    if order.payment_method:
+        try:
+            with PaymentService() as payment_service:
+                payment_data = payment_service.create_payment_order(
+                    payment_method=order.payment_method,
+                    order_id=db_order.order_number,
+                    amount=total_amount,
+                    customer_info={
+                        'name': order.customer_name,
+                        'email': order.customer_email,
+                        'phone': order.customer_phone
+                    }
+                )
+                
+                # 更新訂單付款資訊
+                db_order.payment_method = order.payment_method
+                db_order.payment_status = order.payment_status or "pending"
+                import json
+                db_order.payment_info = json.dumps(payment_data) if payment_data else None
+                db_order.payment_updated_at = datetime.now()
+                
+        except Exception as e:
+            # 如果自動建立付款失敗，不影響訂單建立，但記錄錯誤
+            print(f"自動建立付款訂單失敗: {e}")
     
     db.commit()
     db.refresh(db_order)

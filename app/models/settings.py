@@ -16,6 +16,12 @@ class SystemSettings(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
+    # 金流設定建議 key：
+    # payment_transfer：轉帳設定（json，含銀行、帳號、戶名等）
+    # payment_linepay：Line Pay 設定（json，含 channel_id、secret 等）
+    # payment_ecpay：綠界設定（json，含 merchant_id、hashkey、hashiv 等）
+    # value 欄位可存 json 格式
+    
     def to_dict(self):
         return {
             "id": self.id,

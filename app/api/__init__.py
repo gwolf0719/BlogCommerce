@@ -3,7 +3,7 @@ from app.routes import (
     auth, posts, products, orders,
     admin, cart, analytics, favorites,
     newsletter, settings as settings_router,
-    error_logs, view_tracking
+    error_logs, view_tracking, payment
 )
 
 router = APIRouter()
@@ -19,3 +19,4 @@ router.include_router(newsletter.router)
 router.include_router(settings_router.router)
 router.include_router(error_logs.router)
 router.include_router(view_tracking.router)
+router.include_router(payment.router)
