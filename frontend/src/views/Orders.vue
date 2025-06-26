@@ -125,6 +125,14 @@
             <a-tag :color="getStatusColor(record.status)">{{ getStatusText(record.status) }}</a-tag>
           </template>
 
+          <template v-if="column.key === 'payment_status'">
+            <a-tag :color="getPaymentStatusColor(record.payment_status)">{{ getPaymentStatusText(record.payment_status) }}</a-tag>
+          </template>
+
+          <template v-if="column.key === 'payment_method'">
+            <span>{{ getPaymentMethodText(record.payment_method) }}</span>
+          </template>
+
           <template v-if="column.key === 'items_count'">
             <a-tag>{{ record.items?.length || 0 }} 件商品</a-tag>
           </template>
@@ -176,9 +184,43 @@
           <a-descriptions-item label="客戶信箱">{{ selectedOrder.customer_email }}</a-descriptions-item>
           <a-descriptions-item label="收貨地址">{{ selectedOrder.shipping_address }}</a-descriptions-item>
           <a-descriptions-item label="訂單總額">{{ formatCurrency(selectedOrder.total_amount) }}</a-descriptions-item>
+          <a-descriptions-item label="付款方式">{{ getPaymentMethodText(selectedOrder.payment_method) }}</a-descriptions-item>
+          <a-descriptions-item label="付款狀態">
+            <a-tag :color="getPaymentStatusColor(selectedOrder.payment_status)">{{ getPaymentStatusText(selectedOrder.payment_status) }}</a-tag>
+          </a-descriptions-item>
           <a-descriptions-item label="建立時間">{{ formatDate(selectedOrder.created_at) }}</a-descriptions-item>
           <a-descriptions-item label="備註" :span="2">{{ selectedOrder.notes || '無' }}</a-descriptions-item>
         </a-descriptions>
+
+        <!-- 付款狀態管理 -->
+        <a-card title="付款狀態管理" class="mb-4">
+          <a-form layout="inline">
+            <a-form-item label="付款方式">
+              <a-select v-model:value="paymentForm.method" style="width: 150px" @change="updatePaymentMethod">
+                <a-select-option value="transfer">轉帳</a-select-option>
+                <a-select-option value="linepay">Line Pay</a-select-option>
+                <a-select-option value="ecpay">綠界</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="付款狀態">
+              <a-select v-model:value="paymentForm.status" style="width: 150px" @change="updatePaymentStatus">
+                <a-select-option value="unpaid">未付款</a-select-option>
+                <a-select-option value="paid">已付款</a-select-option>
+                <a-select-option value="failed">付款失敗</a-select-option>
+                <a-select-option value="refunded">已退款</a-select-option>
+                <a-select-option value="pending">等待確認</a-select-option>
+                <a-select-option value="partial">部分付款</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item>
+              <a-button type="primary" @click="savePaymentStatus" :loading="savingPayment">儲存</a-button>
+            </a-form-item>
+          </a-form>
+          <div v-if="selectedOrder.payment_info" class="mt-4">
+            <h4 class="font-medium mb-2">金流回傳資訊</h4>
+            <pre class="bg-gray-100 p-3 rounded text-sm">{{ JSON.stringify(selectedOrder.payment_info, null, 2) }}</pre>
+          </div>
+        </a-card>
 
         <!-- 訂單商品列表 -->
         <h3 class="text-lg font-medium mb-3">訂單商品</h3>
@@ -260,6 +302,13 @@ const stats = ref({
 const selectedOrder = ref(null)
 const updateStatus = ref('')
 
+// 付款狀態管理
+const paymentForm = reactive({
+  method: '',
+  status: ''
+})
+const savingPayment = ref(false)
+
 // 搜尋表單
 const searchForm = reactive({
   search: '',
@@ -315,6 +364,18 @@ const columns = [
     title: '訂單狀態',
     key: 'status',
     dataIndex: 'status',
+    width: 100
+  },
+  {
+    title: '付款狀態',
+    key: 'payment_status',
+    dataIndex: 'payment_status',
+    width: 100
+  },
+  {
+    title: '付款方式',
+    key: 'payment_method',
+    dataIndex: 'payment_method',
     width: 100
   },
   {
@@ -457,6 +518,11 @@ const viewOrderDetail = async (order) => {
     const data = await response.json()
     selectedOrder.value = data
     updateStatus.value = data.status
+    
+    // 初始化付款表單
+    paymentForm.method = data.payment_method || ''
+    paymentForm.status = data.payment_status || 'unpaid'
+    
     detailModalVisible.value = true
 
   } catch (error) {
@@ -524,6 +590,52 @@ const handleStatusChange = async ({ key }, order) => {
   }
 }
 
+// 付款狀態管理方法
+const updatePaymentMethod = () => {
+  // 付款方式變更時的處理
+}
+
+const updatePaymentStatus = () => {
+  // 付款狀態變更時的處理
+}
+
+const savePaymentStatus = async () => {
+  if (!selectedOrder.value) return
+  
+  savingPayment.value = true
+  try {
+    const response = await fetch(`/api/orders/${selectedOrder.value.id}/payment`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        payment_method: paymentForm.method,
+        payment_status: paymentForm.status,
+        payment_updated_at: new Date().toISOString()
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('更新付款狀態失敗')
+    }
+
+    const data = await response.json()
+    selectedOrder.value.payment_method = data.payment_method
+    selectedOrder.value.payment_status = data.payment_status
+    selectedOrder.value.payment_updated_at = data.payment_updated_at
+    
+    message.success('付款狀態已更新')
+    refreshOrders()
+
+  } catch (error) {
+    message.error(error.message || '更新付款狀態失敗')
+  } finally {
+    savingPayment.value = false
+  }
+}
+
 // 輔助函數
 const getStatusColor = (status) => {
   const colors = {
@@ -545,6 +657,39 @@ const getStatusText = (status) => {
     cancelled: '已取消'
   }
   return texts[status] || status
+}
+
+const getPaymentStatusColor = (status) => {
+  const colors = {
+    unpaid: 'orange',
+    paid: 'green',
+    failed: 'red',
+    refunded: 'purple',
+    pending: 'blue',
+    partial: 'yellow'
+  }
+  return colors[status] || 'default'
+}
+
+const getPaymentStatusText = (status) => {
+  const texts = {
+    unpaid: '未付款',
+    paid: '已付款',
+    failed: '付款失敗',
+    refunded: '已退款',
+    pending: '等待確認',
+    partial: '部分付款'
+  }
+  return texts[status] || status
+}
+
+const getPaymentMethodText = (method) => {
+  const texts = {
+    transfer: '轉帳',
+    linepay: 'Line Pay',
+    ecpay: '綠界'
+  }
+  return texts[method] || method
 }
 
 const formatCurrency = (amount) => {

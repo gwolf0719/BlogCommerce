@@ -31,33 +31,34 @@ BlogCommerce/
 └── build.sh               # 自動建置腳本
 ```
 
-## 🚀 開發流程
+## 🚀 開發與部署
 
-### 1. 開發模式（前後端分離）
+本專案已統一使用 `start_server.sh` 腳本進行啟動，該腳本會自動處理前端建置與後端服務啟動。
+
+### 統一啟動
 
 ```bash
-# 啟動後端 API 服務
-python run.py
+# 啟動整個應用程式 (預設 Port: 8001)
+./start_server.sh
 
-# 另開終端，啟動前端開發服務器
+# 指定 Port 啟動
+./start_server.sh 8080
+```
+
+### 獨立開發 (可選)
+
+如果您需要獨立進行前端或後端開發：
+
+```bash
+# 1. 啟動後端 API 服務
+python -m uvicorn app.main:app --reload --port 8001
+
+# 2. 另開終端，啟動前端開發服務器
 cd frontend
 npm run dev
 ```
-
-前端開發服務器：http://localhost:3000
-後端 API 服務：http://127.0.0.1:8001
-
-### 2. 生產模式（前端內嵌）
-
-```bash
-# 建置並部署
-./build.sh
-
-# 啟動 FastAPI 服務
-python run.py
-```
-
-管理後台：http://127.0.0.1:8001/admin
+- **前端開發伺服器**: `http://localhost:5173`
+- **後端 API 服務**: `http://localhost:8001`
 
 ## 🔧 核心技術棧
 

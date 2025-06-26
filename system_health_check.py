@@ -19,7 +19,7 @@ from app.models.order import Order
 from app.models.post import Post
 from app.utils.logger import app_logger
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = "http://127.0.0.1:8001"
 
 def check_database():
     """檢查資料庫連接和數據"""

@@ -44,7 +44,7 @@
               安全設定
             </a-menu-item>
             <a-menu-item key="payment">
-              <template #icon><span class="anticon"><i class="fa fa-credit-card"></i></span></template>
+              <template #icon><CreditCardOutlined /></template>
               金流設定
             </a-menu-item>
           </a-menu>
@@ -385,79 +385,358 @@
         </a-card>
 
         <!-- 金流設定 -->
-        <a-card v-if="activeTab === 'payment'" title="金流設定" :loading="loading">
-          <a-form layout="vertical">
-            <a-form-item label="啟用金流方式">
-              <a-checkbox-group v-model:value="payment.enabledMethods">
-                <a-checkbox value="transfer">轉帳</a-checkbox>
-                <a-checkbox value="linepay">Line Pay</a-checkbox>
-                <a-checkbox value="ecpay">綠界全方位金流</a-checkbox>
-                <a-checkbox value="paypal">PayPal</a-checkbox>
-              </a-checkbox-group>
-            </a-form-item>
-            <template v-if="payment.enabledMethods.includes('transfer')">
-              <a-divider>轉帳設定</a-divider>
-              <a-form-item label="銀行名稱">
-                <a-input v-model:value="payment.transfer.bank" placeholder="請輸入銀行名稱" />
-              </a-form-item>
-              <a-form-item label="帳號">
-                <a-input v-model:value="payment.transfer.account" placeholder="請輸入帳號" />
-              </a-form-item>
-              <a-form-item label="戶名">
-                <a-input v-model:value="payment.transfer.name" placeholder="請輸入戶名" />
-              </a-form-item>
-            </template>
-            <template v-if="payment.enabledMethods.includes('linepay')">
-              <a-divider>Line Pay 設定</a-divider>
-              <a-form-item label="Channel ID">
-                <a-input v-model:value="payment.linepay.channel_id" placeholder="請輸入 Channel ID" />
-              </a-form-item>
-              <a-form-item label="Channel Secret">
-                <a-input v-model:value="payment.linepay.channel_secret" placeholder="請輸入 Channel Secret" />
-              </a-form-item>
-              <a-form-item label="商店名稱">
-                <a-input v-model:value="payment.linepay.store_name" placeholder="請輸入商店名稱" />
-              </a-form-item>
-            </template>
-            <template v-if="payment.enabledMethods.includes('ecpay')">
-              <a-divider>綠界全方位金流設定</a-divider>
-              <a-form-item label="Merchant ID">
-                <a-input v-model:value="payment.ecpay.merchant_id" placeholder="請輸入 Merchant ID" />
-              </a-form-item>
-              <a-form-item label="HashKey">
-                <a-input v-model:value="payment.ecpay.hash_key" placeholder="請輸入 HashKey" />
-              </a-form-item>
-              <a-form-item label="HashIV">
-                <a-input v-model:value="payment.ecpay.hash_iv" placeholder="請輸入 HashIV" />
-              </a-form-item>
-              <a-form-item label="API URL">
-                <a-input v-model:value="payment.ecpay.api_url" placeholder="請輸入 API URL" />
-              </a-form-item>
+        <div v-if="activeTab === 'payment'" class="payment-settings">
+          <!-- 金流方式選擇區塊 -->
+          <a-card class="payment-methods-card" title="金流方式設定">
+            <template #extra>
+              <a-tag color="blue">
+                <CreditCardOutlined />
+                {{ payment.enabledMethods.length }} 種已啟用
+              </a-tag>
             </template>
             
+            <div class="payment-methods-grid">
+              <div 
+                v-for="method in paymentMethods" 
+                :key="method.key"
+                class="payment-method-card"
+                :class="{ 'active': payment.enabledMethods.includes(method.key) }"
+                @click="togglePaymentMethod(method.key)"
+              >
+                <div class="method-icon">
+                  <component :is="method.icon" :style="{ color: method.color }" />
+                </div>
+                <div class="method-info">
+                  <h4>{{ method.name }}</h4>
+                  <p>{{ method.description }}</p>
+                </div>
+                <div class="method-toggle">
+                  <a-switch 
+                    :checked="payment.enabledMethods.includes(method.key)"
+                    @change="(checked) => togglePaymentMethod(method.key, checked)"
+                    :checked-children="'開'"
+                    :un-checked-children="'關'"
+                  />
+                </div>
+              </div>
+            </div>
+          </a-card>
+
+          <!-- 金流設定詳細區塊 -->
+          <div class="payment-configs">
+            <!-- 轉帳設定 -->
+            <a-card 
+              v-if="payment.enabledMethods.includes('transfer')" 
+              class="config-card transfer-config"
+              :loading="loading"
+            >
+              <template #title>
+                <div class="config-title">
+                  <BankOutlined style="color: #1890ff; margin-right: 8px;" />
+                  轉帳設定
+                  <a-tag color="blue" size="small" style="margin-left: 8px;">銀行轉帳</a-tag>
+                </div>
+              </template>
+              
+              <a-form layout="vertical">
+                <a-row :gutter="16">
+                  <a-col :span="8">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <BankOutlined />
+                          銀行名稱
+                        </span>
+                      </template>
+                      <a-input 
+                        v-model:value="payment.transfer.bank" 
+                        placeholder="例如：台灣銀行、中國信託"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="8">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <NumberOutlined />
+                          帳號
+                        </span>
+                      </template>
+                      <a-input 
+                        v-model:value="payment.transfer.account" 
+                        placeholder="請輸入完整帳號"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="8">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <UserOutlined />
+                          戶名
+                        </span>
+                      </template>
+                      <a-input 
+                        v-model:value="payment.transfer.name" 
+                        placeholder="請輸入戶名"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+              </a-form>
+            </a-card>
+
+            <!-- Line Pay 設定 -->
+            <a-card 
+              v-if="payment.enabledMethods.includes('linepay')" 
+              class="config-card linepay-config"
+              :loading="loading"
+            >
+              <template #title>
+                <div class="config-title">
+                  <MessageOutlined style="color: #00c300; margin-right: 8px;" />
+                  Line Pay 設定
+                  <a-tag color="green" size="small" style="margin-left: 8px;">即時付款</a-tag>
+                </div>
+              </template>
+              
+              <a-form layout="vertical">
+                <a-row :gutter="16">
+                  <a-col :span="8">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <KeyOutlined />
+                          Channel ID
+                        </span>
+                      </template>
+                      <a-input 
+                        v-model:value="payment.linepay.channel_id" 
+                        placeholder="請輸入 Line Pay Channel ID"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="8">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <SafetyCertificateOutlined />
+                          Channel Secret
+                        </span>
+                      </template>
+                      <a-input-password 
+                        v-model:value="payment.linepay.channel_secret" 
+                        placeholder="請輸入 Channel Secret"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="8">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <ShopOutlined />
+                          商店名稱
+                        </span>
+                      </template>
+                      <a-input 
+                        v-model:value="payment.linepay.store_name" 
+                        placeholder="顯示在付款頁面的商店名稱"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+              </a-form>
+            </a-card>
+
+            <!-- 綠界設定 -->
+            <a-card 
+              v-if="payment.enabledMethods.includes('ecpay')" 
+              class="config-card ecpay-config"
+              :loading="loading"
+            >
+              <template #title>
+                <div class="config-title">
+                  <CreditCardOutlined style="color: #52c41a; margin-right: 8px;" />
+                  綠界全方位金流設定
+                  <a-tag color="green" size="small" style="margin-left: 8px;">多元付款</a-tag>
+                </div>
+              </template>
+              
+              <a-form layout="vertical">
+                <a-row :gutter="16">
+                  <a-col :span="12">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <IdcardOutlined />
+                          Merchant ID
+                        </span>
+                      </template>
+                      <a-input 
+                        v-model:value="payment.ecpay.merchant_id" 
+                        placeholder="請輸入綠界商店代號"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="12">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <LinkOutlined />
+                          API URL
+                        </span>
+                      </template>
+                      <a-input 
+                        v-model:value="payment.ecpay.api_url" 
+                        placeholder="https://payment.ecpay.com.tw/..."
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+                <a-row :gutter="16">
+                  <a-col :span="12">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <SafetyCertificateOutlined />
+                          HashKey
+                        </span>
+                      </template>
+                      <a-input-password 
+                        v-model:value="payment.ecpay.hash_key" 
+                        placeholder="請輸入 HashKey"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="12">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <SafetyCertificateOutlined />
+                          HashIV
+                        </span>
+                      </template>
+                      <a-input-password 
+                        v-model:value="payment.ecpay.hash_iv" 
+                        placeholder="請輸入 HashIV"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+              </a-form>
+            </a-card>
+
             <!-- PayPal 設定 -->
-            <template v-if="payment.enabledMethods.includes('paypal')">
-              <a-divider>PayPal 設定</a-divider>
-              <a-form-item label="Client ID">
-                <a-input v-model:value="payment.paypal.client_id" placeholder="請輸入 PayPal Client ID" />
-              </a-form-item>
-              <a-form-item label="Client Secret">
-                <a-input-password v-model:value="payment.paypal.client_secret" placeholder="請輸入 PayPal Client Secret" />
-              </a-form-item>
-              <a-form-item label="環境">
-                <a-select v-model:value="payment.paypal.environment">
-                  <a-select-option value="sandbox">Sandbox (測試)</a-select-option>
-                  <a-select-option value="live">Live (正式)</a-select-option>
-                </a-select>
-              </a-form-item>
-            </template>
-            
-            <a-form-item>
-              <a-button type="primary" @click="savePaymentSettings" :loading="savingPayment">儲存金流設定</a-button>
-              <a-button @click="loadPaymentSettings" style="margin-left: 8px">重新載入</a-button>
-            </a-form-item>
-          </a-form>
-        </a-card>
+            <a-card 
+              v-if="payment.enabledMethods.includes('paypal')" 
+              class="config-card paypal-config"
+              :loading="loading"
+            >
+              <template #title>
+                <div class="config-title">
+                  <GlobalOutlined style="color: #0070ba; margin-right: 8px;" />
+                  PayPal 設定
+                  <a-tag color="blue" size="small" style="margin-left: 8px;">國際付款</a-tag>
+                </div>
+              </template>
+              
+              <a-form layout="vertical">
+                <a-row :gutter="16">
+                  <a-col :span="8">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <KeyOutlined />
+                          Client ID
+                        </span>
+                      </template>
+                      <a-input 
+                        v-model:value="payment.paypal.client_id" 
+                        placeholder="請輸入 PayPal Client ID"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="8">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <SafetyCertificateOutlined />
+                          Client Secret
+                        </span>
+                      </template>
+                      <a-input-password 
+                        v-model:value="payment.paypal.client_secret" 
+                        placeholder="請輸入 PayPal Client Secret"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="8">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <EnvironmentOutlined />
+                          環境設定
+                        </span>
+                      </template>
+                      <a-select v-model:value="payment.paypal.environment" size="large">
+                        <a-select-option value="sandbox">
+                          <ExperimentOutlined /> Sandbox (測試環境)
+                        </a-select-option>
+                        <a-select-option value="live">
+                          <RocketOutlined /> Live (正式環境)
+                        </a-select-option>
+                      </a-select>
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+              </a-form>
+            </a-card>
+          </div>
+
+          <!-- 操作按鈕區 -->
+          <a-card class="action-card">
+            <div class="action-buttons">
+              <a-button 
+                type="primary" 
+                size="large"
+                @click="savePaymentSettings" 
+                :loading="savingPayment"
+                class="save-btn"
+              >
+                <SaveOutlined />
+                儲存金流設定
+              </a-button>
+              <a-button 
+                size="large"
+                @click="loadPaymentSettings" 
+                class="reload-btn"
+              >
+                <ReloadOutlined />
+                重新載入
+              </a-button>
+              <a-button 
+                size="large"
+                @click="testPaymentConnection"
+                class="test-btn"
+              >
+                <ExperimentOutlined />
+                測試連線
+              </a-button>
+            </div>
+          </a-card>
+        </div>
       </a-col>
     </a-row>
   </div>
@@ -474,7 +753,21 @@ import {
   MailOutlined, 
   BarChartOutlined, 
   RobotOutlined, 
-  SafetyOutlined 
+  SafetyOutlined,
+  CreditCardOutlined,
+  BankOutlined,
+  MessageOutlined,
+  GlobalOutlined,
+  KeyOutlined,
+  SafetyCertificateOutlined,
+  ShopOutlined,
+  IdcardOutlined,
+  LinkOutlined,
+  NumberOutlined,
+  UserOutlined,
+  EnvironmentOutlined,
+  ExperimentOutlined,
+  RocketOutlined
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '../stores/auth'
 import UploadImage from '../components/UploadImage.vue'
@@ -552,6 +845,38 @@ const payment = reactive({
   paypal: { client_id: '', client_secret: '', environment: 'sandbox' }
 })
 const savingPayment = ref(false)
+
+// 金流方式配置
+const paymentMethods = [
+  {
+    key: 'transfer',
+    name: '銀行轉帳',
+    description: '傳統銀行轉帳付款方式',
+    icon: BankOutlined,
+    color: '#1890ff'
+  },
+  {
+    key: 'linepay',
+    name: 'Line Pay',
+    description: '便利的即時付款服務',
+    icon: MessageOutlined,
+    color: '#00c300'
+  },
+  {
+    key: 'ecpay',
+    name: '綠界金流',
+    description: '支援多種付款方式',
+    icon: CreditCardOutlined,
+    color: '#52c41a'
+  },
+  {
+    key: 'paypal',
+    name: 'PayPal',
+    description: '國際通用付款平台',
+    icon: GlobalOutlined,
+    color: '#0070ba'
+  }
+]
 
 // 方法
 const handleMenuClick = ({ key }) => {
@@ -645,6 +970,35 @@ const testEmail = async () => {
   } finally {
     testingEmail.value = false
   }
+}
+
+// 金流相關方法
+const togglePaymentMethod = (methodKey, checked) => {
+  if (checked === undefined) {
+    // 點擊卡片切換
+    const index = payment.enabledMethods.indexOf(methodKey)
+    if (index > -1) {
+      payment.enabledMethods.splice(index, 1)
+    } else {
+      payment.enabledMethods.push(methodKey)
+    }
+  } else {
+    // Switch 切換
+    if (checked) {
+      if (!payment.enabledMethods.includes(methodKey)) {
+        payment.enabledMethods.push(methodKey)
+      }
+    } else {
+      const index = payment.enabledMethods.indexOf(methodKey)
+      if (index > -1) {
+        payment.enabledMethods.splice(index, 1)
+      }
+    }
+  }
+}
+
+const testPaymentConnection = async () => {
+  message.info('測試金流連線功能開發中...')
 }
 
 const loadPaymentSettings = async () => {
@@ -773,5 +1127,249 @@ onMounted(() => {
 
 .ant-card-head-title {
   padding: 12px 0;
+}
+
+/* 金流設定樣式 */
+.payment-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.payment-methods-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.payment-methods-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.payment-method-card {
+  border: 2px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.payment-method-card:hover {
+  border-color: #1890ff;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.payment-method-card.active {
+  border-color: #1890ff;
+  background: linear-gradient(135deg, #e6f7ff 0%, #f0f8ff 100%);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+}
+
+.payment-method-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1890ff, #52c41a);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.payment-method-card.active::before {
+  opacity: 1;
+}
+
+.method-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.method-info h4 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.method-info p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.method-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
+.payment-configs {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.config-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.config-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.config-title {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #262626;
+}
+
+.transfer-config {
+  border-left: 4px solid #1890ff;
+}
+
+.linepay-config {
+  border-left: 4px solid #00c300;
+}
+
+.ecpay-config {
+  border-left: 4px solid #52c41a;
+}
+
+.paypal-config {
+  border-left: 4px solid #0070ba;
+}
+
+.action-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.save-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(24, 144, 255, 0.4);
+}
+
+.reload-btn {
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
+  transition: all 0.3s ease;
+}
+
+.reload-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(82, 196, 26, 0.4);
+}
+
+.test-btn {
+  background: linear-gradient(135deg, #fa8c16 0%, #d48806 100%);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(250, 140, 22, 0.3);
+  transition: all 0.3s ease;
+}
+
+.test-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(250, 140, 22, 0.4);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .payment-methods-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .action-buttons .ant-btn {
+    width: 100%;
+  }
+}
+
+/* 動畫效果 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.config-card {
+  animation: fadeInUp 0.5s ease;
+}
+
+.payment-method-card {
+  animation: fadeInUp 0.3s ease;
+}
+
+/* 表單樣式增強 */
+.ant-input-affix-wrapper,
+.ant-input,
+.ant-select-selector {
+  border-radius: 8px;
+  border: 1px solid #d9d9d9;
+  transition: all 0.3s ease;
+}
+
+.ant-input-affix-wrapper:hover,
+.ant-input:hover,
+.ant-select-selector:hover {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.ant-input-affix-wrapper:focus,
+.ant-input:focus,
+.ant-select-focused .ant-select-selector {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 </style> 

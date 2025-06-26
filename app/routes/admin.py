@@ -340,33 +340,38 @@ def get_all_orders_admin(
     db: Session = Depends(get_db)
 ):
     """取得所有訂單列表（管理員）"""
-    from sqlalchemy.orm import selectinload
-    
-    query = db.query(Order).options(selectinload(Order.items))
-    
-    if search:
-        query = query.filter(
-            Order.order_number.contains(search) |
-            Order.customer_name.contains(search) |
-            Order.customer_email.contains(search)
-        )
-    
-    orders = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
-    
-    # 轉換為 OrderListResponse 格式
-    result = []
-    for order in orders:
-        result.append({
-            "id": order.id,
-            "order_number": order.order_number,
-            "customer_name": order.customer_name,
-            "total_amount": order.total_amount,
-            "status": order.status,
-            "created_at": order.created_at.isoformat() if order.created_at else None,
-            "items_count": len(order.items)
-        })
-    
-    return result
+    try:
+        from sqlalchemy.orm import selectinload
+        
+        query = db.query(Order).options(selectinload(Order.items))
+        
+        if search:
+            query = query.filter(
+                Order.order_number.contains(search) |
+                Order.customer_name.contains(search) |
+                Order.customer_email.contains(search)
+            )
+        
+        orders = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
+        
+        # 轉換為 OrderListResponse 格式
+        result = []
+        for order in orders:
+            result.append({
+                "id": order.id,
+                "order_number": order.order_number,
+                "customer_name": order.customer_name,
+                "total_amount": order.total_amount,
+                "status": order.status,
+                "payment_method": order.payment_method,
+                "payment_status": order.payment_status,
+                "created_at": order.created_at.isoformat() if order.created_at else None,
+                "items_count": len(order.items)
+            })
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取訂單列表失敗: {str(e)}")
 
 
 @router.put("/orders/{order_id}", response_model=OrderResponse)
@@ -379,6 +384,39 @@ def admin_update_order(
     """更新訂單狀態（管理員）"""
     from app.routes.orders import update_order
     return update_order(order_id, order_update, current_user, db)
+
+
+@router.put("/orders/{order_id}/payment")
+def admin_update_order_payment(
+    order_id: int,
+    payment_data: dict,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """更新訂單付款狀態（管理員）"""
+    from datetime import datetime
+    
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="訂單不存在")
+    
+    # 更新付款相關欄位
+    if "payment_method" in payment_data:
+        order.payment_method = payment_data["payment_method"]
+    
+    if "payment_status" in payment_data:
+        order.payment_status = payment_data["payment_status"]
+    
+    if "payment_info" in payment_data:
+        order.payment_info = payment_data["payment_info"]
+    
+    # 更新付款時間
+    order.payment_updated_at = datetime.now()
+    
+    db.commit()
+    db.refresh(order)
+    
+    return {"message": "付款狀態更新成功", "order_id": order_id}
 
 
 # 分類管理功能已移除
@@ -836,7 +874,7 @@ async def get_admin_settings(
             'site_name': 'BlogCommerce',
             'site_tagline': '部落格與電商整合平台',
             'site_description': '一個結合部落格與電商功能的現代化平台',
-            'site_url': 'http://localhost:8000',
+            'site_url': 'http://localhost:8001',
             'admin_email': 'admin@example.com',
             'timezone': 'Asia/Taipei',
             'language': 'zh-TW',

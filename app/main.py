@@ -347,11 +347,33 @@ async def terms_page(request: Request):
     return templates.TemplateResponse("pages/terms.html", {"request": request, "settings": settings})
 
 
-# Admin SPA routes
-@app.get("/admin", include_in_schema=False)
-@app.get("/admin/{path:path}", include_in_schema=False)
-async def admin_spa(path: str = ""):
-    return FileResponse(Path("app/static/index.html"))
+# Admin SPA: Mount the entire built frontend under /admin
+admin_spa_path = Path("app/static")
+
+if admin_spa_path.exists() and (admin_spa_path / "index.html").exists():
+    # Mount assets directory for static files
+    app.mount("/assets", StaticFiles(directory=admin_spa_path / "assets"), name="assets")
+    
+    @app.get("/admin", include_in_schema=False)
+    async def admin_spa_root(request: Request):
+        """Serve the admin SPA root"""
+        return FileResponse(admin_spa_path / "index.html")
+    
+    @app.get("/admin/{path:path}", include_in_schema=False)
+    async def admin_spa_catch_all(request: Request, path: str):
+        """
+        Catches all paths under /admin and serves the index.html.
+        This is necessary for single-page applications (SPAs) where routing is handled client-side.
+        """
+        return FileResponse(admin_spa_path / "index.html")
+else:
+    @app.get("/admin", include_in_schema=False)
+    @app.get("/admin/{path:path}", include_in_schema=False)
+    async def admin_spa_placeholder(path: str = ""):
+        return JSONResponse(
+            status_code=404,
+            content={"message": "Admin panel not built. Please run the build script."},
+        )
 
 # 標籤和分類路由已移除
 
@@ -390,6 +412,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8001,
         reload=settings.debug
     ) 

@@ -43,7 +43,7 @@
 - Node.js 16+
 - 作業系統：Windows、macOS、Linux
 
-### ⚡ 一鍵安裝
+### ⚡ 統一啟動
 
 ```bash
 # 1. 複製專案
@@ -51,21 +51,23 @@ git clone https://github.com/your-username/blogcommerce.git
 cd blogcommerce
 
 # 2. 安裝依賴
+# (腳本會自動處理，但建議手動執行一次)
 pip install -r requirements.txt
+cd frontend && npm install && cd ..
 
 # 3. 初始化系統
 python init_db.py
 python create_test_data.py
 
-# 4. 啟動服務（自動處理埠口衝突）
-./start.sh
+# 4. 啟動服務
+./start_server.sh
 ```
 
 ### 🌐 訪問地址
 
-- **前台網站**：http://localhost:8000
-- **管理後台**：http://localhost:8000/admin
-- **API 文檔**：http://localhost:8000/docs
+- **網站入口**: `http://localhost:8001` (或您指定的 Port)
+- **管理後台**: `http://localhost:8001/admin`
+- **API 文檔**: `http://localhost:8001/docs`
 
 ### 🔐 預設帳號
 
@@ -74,29 +76,20 @@ python create_test_data.py
 | 管理員 | admin | admin123456 |
 | 會員 | user@example.com | password123 |
 
-## 🎯 啟動選項
+## 🎯 啟動腳本
+
+使用 `start_server.sh` 腳本來啟動整個應用程式。
 
 ```bash
-# 生產模式（默認）
-./start.sh
-
-# 開發模式（自動重建前端）
-./start.sh dev
-
-# 熱重載模式（前後端分離）
-./start.sh hot
-
-# 自定義埠口
-./start.sh dev 8080          # 後端使用 8080
-./start.sh hot 8080 3000     # 後端 8080，前端 3000
-
-# 埠口衝突處理
-# 腳本會自動檢測埠口衝突，提供以下選項：
-# 1. 自動選擇可用埠口
-# 2. 停止佔用該埠口的進程  
-# 3. 手動指定新埠口
-# 4. 退出
+./start_server.sh [PORT]
 ```
+
+- **[PORT]** (可選): 指定一個 Port，預設為 `8001`。
+
+**腳本功能:**
+- **自動建置**: 自動建置前端管理後台。
+- **Port 衝突處理**: 自動終止佔用指定 Port 的進程。
+- **統一服務**: 在單一 Port 上提供所有服務。
 
 ## 📁 專案結構
 
@@ -104,20 +97,16 @@ python create_test_data.py
 blogcommerce/
 ├── app/                    # 後端應用
 │   ├── main.py            # FastAPI 入口
-│   ├── models/            # 數據模型 (user, product, order, post, analytics, etc.)
-│   ├── routes/            # API 路由 (auth, products, orders, analytics, etc.)
+│   ├── models/            # 數據模型
+│   ├── routes/            # API 路由
 │   ├── schemas/           # Pydantic 數據驗證
-│   ├── services/          # 業務邏輯服務 (AI, 錯誤日誌, Markdown, etc.)
+│   ├── services/          # 業務邏輯服務
 │   └── templates/         # Jinja2 HTML 模板
 ├── frontend/              # Vue.js 管理後台
 │   ├── src/
-│   │   ├── components/    # Vue 組件 (編輯器, 上傳組件, etc.)
-│   │   ├── views/         # 頁面視圖 (Dashboard, Analytics, etc.)
-│   │   └── router/        # 路由配置
 │   ├── package.json
-│   └── watch_build.sh     # 前端監控構建腳本
-├── start.sh               # 智能啟動腳本 (支援多種模式)
-├── build.sh               # 前端構建腳本
+│   └── vite.config.js
+├── start_server.sh        # 統一啟動腳本
 ├── init_settings.py       # 系統設定初始化
 ├── system_health_check.py # 系統健康檢查
 └── requirements.txt       # Python 依賴
@@ -126,106 +115,52 @@ blogcommerce/
 ## 🔧 開發指南
 
 ### 後端開發
+
 ```bash
 # 安裝依賴
 pip install -r requirements.txt
 
-# 啟動開發服務器
-python run.py
-
-# 重置管理員密碼
-python reset_admin_password.py
+# 啟動開發服務器 (建議使用 start_server.sh)
+# 或者單獨運行後端:
+python -m uvicorn app.main:app --reload --port 8001
 ```
 
 ### 前端開發
+
 ```bash
 cd frontend
 
 # 安裝依賴
 npm install
 
-# 開發模式
+# 啟動開發模式 (與後端分離)
 npm run dev
 
-# 構建生產版本
+# 僅建置生產版本
 npm run build
 ```
 
 ### 數據庫管理
+
 ```bash
 # 初始化數據庫
 python init_db.py
 
 # 創建測試數據
 python create_test_data.py
-
-# 重置資料庫並創建測試數據
-python reset_and_create_test_data.py
-
-# 初始化系統設定
-python init_settings.py
-
-# 系統健康檢查
-python system_health_check.py
 ```
-
-## 🛠️ 配置說明
-
-主要配置文件在 `app/config.py`：
-
-```python
-# 數據庫設定
-DATABASE_URL = "sqlite:///./blogcommerce.db"
-
-# 安全設定
-SECRET_KEY = "your-secret-key"
-JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-# 應用設定
-SITE_NAME = "BlogCommerce"
-SITE_DESCRIPTION = "部落格電商整合平台"
-```
-
-## 📊 主要功能
-
-### 內容管理
-- ✅ 文章 CRUD 操作
-- ✅ Markdown 編輯支持
-- ✅ SEO 友好的 URL
-- ✅ 響應式圖片處理
-- ✅ 電子報訂閱管理
-
-### 電商功能
-- ✅ 商品管理
-- ✅ 購物車功能
-- ✅ 訂單處理
-- ✅ 庫存追蹤
-- ✅ 商品收藏功能
-
-### 系統管理
-- ✅ 用戶權限管理
-- ✅ 系統設定配置
-- ✅ 錯誤日誌監控
-- ✅ 即時數據分析
-- ✅ 系統健康檢查
-
-### 用戶體驗
-- ✅ 快速載入
-- ✅ 行動裝置友好
-- ✅ 搜尋功能
-- ✅ 分頁導航
 
 ## 🚀 部署與維護
 
 ### 生產環境部署
-```bash
-# 1. 設定生產環境變數
-export DATABASE_URL="postgresql://user:pass@localhost/blogcommerce"
-export SECRET_KEY="your-production-secret-key"
 
-# 2. 構建並啟動生產服務
-./start.sh prod
+```bash
+# 1. 設定生產環境變數 (如果需要)
+# export DATABASE_URL="postgresql://user:pass@localhost/blogcommerce"
+# export SECRET_KEY="your-production-secret-key"
+
+# 2. 啟動生產服務
+./start_server.sh
 ```
 
 ### 系統維護

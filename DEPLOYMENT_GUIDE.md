@@ -65,7 +65,7 @@ python create_test_data.py
 
 ### 7. 啟動服務
 ```bash
-python run.py
+./start_server.sh
 ```
 
 ### 8. 前端構建 (可選)

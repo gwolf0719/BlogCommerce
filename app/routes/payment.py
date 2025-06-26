@@ -3,7 +3,8 @@
 處理各種金流方式的付款流程
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 from decimal import Decimal
@@ -275,3 +276,277 @@ async def test_payment_method(
             "success": False,
             "message": f"{payment_method} 金流測試失敗: {str(e)}"
         }
+
+
+@router.post("/linepay/create/{order_id}")
+async def create_linepay_payment(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """建立 Line Pay 付款"""
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="訂單不存在")
+    
+    # 檢查訂單是否屬於當前用戶
+    if order.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="無權限存取此訂單")
+    
+    try:
+        payment_service = PaymentService(db)
+        result = payment_service.create_linepay_payment(order)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/linepay/confirm")
+async def linepay_confirm(
+    request: Request,
+    transactionId: str,
+    orderId: str,
+    db: Session = Depends(get_db)
+):
+    """Line Pay 付款確認回調"""
+    try:
+        payment_service = PaymentService(db)
+        result = payment_service.handle_linepay_callback(transactionId, orderId)
+        
+        if result["success"]:
+            # 重導向到付款成功頁面
+            return RedirectResponse(url=f"/payment/success?orderId={orderId}")
+        else:
+            # 重導向到付款失敗頁面
+            return RedirectResponse(url=f"/payment/failed?orderId={orderId}&error={result['message']}")
+    except Exception as e:
+        return RedirectResponse(url=f"/payment/failed?orderId={orderId}&error={str(e)}")
+
+
+@router.get("/linepay/cancel")
+async def linepay_cancel(
+    orderId: str,
+    db: Session = Depends(get_db)
+):
+    """Line Pay 付款取消回調"""
+    # 更新訂單狀態為取消
+    order = db.query(Order).filter(Order.order_number == orderId).first()
+    if order:
+        from app.models.order import PaymentStatus
+        order.payment_status = PaymentStatus.FAILED
+        if not order.payment_info:
+            order.payment_info = {}
+        order.payment_info.update({
+            "cancelled_at": datetime.now().isoformat(),
+            "cancel_reason": "用戶取消付款"
+        })
+        order.payment_updated_at = datetime.now()
+        db.commit()
+    
+    return RedirectResponse(url=f"/payment/cancelled?orderId={orderId}")
+
+
+@router.post("/ecpay/create/{order_id}")
+async def create_ecpay_payment(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """建立綠界付款"""
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="訂單不存在")
+    
+    # 檢查訂單是否屬於當前用戶
+    if order.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="無權限存取此訂單")
+    
+    try:
+        payment_service = PaymentService(db)
+        result = payment_service.create_ecpay_payment(order)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/ecpay/callback")
+async def ecpay_callback(
+    request: Request,
+    db: Session = Depends(get_db),
+    MerchantID: str = Form(...),
+    MerchantTradeNo: str = Form(...),
+    RtnCode: str = Form(...),
+    RtnMsg: str = Form(...),
+    TradeNo: str = Form(None),
+    TradeAmt: str = Form(None),
+    PaymentDate: str = Form(None),
+    PaymentType: str = Form(None),
+    PaymentTypeChargeFee: str = Form(None),
+    TradeDate: str = Form(None),
+    SimulatePaid: str = Form(None),
+    CheckMacValue: str = Form(...)
+):
+    """綠界付款回調處理"""
+    try:
+        # 收集所有表單資料
+        form_data = await request.form()
+        callback_data = dict(form_data)
+        
+        payment_service = PaymentService(db)
+        result = payment_service.handle_ecpay_callback(callback_data)
+        
+        # 綠界要求回傳 "1|OK" 表示接收成功
+        if result["success"]:
+            return "1|OK"
+        else:
+            return "0|FAIL"
+    except Exception as e:
+        print(f"綠界回調處理錯誤: {str(e)}")
+        return "0|FAIL"
+
+
+@router.get("/transfer/info/{order_id}")
+async def get_transfer_info(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """取得轉帳資訊"""
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="訂單不存在")
+    
+    # 檢查訂單是否屬於當前用戶
+    if order.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="無權限存取此訂單")
+    
+    # 取得轉帳設定
+    from app.models.settings import SystemSettings
+    import json
+    
+    transfer_setting = db.query(SystemSettings).filter(
+        SystemSettings.key == "payment_transfer"
+    ).first()
+    
+    if not transfer_setting or not transfer_setting.value:
+        raise HTTPException(status_code=404, detail="轉帳資訊未設定")
+    
+    try:
+        transfer_info = json.loads(transfer_setting.value)
+        return {
+            "order_number": order.order_number,
+            "total_amount": order.total_amount,
+            "bank_name": transfer_info.get("bank_name"),
+            "account_name": transfer_info.get("account_name"),
+            "account_number": transfer_info.get("account_number"),
+            "note": f"請於轉帳時備註訂單編號：{order.order_number}"
+        }
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="轉帳資訊格式錯誤")
+
+
+# 付款結果頁面路由
+@router.get("/success", response_class=HTMLResponse)
+async def payment_success(orderId: str):
+    """付款成功頁面"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>付款成功</title>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+            .success {{ color: green; font-size: 24px; margin-bottom: 20px; }}
+            .info {{ font-size: 16px; color: #666; }}
+            .button {{ 
+                display: inline-block; 
+                padding: 10px 20px; 
+                background: #007bff; 
+                color: white; 
+                text-decoration: none; 
+                border-radius: 5px; 
+                margin-top: 20px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="success">✅ 付款成功！</div>
+        <div class="info">訂單編號：{orderId}</div>
+        <div class="info">感謝您的購買，我們將盡快為您處理訂單。</div>
+        <a href="/" class="button">回到首頁</a>
+        <a href="/orders" class="button">查看訂單</a>
+    </body>
+    </html>
+    """
+
+
+@router.get("/failed", response_class=HTMLResponse)
+async def payment_failed(orderId: str, error: str = "付款失敗"):
+    """付款失敗頁面"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>付款失敗</title>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+            .failed {{ color: red; font-size: 24px; margin-bottom: 20px; }}
+            .info {{ font-size: 16px; color: #666; }}
+            .button {{ 
+                display: inline-block; 
+                padding: 10px 20px; 
+                background: #007bff; 
+                color: white; 
+                text-decoration: none; 
+                border-radius: 5px; 
+                margin-top: 20px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="failed">❌ 付款失敗</div>
+        <div class="info">訂單編號：{orderId}</div>
+        <div class="info">失敗原因：{error}</div>
+        <div class="info">請重新嘗試付款或聯繫客服。</div>
+        <a href="/" class="button">回到首頁</a>
+        <a href="/orders" class="button">查看訂單</a>
+    </body>
+    </html>
+    """
+
+
+@router.get("/cancelled", response_class=HTMLResponse)
+async def payment_cancelled(orderId: str):
+    """付款取消頁面"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>付款取消</title>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; text-align: center; padding: 50px; }}
+            .cancelled {{ color: orange; font-size: 24px; margin-bottom: 20px; }}
+            .info {{ font-size: 16px; color: #666; }}
+            .button {{ 
+                display: inline-block; 
+                padding: 10px 20px; 
+                background: #007bff; 
+                color: white; 
+                text-decoration: none; 
+                border-radius: 5px; 
+                margin-top: 20px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="cancelled">⚠️ 付款已取消</div>
+        <div class="info">訂單編號：{orderId}</div>
+        <div class="info">您已取消付款，如需繼續請重新進行付款。</div>
+        <a href="/" class="button">回到首頁</a>
+        <a href="/orders" class="button">查看訂單</a>
+    </body>
+    </html>
+    """

@@ -13,19 +13,19 @@ class OrderStatus(enum.Enum):
 
 
 class PaymentMethod(enum.Enum):
-    TRANSFER = "transfer"   # 轉帳
-    LINEPAY = "linepay"     # Line Pay
-    ECPAY = "ecpay"         # 綠界
-    PAYPAL = "paypal"       # PayPal
+    transfer = "transfer"   # 轉帳
+    linepay = "linepay"     # Line Pay
+    ecpay = "ecpay"         # 綠界
+    paypal = "paypal"       # PayPal
 
 
 class PaymentStatus(enum.Enum):
-    UNPAID = "unpaid"           # 未付款
-    PAID = "paid"               # 已付款
-    FAILED = "failed"           # 付款失敗
-    REFUNDED = "refunded"       # 已退款
-    PENDING = "pending"         # 等待付款/確認
-    PARTIAL = "partial"         # 部分付款
+    unpaid = "unpaid"           # 未付款
+    paid = "paid"               # 已付款
+    failed = "failed"           # 付款失敗
+    refunded = "refunded"       # 已退款
+    pending = "pending"         # 等待付款/確認
+    partial = "partial"         # 部分付款
 
 
 class Order(BaseModel):
@@ -58,7 +58,7 @@ class Order(BaseModel):
     
     # 金流相關欄位
     payment_method = Column(Enum(PaymentMethod), nullable=True)
-    payment_status = Column(Enum(PaymentStatus), default=PaymentStatus.UNPAID)
+    payment_status = Column(Enum(PaymentStatus), default=PaymentStatus.unpaid)
     payment_info = Column(JSON, nullable=True)  # 儲存金流回傳資訊
     payment_updated_at = Column(DateTime, nullable=True)
     

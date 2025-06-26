@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     # 網站基本資訊
     site_name: str = "BlogCommerce"
     site_description: str = "部落格與電商整合平台"
-    site_url: str = "http://localhost:8000"
+    site_url: str = "http://localhost:8001"
     site_logo: str = "/static/images/logo.png"
     site_favicon: str = "/static/images/favicon.ico"
     

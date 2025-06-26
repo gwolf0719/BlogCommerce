@@ -183,9 +183,9 @@ python create_test_data.py
 
 ```bash
 # 啟動應用程式
-python run.py
+./start_server.sh
 
-# 或者使用 uvicorn
+# 或者使用 uvicorn (如果不想自動建置前端)
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 

@@ -143,6 +143,8 @@ class OrderListResponse(BaseSchema):
     customer_name: str
     total_amount: Decimal
     status: OrderStatus
+    payment_method: Optional[PaymentMethod] = None
+    payment_status: Optional[PaymentStatus] = PaymentStatus.unpaid
     created_at: str
     items_count: int = 0
 

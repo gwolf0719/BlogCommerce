@@ -7,9 +7,11 @@ import json
 import hashlib
 import hmac
 import base64
+import requests
 from datetime import datetime
 from typing import Dict, Any, Optional
 from decimal import Decimal
+from sqlalchemy.orm import Session
 
 import httpx
 import paypalrestsdk
@@ -18,13 +20,14 @@ from Crypto.Util.Padding import pad, unpad
 
 from ..models.settings import SystemSettings
 from ..database import SessionLocal
+from ..models.order import Order, PaymentStatus, PaymentMethod
 
 
 class PaymentService:
     """金流處理服務"""
     
-    def __init__(self):
-        self.db = SessionLocal()
+    def __init__(self, db: Session):
+        self.db = db
         self.settings = self._load_payment_settings()
     
     def _load_payment_settings(self) -> Dict[str, Any]:
@@ -70,110 +73,139 @@ class PaymentService:
         }
     
     # Line Pay 相關方法
-    async def create_linepay_order(self, order_id: str, amount: Decimal, customer_info: Dict) -> Dict[str, Any]:
-        """建立 Line Pay 訂單"""
-        linepay_config = self.settings.get('payment_linepay')
-        if not linepay_config:
-            raise ValueError("Line Pay 設定未設置")
+    def create_linepay_payment(self, order: Order) -> Dict[str, Any]:
+        """建立 Line Pay 付款請求"""
+        settings = self.get_payment_settings("linepay")
+        if not settings:
+            raise Exception("Line Pay 設定未完成")
         
-        # Line Pay API 呼叫邏輯
-        api_url = "https://sandbox-api-pay.line.me/v3/payments/request"
-        
-        headers = {
-            'Content-Type': 'application/json',
-            'X-LINE-ChannelId': linepay_config.get('channel_id'),
-            'X-LINE-ChannelSecret': linepay_config.get('channel_secret')
-        }
-        
-        payload = {
-            'amount': int(amount),
-            'currency': 'TWD',
-            'orderId': order_id,
-            'packages': [{
-                'id': 'package1',
-                'amount': int(amount),
-                'products': [{
-                    'name': f'訂單 {order_id}',
-                    'quantity': 1,
-                    'price': int(amount)
-                }]
+        # Line Pay API 請求資料
+        request_data = {
+            "amount": int(order.total_amount),
+            "currency": "TWD",
+            "orderId": order.order_number,
+            "packages": [{
+                "id": order.order_number,
+                "amount": int(order.total_amount),
+                "products": [
+                    {
+                        "name": item.product_name,
+                        "quantity": item.quantity,
+                        "price": int(item.product_price)
+                    }
+                    for item in order.items
+                ]
             }],
-            'redirectUrls': {
-                'confirmUrl': f'https://yourdomain.com/payment/linepay/confirm?orderId={order_id}',
-                'cancelUrl': f'https://yourdomain.com/payment/linepay/cancel?orderId={order_id}'
+            "redirectUrls": {
+                "confirmUrl": f"http://localhost:8001/api/payment/linepay/confirm",
+                "cancelUrl": f"http://localhost:8001/api/payment/linepay/cancel"
             }
         }
         
-        async with httpx.AsyncClient() as client:
-            response = await client.post(api_url, headers=headers, json=payload)
+        # 建立簽名
+        nonce = str(int(datetime.now().timestamp() * 1000))
+        uri = "/v3/payments/request"
+        message = settings["channel_secret"] + uri + json.dumps(request_data, separators=(',', ':')) + nonce
+        signature = base64.b64encode(
+            hmac.new(
+                settings["channel_secret"].encode('utf-8'),
+                message.encode('utf-8'),
+                hashlib.sha256
+            ).digest()
+        ).decode('utf-8')
+        
+        headers = {
+            "Content-Type": "application/json",
+            "X-LINE-ChannelId": settings["channel_id"],
+            "X-LINE-Authorization-Nonce": nonce,
+            "X-LINE-Authorization": signature
+        }
+        
+        # 發送請求
+        response = requests.post(
+            "https://sandbox-api-pay.line.me/v3/payments/request",
+            headers=headers,
+            json=request_data,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
             result = response.json()
-            
-            if result.get('returnCode') == '0000':
+            if result.get("returnCode") == "0000":
+                # 更新訂單付款資訊
+                order.payment_method = PaymentMethod.LINEPAY
+                order.payment_status = PaymentStatus.PENDING
+                order.payment_info = {
+                    "transaction_id": result["info"]["transactionId"],
+                    "payment_url": result["info"]["paymentUrl"]["web"],
+                    "created_at": datetime.now().isoformat()
+                }
+                self.db.commit()
+                
                 return {
-                    'payment_method': 'linepay',
-                    'order_id': order_id,
-                    'amount': str(amount),
-                    'payment_url': result['info']['paymentUrl']['web'],
-                    'payment_token': result['info']['transactionId'],
-                    'expires_at': None
+                    "success": True,
+                    "payment_url": result["info"]["paymentUrl"]["web"],
+                    "transaction_id": result["info"]["transactionId"]
                 }
             else:
-                raise ValueError(f"Line Pay 建立訂單失敗: {result.get('returnMessage')}")
+                raise Exception(f"Line Pay 請求失敗: {result.get('returnMessage', '未知錯誤')}")
+        else:
+            raise Exception(f"Line Pay API 請求失敗: HTTP {response.status_code}")
     
     # 綠界相關方法
-    def create_ecpay_order(self, order_id: str, amount: Decimal, customer_info: Dict) -> Dict[str, Any]:
-        """建立綠界訂單"""
-        ecpay_config = self.settings.get('payment_ecpay')
-        if not ecpay_config:
-            raise ValueError("綠界設定未設置")
+    def create_ecpay_payment(self, order: Order) -> Dict[str, Any]:
+        """建立綠界付款請求"""
+        settings = self.get_payment_settings("ecpay")
+        if not settings:
+            raise Exception("綠界設定未完成")
         
-        # 綠界 API 參數
-        api_url = ecpay_config.get('api_url', 'https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5')
-        
-        params = {
-            'MerchantID': ecpay_config.get('merchant_id'),
-            'MerchantTradeNo': order_id,
-            'MerchantTradeDate': datetime.now().strftime('%Y/%m/%d %H:%M:%S'),
-            'PaymentType': 'aio',
-            'TotalAmount': int(amount),
-            'TradeDesc': f'訂單 {order_id}',
-            'ItemName': f'訂單 {order_id}',
-            'ReturnURL': f'https://yourdomain.com/payment/ecpay/return',
-            'ChoosePayment': 'ALL',
-            'ClientBackURL': f'https://yourdomain.com/payment/ecpay/client_back?orderId={order_id}',
-            'EncryptType': 1
+        # 綠界 API 請求資料
+        request_data = {
+            "MerchantID": settings["merchant_id"],
+            "MerchantTradeNo": order.order_number,
+            "MerchantTradeDate": datetime.now().strftime("%Y/%m/%d %H:%M:%S"),
+            "PaymentType": "aio",
+            "TotalAmount": int(order.total_amount),
+            "TradeDesc": f"訂單 {order.order_number}",
+            "ItemName": " ".join([item.product_name for item in order.items[:5]]),  # 限制長度
+            "ReturnURL": f"http://localhost:8001/api/payment/ecpay/callback",
+            "ChoosePayment": "ALL",
+            "EncryptType": "1"
         }
         
-        # 產生檢查碼
-        check_mac_value = self._generate_ecpay_check_mac_value(params, ecpay_config)
-        params['CheckMacValue'] = check_mac_value
+        # 建立檢查碼
+        check_value = self._create_ecpay_check_value(request_data, settings["hash_key"], settings["hash_iv"])
+        request_data["CheckMacValue"] = check_value
+        
+        # 更新訂單付款資訊
+        order.payment_method = PaymentMethod.ECPAY
+        order.payment_status = PaymentStatus.PENDING
+        order.payment_info = {
+            "merchant_trade_no": order.order_number,
+            "created_at": datetime.now().isoformat()
+        }
+        self.db.commit()
         
         return {
-            'payment_method': 'ecpay',
-            'order_id': order_id,
-            'amount': str(amount),
-            'payment_url': api_url,
-            'payment_params': params,
-            'payment_token': order_id,
-            'expires_at': None
+            "success": True,
+            "form_data": request_data,
+            "action_url": settings.get("api_url", "https://payment-stage.ecpay.com.tw/Cashier/AioCheckOut/V5")
         }
     
-    def _generate_ecpay_check_mac_value(self, params: Dict, config: Dict) -> str:
-        """產生綠界檢查碼"""
-        hash_key = config.get('hash_key')
-        hash_iv = config.get('hash_iv')
-        
+    def _create_ecpay_check_value(self, data: Dict, hash_key: str, hash_iv: str) -> str:
+        """建立綠界檢查碼"""
         # 排序參數
-        sorted_params = sorted(params.items())
+        sorted_data = sorted(data.items())
         
         # 組合字串
-        raw_string = f"HashKey={hash_key}&" + "&".join([f"{k}={v}" for k, v in sorted_params]) + f"&HashIV={hash_iv}"
+        raw_string = "&".join([f"{k}={v}" for k, v in sorted_data])
+        raw_string = f"HashKey={hash_key}&{raw_string}&HashIV={hash_iv}"
         
         # URL encode
         raw_string = raw_string.replace("%", "%25").replace("~", "%7E")
         
-        # SHA256 雜湊
-        return hashlib.sha256(raw_string.encode()).hexdigest().upper()
+        # SHA256 加密
+        return hashlib.sha256(raw_string.encode('utf-8')).hexdigest().upper()
     
     # PayPal 相關方法
     def create_paypal_order(self, order_id: str, amount: Decimal, customer_info: Dict) -> Dict[str, Any]:
@@ -240,10 +272,9 @@ class PaymentService:
         if payment_method == 'transfer':
             return self.create_transfer_order(order_id, amount, customer_info)
         elif payment_method == 'linepay':
-            import asyncio
-            return asyncio.run(self.create_linepay_order(order_id, amount, customer_info))
+            return self.create_linepay_payment(order_id)
         elif payment_method == 'ecpay':
-            return self.create_ecpay_order(order_id, amount, customer_info)
+            return self.create_ecpay_payment(order_id)
         elif payment_method == 'paypal':
             return self.create_paypal_order(order_id, amount, customer_info)
         else:
@@ -297,7 +328,7 @@ class PaymentService:
         
         # 驗證檢查碼
         received_mac = payment_data.pop('CheckMacValue', '')
-        calculated_mac = self._generate_ecpay_check_mac_value(payment_data, ecpay_config)
+        calculated_mac = self._create_ecpay_check_value(payment_data, ecpay_config["hash_key"], ecpay_config["hash_iv"])
         
         success = received_mac == calculated_mac and payment_data.get('RtnCode') == '1'
         
@@ -338,3 +369,130 @@ class PaymentService:
                 'transaction_id': payment_id,
                 'payment_data': payment.error
             }
+
+    def get_payment_settings(self, method: str) -> Optional[Dict]:
+        """取得金流設定"""
+        setting = self.db.query(SystemSettings).filter(
+            SystemSettings.key == f"payment_{method}"
+        ).first()
+        
+        if setting and setting.value:
+            try:
+                return json.loads(setting.value)
+            except (json.JSONDecodeError, TypeError):
+                return None
+        return None
+
+    def handle_linepay_callback(self, transaction_id: str, order_id: str) -> Dict[str, Any]:
+        """處理 Line Pay 回傳"""
+        order = self.db.query(Order).filter(Order.order_number == order_id).first()
+        if not order:
+            raise Exception("訂單不存在")
+        
+        settings = self.get_payment_settings("linepay")
+        if not settings:
+            raise Exception("Line Pay 設定未完成")
+        
+        # 確認付款
+        confirm_data = {
+            "amount": int(order.total_amount),
+            "currency": "TWD"
+        }
+        
+        # 建立簽名
+        nonce = str(int(datetime.now().timestamp() * 1000))
+        uri = f"/v3/payments/{transaction_id}/confirm"
+        message = settings["channel_secret"] + uri + json.dumps(confirm_data, separators=(',', ':')) + nonce
+        signature = base64.b64encode(
+            hmac.new(
+                settings["channel_secret"].encode('utf-8'),
+                message.encode('utf-8'),
+                hashlib.sha256
+            ).digest()
+        ).decode('utf-8')
+        
+        headers = {
+            "Content-Type": "application/json",
+            "X-LINE-ChannelId": settings["channel_id"],
+            "X-LINE-Authorization-Nonce": nonce,
+            "X-LINE-Authorization": signature
+        }
+        
+        response = requests.post(
+            f"https://sandbox-api-pay.line.me/v3/payments/{transaction_id}/confirm",
+            headers=headers,
+            json=confirm_data,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get("returnCode") == "0000":
+                # 付款成功，更新訂單狀態
+                order.payment_status = PaymentStatus.PAID
+                order.payment_info.update({
+                    "confirmed_at": datetime.now().isoformat(),
+                    "line_pay_info": result["info"]
+                })
+                order.payment_updated_at = datetime.now()
+                self.db.commit()
+                
+                return {"success": True, "message": "付款成功"}
+            else:
+                # 付款失敗
+                order.payment_status = PaymentStatus.FAILED
+                order.payment_info.update({
+                    "failed_at": datetime.now().isoformat(),
+                    "error_message": result.get("returnMessage", "付款失敗")
+                })
+                order.payment_updated_at = datetime.now()
+                self.db.commit()
+                
+                return {"success": False, "message": result.get("returnMessage", "付款失敗")}
+        else:
+            raise Exception(f"Line Pay 確認 API 請求失敗: HTTP {response.status_code}")
+    
+    def handle_ecpay_callback(self, callback_data: Dict) -> Dict[str, Any]:
+        """處理綠界回傳"""
+        merchant_trade_no = callback_data.get("MerchantTradeNo")
+        if not merchant_trade_no:
+            raise Exception("缺少訂單編號")
+        
+        order = self.db.query(Order).filter(Order.order_number == merchant_trade_no).first()
+        if not order:
+            raise Exception("訂單不存在")
+        
+        # 驗證檢查碼
+        settings = self.get_payment_settings("ecpay")
+        if not settings:
+            raise Exception("綠界設定未完成")
+        
+        # 移除檢查碼後重新計算
+        check_data = {k: v for k, v in callback_data.items() if k != "CheckMacValue"}
+        expected_check = self._create_ecpay_check_value(check_data, settings["hash_key"], settings["hash_iv"])
+        
+        if callback_data.get("CheckMacValue") != expected_check:
+            raise Exception("檢查碼驗證失敗")
+        
+        # 根據付款結果更新訂單狀態
+        rtn_code = callback_data.get("RtnCode")
+        if rtn_code == "1":
+            # 付款成功
+            order.payment_status = PaymentStatus.PAID
+            order.payment_info.update({
+                "paid_at": datetime.now().isoformat(),
+                "ecpay_info": callback_data
+            })
+        else:
+            # 付款失敗
+            order.payment_status = PaymentStatus.FAILED
+            order.payment_info.update({
+                "failed_at": datetime.now().isoformat(),
+                "error_message": callback_data.get("RtnMsg", "付款失敗"),
+                "ecpay_info": callback_data
+            })
+        
+        order.payment_updated_at = datetime.now()
+        self.db.commit()
+        
+        return {"success": rtn_code == "1", "message": callback_data.get("RtnMsg", "")}

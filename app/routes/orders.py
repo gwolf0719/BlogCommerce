@@ -4,12 +4,12 @@ from typing import List, Optional
 from decimal import Decimal
 import uuid
 from app.database import get_db
-from app.models.order import Order, OrderItem
+from app.models.order import Order, OrderItem, OrderStatus, PaymentMethod, PaymentStatus
 from app.models.product import Product
 from app.models.user import User
 from app.schemas.order import (
     OrderCreate, OrderUpdate, OrderResponse, OrderListResponse,
-    CartItem, CartResponse, OrderStatus, OrderItemCreate, OrderItemResponse
+    CartItem, CartResponse, OrderItemCreate, OrderItemResponse
 )
 from app.services.payment_service import PaymentService
 from app.auth import get_current_active_user, get_current_admin_user
@@ -429,4 +429,52 @@ def update_order_status(
     db.commit()
     db.refresh(order)
     
-    return {"message": f"訂單狀態已更新為 {status_update.status.value}", "order": order} 
+    return {"message": f"訂單狀態已更新為 {status_update.status.value}", "order": order}
+
+
+@router.put("/{order_id}/payment")
+async def update_order_payment_status(
+    order_id: int,
+    payment_data: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """更新訂單付款狀態（僅管理員）"""
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="訂單不存在")
+    
+    # 更新付款相關欄位
+    if "payment_method" in payment_data:
+        if payment_data["payment_method"]:
+            order.payment_method = PaymentMethod(payment_data["payment_method"])
+        else:
+            order.payment_method = None
+    
+    if "payment_status" in payment_data:
+        if payment_data["payment_status"]:
+            order.payment_status = PaymentStatus(payment_data["payment_status"])
+        else:
+            order.payment_status = PaymentStatus.UNPAID
+    
+    if "payment_info" in payment_data:
+        order.payment_info = payment_data["payment_info"]
+    
+    if "payment_updated_at" in payment_data:
+        from datetime import datetime
+        order.payment_updated_at = datetime.fromisoformat(payment_data["payment_updated_at"].replace('Z', '+00:00'))
+    
+    try:
+        db.commit()
+        db.refresh(order)
+        
+        return {
+            "id": order.id,
+            "payment_method": order.payment_method.value if order.payment_method else None,
+            "payment_status": order.payment_status.value if order.payment_status else None,
+            "payment_info": order.payment_info,
+            "payment_updated_at": order.payment_updated_at.isoformat() if order.payment_updated_at else None
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"更新付款狀態失敗: {str(e)}") 
