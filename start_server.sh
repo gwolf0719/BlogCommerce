@@ -6,13 +6,26 @@
 DEFAULT_PORT=8001
 PORT=${1:-$DEFAULT_PORT}
 
-# 後端靜態檔案目錄 (給 Admin SPA)
-ADMIN_DIST_DIR="frontend/dist"
-BACKEND_ADMIN_DIR="app/static/admin"
-
 # 腳本標題
 echo "🚀 BlogCommerce 啟動程序"
 echo "--------------------------------"
+
+# 0. 強制使用 .venv 虛擬環境
+VENV_PY=".venv/bin/python"
+if [ ! -f "$VENV_PY" ]; then
+    # 建立虛擬環境 如果 python 這個指令不能用就用 python3 來建立
+    if ! command -v python &> /dev/null; then
+        python3 -m venv .venv
+    else
+        python -m venv .venv
+    fi
+    source .venv/bin/activate
+    pip install -r requirements.txt
+else
+    source .venv/bin/activate
+fi
+
+pip install -r requirements.txt
 
 # 1. 檢查 Port 是否被佔用，並終止佔用進程
 echo "🔎 正在檢查 Port: $PORT..."
@@ -57,36 +70,21 @@ if [ $? -ne 0 ]; then
 fi
 
 cd ..
-echo "✅ 前端建置完成。"
+echo "✅ 前端建置完成，產物已輸出至 app/static。"
 
-# 3. 將建置好的前端檔案移動到後端靜態目錄
-echo "📦 正在將 Admin SPA 部署到後端靜態目錄..."
-# 建立目標目錄
-mkdir -p $BACKEND_ADMIN_DIR
-
-# 清空舊檔案
-rm -rf $BACKEND_ADMIN_DIR/*
-
-# 複製新檔案
-cp -r $ADMIN_DIST_DIR/* $BACKEND_ADMIN_DIR/
-if [ $? -ne 0 ]; then
-    echo "❌ 複製 Admin SPA 檔案失敗。"
-    exit 1
-fi
-echo "✅ Admin SPA 已成功部署。"
-
+# 3. (省略 Admin SPA 複製步驟，因產物已在正確位置)
 
 # 4. 啟動後端伺服器
 echo "🚀 正在啟動 FastAPI 後端伺服器..."
 echo "   - Host: 0.0.0.0"
 echo "   - Port: $PORT"
 
-# 檢查 Python 和 uvicorn 是否存在
-if ! command -v python &> /dev/null || ! python -m uvicorn --version &> /dev/null
+# 檢查 .venv/bin/python 和 uvicorn 是否存在
+if ! "$VENV_PY" -m uvicorn --version &> /dev/null
 then
-    echo "❌ Python 或 uvicorn 未安裝，請確保 Python 環境已設定且 'requirements.txt' 已安裝。"
+    echo "❌ .venv/bin/python 或 uvicorn 未安裝，請確保虛擬環境已設定且 'requirements.txt' 已安裝。"
     exit 1
 fi
 
-# 使用 uvicorn 啟動
-python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT --reload
+# 使用 .venv/bin/python 啟動
+"$VENV_PY" -m uvicorn app.main:app --host 0.0.0.0 --port $PORT --reload
