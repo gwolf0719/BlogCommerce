@@ -31,7 +31,7 @@ passlib==1.7.4
 paypalrestsdk==1.13.1
 pillow==11.2.1
 pluggy==1.6.0
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.10
 pyasn1==0.6.1
 pycparser==2.22
 pycryptodome==3.18.0
