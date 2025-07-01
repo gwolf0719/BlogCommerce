@@ -23,6 +23,7 @@ class User(BaseModel):
     phone = Column(String(20), nullable=True)
     address = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)
     is_verified = Column(Boolean, default=False)
     role = Column(Enum(UserRole), default=UserRole.USER)
     

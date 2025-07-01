@@ -52,6 +52,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login", response_model=Token)
 def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     """會員登入"""
+    print(f"[DEBUG] 登入請求 - 使用者名稱: {user_credentials.username}, 密碼: {user_credentials.password}")
     user = authenticate_user(db, user_credentials.username, user_credentials.password)
     if not user:
         raise HTTPException(

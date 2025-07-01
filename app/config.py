@@ -2,7 +2,6 @@ import os
 from pydantic_settings import BaseSettings
 from typing import Optional
 
-
 class Settings(BaseSettings):
     # 網站基本資訊
     site_name: str = "BlogCommerce"
@@ -30,12 +29,12 @@ class Settings(BaseSettings):
     admin_full_name: str = "系統管理員"
     
     # 郵件設定
-    mail_server: str = "smtp.gmail.com"
-    mail_port: int = 587
-    mail_username: str = ""
-    mail_password: str = ""
-    mail_from: str = ""
-    mail_from_name: str = "BlogCommerce"
+    mail_server: Optional[str] = None
+    mail_port: Optional[int] = None
+    mail_username: Optional[str] = None
+    mail_password: Optional[str] = None
+    mail_from: Optional[str] = None
+    mail_from_name: Optional[str] = None
     
     # 檔案上傳設定
     upload_folder: str = "app/static/uploads"
@@ -55,10 +54,10 @@ class Settings(BaseSettings):
     tax_rate: float = 0.05
     
     # 社群媒體連結
-    facebook_url: str = ""
-    instagram_url: str = ""
-    twitter_url: str = ""
-    youtube_url: str = ""
+    facebook_url: Optional[str] = None
+    instagram_url: Optional[str] = None
+    twitter_url: Optional[str] = None
+    youtube_url: Optional[str] = None
     
     # SEO 設定
     default_meta_title: str = "BlogCommerce - 部落格與電商整合平台"
@@ -66,12 +65,12 @@ class Settings(BaseSettings):
     default_meta_keywords: str = "電商,部落格,購物,文章,商品"
     
     # Google Analytics
-    google_analytics_id: str = ""
-    google_tag_manager_id: str = ""
+    google_analytics_id: Optional[str] = None
+    google_tag_manager_id: Optional[str] = None
     
     # 第三方服務
-    recaptcha_site_key: str = ""
-    recaptcha_secret_key: str = ""
+    recaptcha_site_key: Optional[str] = None
+    recaptcha_secret_key: Optional[str] = None
     
     # 快取設定
     redis_url: str = "redis://localhost:6379/0"
@@ -83,10 +82,8 @@ class Settings(BaseSettings):
     backup_schedule: str = "0 2 * * *"
     backup_retention_days: int = 30
     
-    model_config = {
-        "env_file": ".env",
-        "case_sensitive": False
-    }
+    class Config:
+        env_file = ".env"
+        case_sensitive = False
 
-
-settings = Settings() 
+settings = Settings()
