@@ -67,8 +67,14 @@ def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
             detail="帳號已停用"
         )
     
-    # 建立 access token
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    # 建立 access token - 根據 remember 設定過期時間
+    if user_credentials.remember:
+        # 記住登入狀態：30 天
+        access_token_expires = timedelta(days=settings.remember_token_expire_days)
+    else:
+        # 一般登入：24 小時
+        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    
     access_token = create_access_token(
         data={"sub": user.username}, 
         expires_delta=access_token_expires

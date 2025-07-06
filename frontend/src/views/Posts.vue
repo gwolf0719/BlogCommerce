@@ -1,172 +1,172 @@
 <template>
-  <div class="posts-page">
-    <!-- 頁面標題 -->
-    <a-page-header 
-      title="文章管理" 
-      sub-title="管理您的部落格文章內容"
-      class="page-header"
-    >
-      <template #extra>
-        <a-button type="primary" @click="showCreateModal" size="large">
-          <PlusOutlined /> 新增文章
-        </a-button>
-      </template>
-    </a-page-header>
+  <div class="admin-page">
+    <!-- 1. 頁面標題區 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">文章管理</h1>
+          <p class="page-description">管理您的部落格文章內容</p>
+        </div>
+        <div class="action-section">
+          <a-button type="primary" @click="showCreateModal">
+            <template #icon><PlusOutlined /></template>
+            新增文章
+          </a-button>
+        </div>
+      </div>
+    </div>
 
-    <!-- 統計卡片 -->
-    <a-row :gutter="24" class="stats-row">
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="總文章數"
-            :value="posts.length"
-            prefix="📄"
-            :value-style="{ color: '#1890ff' }"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="已發布"
-            :value="publishedCount"
-            prefix="✅"
-            :value-style="{ color: '#52c41a' }"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="草稿"
-            :value="draftCount"
-            prefix="📝"
-            :value-style="{ color: '#faad14' }"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="發布率"
-            :value="publishRate"
-            suffix="%"
-            prefix="📊"
-            :precision="1"
-            :value-style="{ color: '#722ed1' }"
-          />
-        </a-card>
-      </a-col>
-    </a-row>
+    <!-- 2. 統計卡片區 -->
+    <div class="stats-section">
+      <a-row :gutter="24" class="stats-row">
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="總文章數"
+              :value="posts.length"
+              prefix="📄"
+              :value-style="{ color: '#1890ff' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="已發布"
+              :value="publishedCount"
+              prefix="✅"
+              :value-style="{ color: '#52c41a' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="草稿"
+              :value="draftCount"
+              prefix="📝"
+              :value-style="{ color: '#faad14' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="發布率"
+              :value="publishRate"
+              suffix="%"
+              prefix="📊"
+              :precision="1"
+              :value-style="{ color: '#722ed1' }"
+            />
+          </a-card>
+        </a-col>
+      </a-row>
+    </div>
 
-    <!-- 搜尋和篩選區塊 -->
-    <a-card title="搜尋與篩選" class="filter-card">
-      <a-form layout="inline" :model="searchForm">
-        <a-form-item label="搜尋內容">
-          <a-input-search
-            v-model:value="searchForm.search"
-            placeholder="搜尋文章標題或內容"
-            allow-clear
-            enter-button
-            @search="handleSearch"
-            style="width: 280px"
-          />
-        </a-form-item>
-        
-        <a-form-item label="發布狀態">
-          <a-select
-            v-model:value="searchForm.status"
-            placeholder="選擇狀態"
-            style="width: 140px"
-            allow-clear
-            @change="handleSearch"
-          >
-            <a-select-option value="published">
-              <a-tag color="green" size="small">已發布</a-tag>
-            </a-select-option>
-            <a-select-option value="draft">
-              <a-tag color="orange" size="small">草稿</a-tag>
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        
-        <a-form-item>
-          <a-button @click="resetFilters" icon="reload">重置</a-button>
-        </a-form-item>
-      </a-form>
-    </a-card>
+    <!-- 3. 搜尋篩選區 -->
+    <div class="filter-section">
+      <a-card class="filter-card">
+        <a-row :gutter="24">
+          <a-col :span="8">
+            <a-input-search
+              v-model:value="searchForm.search"
+              placeholder="搜尋文章標題或內容"
+              allow-clear
+              @search="handleSearch"
+            />
+          </a-col>
+          <a-col :span="4">
+            <a-select
+              v-model:value="searchForm.status"
+              placeholder="發布狀態"
+              allow-clear
+              @change="handleSearch"
+            >
+              <a-select-option value="published">已發布</a-select-option>
+              <a-select-option value="draft">草稿</a-select-option>
+            </a-select>
+          </a-col>
+          <a-col :span="4">
+            <a-button @click="resetFilters">重置篩選</a-button>
+          </a-col>
+        </a-row>
+      </a-card>
+    </div>
 
-    <!-- 文章列表區塊 -->
-    <a-card title="文章列表" class="table-card">
-      <a-table
-        :columns="columns"
-        :data-source="posts"
-        :loading="loading"
-        :pagination="paginationConfig"
-        @change="handleTableChange"
-        row-key="id"
-        :scroll="{ x: 800 }"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'view_count'">
-            <div class="view-count-cell">
-              <a-statistic 
-                :value="record.view_count || 0" 
-                :value-style="{ fontSize: '14px' }"
-              >
-                <template #suffix>
-                  <span style="font-size: 12px; color: #999;">次</span>
-                </template>
-              </a-statistic>
-            </div>
-          </template>
-
-          <template v-if="column.key === 'status'">
-            <a-tag :color="record.is_published ? 'green' : 'orange'" size="default">
-              <template #icon>
-                <span>{{ record.is_published ? '✅' : '📝' }}</span>
-              </template>
-              {{ record.is_published ? '已發布' : '草稿' }}
-            </a-tag>
-          </template>
-
-          <template v-if="column.key === 'title'">
-            <div class="title-cell">
-              <div class="post-title">{{ record.title }}</div>
-              <div class="post-excerpt" v-if="record.excerpt">
-                {{ record.excerpt.substring(0, 50) }}{{ record.excerpt.length > 50 ? '...' : '' }}
+    <!-- 4. 主要內容區 -->
+    <div class="content-section">
+      <a-card class="content-card">
+        <a-table
+          :columns="columns"
+          :data-source="posts"
+          :loading="loading"
+          :pagination="paginationConfig"
+          @change="handleTableChange"
+          row-key="id"
+          :scroll="{ x: 800 }"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'view_count'">
+              <div class="view-count-cell">
+                <a-statistic 
+                  :value="record.view_count || 0" 
+                  :value-style="{ fontSize: '14px' }"
+                >
+                  <template #suffix>
+                    <span style="font-size: 12px; color: #999;">次</span>
+                  </template>
+                </a-statistic>
               </div>
-            </div>
-          </template>
+            </template>
 
-          <template v-if="column.key === 'created_at'">
-            <div class="date-cell">
-              <div>{{ formatDate(record.created_at) }}</div>
-              <small class="text-gray-500">{{ formatTime(record.created_at) }}</small>
-            </div>
-          </template>
+            <template v-if="column.key === 'status'">
+              <a-tag :color="record.is_published ? 'green' : 'orange'" size="default">
+                <template #icon>
+                  <span>{{ record.is_published ? '✅' : '📝' }}</span>
+                </template>
+                {{ record.is_published ? '已發布' : '草稿' }}
+              </a-tag>
+            </template>
 
-          <template v-if="column.key === 'actions'">
-            <a-space>
-              <a-button size="small" type="primary" @click="editPost(record)">
-                <EditOutlined /> 編輯
-              </a-button>
-              <a-popconfirm
-                title="確定要刪除這篇文章嗎？"
-                description="此操作不可恢復，請謹慎操作"
-                @confirm="deletePost(record.id)"
-                ok-text="確定"
-                cancel-text="取消"
-              >
-                <a-button size="small" danger>
-                  <DeleteOutlined /> 刪除
+            <template v-if="column.key === 'title'">
+              <div class="title-cell">
+                <div class="post-title">{{ record.title }}</div>
+                <div class="post-excerpt" v-if="record.excerpt">
+                  {{ record.excerpt.substring(0, 50) }}{{ record.excerpt.length > 50 ? '...' : '' }}
+                </div>
+              </div>
+            </template>
+
+            <template v-if="column.key === 'created_at'">
+              <div class="date-cell">
+                <div>{{ formatDate(record.created_at) }}</div>
+                <small class="text-gray-500">{{ formatTime(record.created_at) }}</small>
+              </div>
+            </template>
+
+            <template v-if="column.key === 'actions'">
+              <a-space>
+                <a-button size="small" type="primary" @click="editPost(record)">
+                  <EditOutlined /> 編輯
                 </a-button>
-              </a-popconfirm>
-            </a-space>
+                <a-popconfirm
+                  title="確定要刪除這篇文章嗎？"
+                  description="此操作不可恢復，請謹慎操作"
+                  @confirm="deletePost(record.id)"
+                  ok-text="確定"
+                  cancel-text="取消"
+                >
+                  <a-button size="small" danger>
+                    <DeleteOutlined /> 刪除
+                  </a-button>
+                </a-popconfirm>
+              </a-space>
+            </template>
           </template>
-        </template>
-      </a-table>
-    </a-card>
+        </a-table>
+      </a-card>
+    </div>
 
     <!-- 新增/編輯文章對話框 -->
     <a-modal
@@ -398,8 +398,6 @@ const rules = {
   ]
 }
 
-// 日期格式化（已移至 utils/dateUtils.js）
-
 // 載入文章列表
 const loadPosts = async () => {
   try {
@@ -522,34 +520,51 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.posts-page {
-  padding: 20px;
+.admin-page {
+  padding: 24px;
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-.filters {
-  margin-bottom: 20px;
-  padding: 16px;
-  background: #fafafa;
-  border-radius: 6px;
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #262626;
+}
+
+.page-description {
+  color: #8c8c8c;
+  margin: 0;
+  font-size: 14px;
+}
+
+.stats-section {
+  margin-bottom: 24px;
 }
 
 .stats-row {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-.filter-card {
-  margin-bottom: 20px;
+.filter-section {
+  margin-bottom: 24px;
 }
 
-.table-card {
-  margin-bottom: 20px;
+.content-section {
+  margin-bottom: 24px;
+}
+
+.view-count-cell {
+  text-align: right;
 }
 
 .title-cell {

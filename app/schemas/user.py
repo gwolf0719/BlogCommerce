@@ -40,6 +40,7 @@ class UserCreate(UserBase):
 class UserLogin(BaseSchema):
     username: str
     password: str
+    remember: Optional[bool] = False
 
 
 class UserUpdate(BaseSchema):

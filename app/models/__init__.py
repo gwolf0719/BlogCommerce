@@ -8,8 +8,9 @@ from .settings import SystemSettings
 from .newsletter import NewsletterSubscriber, NewsletterCampaign
 from .analytics import PageView, DailyStats, PopularContent, UserSession
 from .favorite import Favorite
-from .error_log import ErrorLog, ErrorSource, ErrorSeverity
 from .view_log import ViewLog
+from .coupon import Coupon, CouponUsage, CouponDistribution, CouponType, DiscountType
+from .campaign import MarketingCampaign, CampaignStatus
 
 __all__ = [
     "BaseModel",
@@ -21,6 +22,7 @@ __all__ = [
     "NewsletterSubscriber", "NewsletterCampaign",
     "PageView", "DailyStats", "PopularContent", "UserSession",
     "Favorite",
-    "ErrorLog", "ErrorSource", "ErrorSeverity",
-    "ViewLog"
+    "ViewLog",
+    "Coupon", "CouponUsage", "CouponDistribution", "CouponType", "DiscountType",
+    "MarketingCampaign", "CampaignStatus"
 ] 

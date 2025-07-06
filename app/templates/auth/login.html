@@ -163,7 +163,8 @@ function loginApp() {
                     },
                     body: JSON.stringify({
                         username: this.form.username,
-                        password: this.form.password
+                        password: this.form.password,
+                        remember: this.form.remember
                     })
                 });
                 
@@ -182,7 +183,12 @@ function loginApp() {
                     }
                     
                     // 重新導向到首頁或指定頁面
-                    const returnUrl = new URLSearchParams(window.location.search).get('return_url') || '/';
+                    const redirectAfterLogin = localStorage.getItem('redirect_after_login');
+                    const returnUrl = new URLSearchParams(window.location.search).get('return_url') || redirectAfterLogin || '/';
+                    
+                    // 清除重定向路徑
+                    localStorage.removeItem('redirect_after_login');
+                    
                     window.location.href = returnUrl;
                 } else {
                     this.errorMessage = data.detail || '登入失敗，請檢查您的帳號密碼';

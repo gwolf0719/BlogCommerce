@@ -129,18 +129,54 @@ def create_order(
     
     # 計算運費（這裡可以根據業務規則調整）
     shipping_fee = Decimal("60.00") if subtotal < Decimal("1000.00") else Decimal("0.00")
-    total_amount = subtotal + shipping_fee
+    
+    # 處理優惠券
+    discount_amount = Decimal("0.00")
+    free_shipping = False
+    coupon_usage = None
+    
+    if order.coupon_code:
+        from app.services.coupon_service import CouponService
+        from app.schemas.coupon import CouponValidationRequest
+        
+        coupon_service = CouponService(db)
+        
+        # 驗證優惠券
+        validation_request = CouponValidationRequest(
+            code=order.coupon_code,
+            user_id=current_user.id if current_user else None,
+            amount=subtotal + shipping_fee  # 使用總金額驗證
+        )
+        
+        validation_result = coupon_service.validate_coupon(validation_request)
+        
+        if not validation_result.is_valid:
+            raise HTTPException(
+                status_code=400,
+                detail=f"優惠券無效：{validation_result.message}"
+            )
+        
+        discount_amount = validation_result.discount_amount
+        free_shipping = validation_result.free_shipping
+    
+    # 如果有免運費優惠券，運費設為0
+    if free_shipping:
+        shipping_fee = Decimal("0.00")
+    
+    # 計算最終總金額
+    total_amount = subtotal + shipping_fee - discount_amount
     
     # 建立訂單
     db_order = Order(
         order_number=generate_order_number(),
-        user_id=current_user.id if current_user else None,
+        user_id=current_user.id if current_user else None,  # type: ignore
         customer_name=order.customer_name,
         customer_email=order.customer_email,
         customer_phone=order.customer_phone,
         shipping_address=order.shipping_address,
         subtotal=subtotal,
         shipping_fee=shipping_fee,
+        discount_amount=discount_amount,
         total_amount=total_amount,
         status=OrderStatus.PENDING,
         notes=order.notes
@@ -156,6 +192,17 @@ def create_order(
             **item_data
         )
         db.add(order_item)
+    
+    # 記錄優惠券使用
+    if order.coupon_code and discount_amount > 0:
+        coupon = coupon_service.get_coupon_by_code(order.coupon_code)
+        if coupon:
+            coupon_usage = coupon_service.use_coupon(
+                coupon_id=coupon.id,
+                user_id=current_user.id if current_user else None,  # type: ignore
+                order_id=db_order.id,
+                discount_amount=discount_amount
+            )
     
     # 如果指定了付款方式，自動建立付款訂單
     payment_data = None

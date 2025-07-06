@@ -1,170 +1,182 @@
 <template>
-  <div class="p-6">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">訂單管理</h1>
-      <div class="space-x-2">
-        <a-button @click="refreshOrders">
-          <template #icon><ReloadOutlined /></template>
-          刷新
-        </a-button>
+  <div class="admin-page">
+    <!-- 1. 頁面標題區 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">訂單管理</h1>
+          <p class="page-description">管理所有客戶訂單，處理訂單狀態和付款資訊</p>
+        </div>
+        <div class="action-section">
+          <a-button type="primary" @click="refreshOrders">
+            <template #icon><ReloadOutlined /></template>
+            刷新
+          </a-button>
+        </div>
       </div>
     </div>
 
-    <!-- 搜尋與篩選 -->
-    <a-card class="mb-6">
-      <a-row :gutter="16">
+    <!-- 2. 統計卡片區 -->
+    <div class="stats-section">
+      <a-row :gutter="24" class="stats-row">
         <a-col :span="6">
-          <a-input
-            v-model:value="searchForm.search"
-            placeholder="搜尋訂單編號 / 會員名稱"
-            allowClear
-            @change="handleSearch"
-          >
-            <template #prefix><SearchOutlined /></template>
-          </a-input>
+          <a-card>
+            <a-statistic
+              title="總訂單數"
+              :value="stats.total_orders"
+              prefix-icon="OrderedListOutlined"
+              :value-style="{ color: '#3f8600' }"
+            />
+          </a-card>
         </a-col>
         <a-col :span="6">
-          <a-select
-            v-model:value="searchForm.status"
-            placeholder="狀態篩選"
-            allowClear
-            @change="handleSearch"
-          >
-            <a-select-option value="pending">待確認</a-select-option>
-            <a-select-option value="confirmed">已確認</a-select-option>
-            <a-select-option value="shipped">已出貨</a-select-option>
-            <a-select-option value="delivered">已送達</a-select-option>
-            <a-select-option value="cancelled">已取消</a-select-option>
-          </a-select>
+          <a-card>
+            <a-statistic
+              title="待處理"
+              :value="stats.processing_orders"
+              prefix-icon="ClockCircleOutlined"
+              :value-style="{ color: '#cf1322' }"
+            />
+          </a-card>
         </a-col>
         <a-col :span="6">
-          <a-range-picker 
-            v-model:value="searchForm.dateRange"
-            :placeholder="['開始日期', '結束日期']"
-            @change="handleSearch"
-          />
+          <a-card>
+            <a-statistic
+              title="今日訂單"
+              :value="stats.today_orders"
+              prefix-icon="CalendarOutlined"
+              :value-style="{ color: '#1890ff' }"
+            />
+          </a-card>
         </a-col>
         <a-col :span="6">
-          <a-button @click="resetSearch">重置</a-button>
+          <a-card>
+            <a-statistic
+              title="總銷售額"
+              :value="stats.total_revenue"
+              prefix="$"
+              :precision="2"
+              :value-style="{ color: '#3f8600' }"
+            />
+          </a-card>
         </a-col>
       </a-row>
-    </a-card>
+    </div>
 
-    <!-- 統計卡片 -->
-    <a-row :gutter="16" class="mb-6">
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="總訂單數"
-            :value="stats.total_orders"
-            prefix-icon="OrderedListOutlined"
-            :value-style="{ color: '#3f8600' }"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="待處理"
-            :value="stats.processing_orders"
-            prefix-icon="ClockCircleOutlined"
-            :value-style="{ color: '#cf1322' }"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="今日訂單"
-            :value="stats.today_orders"
-            prefix-icon="CalendarOutlined"
-            :value-style="{ color: '#1890ff' }"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="總銷售額"
-            :value="stats.total_revenue"
-            prefix="$"
-            :precision="2"
-            :value-style="{ color: '#3f8600' }"
-          />
-        </a-card>
-      </a-col>
-    </a-row>
+    <!-- 3. 搜尋篩選區 -->
+    <div class="filter-section">
+      <a-card class="filter-card">
+        <a-row :gutter="24">
+          <a-col :span="6">
+            <a-input
+              v-model:value="searchForm.search"
+              placeholder="搜尋訂單編號 / 會員名稱"
+              allowClear
+              @change="handleSearch"
+            >
+              <template #prefix><SearchOutlined /></template>
+            </a-input>
+          </a-col>
+          <a-col :span="6">
+            <a-select
+              v-model:value="searchForm.status"
+              placeholder="狀態篩選"
+              allowClear
+              @change="handleSearch"
+            >
+              <a-select-option value="pending">待確認</a-select-option>
+              <a-select-option value="confirmed">已確認</a-select-option>
+              <a-select-option value="shipped">已出貨</a-select-option>
+              <a-select-option value="delivered">已送達</a-select-option>
+              <a-select-option value="cancelled">已取消</a-select-option>
+            </a-select>
+          </a-col>
+          <a-col :span="6">
+            <a-range-picker 
+              v-model:value="searchForm.dateRange"
+              :placeholder="['開始日期', '結束日期']"
+              @change="handleSearch"
+            />
+          </a-col>
+          <a-col :span="6">
+            <a-button @click="resetSearch">重置</a-button>
+          </a-col>
+        </a-row>
+      </a-card>
+    </div>
 
-    <!-- 訂單列表 -->
-    <a-card>
-      <a-table
-        :columns="columns"
-        :data-source="orders"
-        :pagination="paginationConfig"
-        :loading="loading"
-        row-key="id"
-        @change="handleTableChange"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'order_number'">
-            <a-button type="link" @click="viewOrderDetail(record)">{{ record.order_number }}</a-button>
-          </template>
+    <!-- 4. 主要內容區 -->
+    <div class="content-section">
+      <a-card class="content-card">
+        <a-table
+          :columns="columns"
+          :data-source="orders"
+          :pagination="paginationConfig"
+          :loading="loading"
+          row-key="id"
+          @change="handleTableChange"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'order_number'">
+              <a-button type="link" @click="viewOrderDetail(record)">{{ record.order_number }}</a-button>
+            </template>
 
-          <template v-if="column.key === 'customer_info'">
-            <div>
-              <div class="font-medium">{{ record.customer_name || record.customer_email }}</div>
-              <div class="text-gray-500 text-sm">{{ record.customer_phone || record.customer_email }}</div>
-            </div>
-          </template>
+            <template v-if="column.key === 'customer_info'">
+              <div>
+                <div class="font-medium">{{ record.customer_name || record.customer_email }}</div>
+                <div class="text-gray-500 text-sm">{{ record.customer_phone || record.customer_email }}</div>
+              </div>
+            </template>
 
-          <template v-if="column.key === 'total_amount'">
-            <span class="font-medium">{{ formatCurrency(record.total_amount) }}</span>
-          </template>
+            <template v-if="column.key === 'total_amount'">
+              <span class="font-medium">{{ formatCurrency(record.total_amount) }}</span>
+            </template>
 
-          <template v-if="column.key === 'status'">
-            <a-tag :color="getStatusColor(record.status)">{{ getStatusText(record.status) }}</a-tag>
-          </template>
+            <template v-if="column.key === 'status'">
+              <a-tag :color="getStatusColor(record.status)">{{ getStatusText(record.status) }}</a-tag>
+            </template>
 
-          <template v-if="column.key === 'payment_status'">
-            <a-tag :color="getPaymentStatusColor(record.payment_status)">{{ getPaymentStatusText(record.payment_status) }}</a-tag>
-          </template>
+            <template v-if="column.key === 'payment_status'">
+              <a-tag :color="getPaymentStatusColor(record.payment_status)">{{ getPaymentStatusText(record.payment_status) }}</a-tag>
+            </template>
 
-          <template v-if="column.key === 'payment_method'">
-            <span>{{ getPaymentMethodText(record.payment_method) }}</span>
-          </template>
+            <template v-if="column.key === 'payment_method'">
+              <span>{{ getPaymentMethodText(record.payment_method) }}</span>
+            </template>
 
-          <template v-if="column.key === 'items_count'">
-            <a-tag>{{ record.items?.length || 0 }} 件商品</a-tag>
-          </template>
+            <template v-if="column.key === 'items_count'">
+              <a-tag>{{ record.items?.length || 0 }} 件商品</a-tag>
+            </template>
 
-          <template v-if="column.key === 'created_at'">
-            <span>{{ formatDate(record.created_at) }}</span>
-          </template>
+            <template v-if="column.key === 'created_at'">
+              <span>{{ formatDate(record.created_at) }}</span>
+            </template>
 
-          <template v-if="column.key === 'action'">
-            <a-space>
-              <a-button type="link" size="small" @click="viewOrderDetail(record)">
-                <EyeOutlined />
-              </a-button>
-              <a-dropdown>
-                <template #overlay>
-                  <a-menu @click="handleStatusChange($event, record)">
-                    <a-menu-item key="confirmed">確認訂單</a-menu-item>
-                    <a-menu-item key="shipped">標記為已出貨</a-menu-item>
-                    <a-menu-item key="delivered">標記為已送達</a-menu-item>
-                    <a-menu-divider />
-                    <a-menu-item key="cancelled" class="text-red-600">取消訂單</a-menu-item>
-                  </a-menu>
-                </template>
-                <a-button type="link" size="small">
-                  更多 <DownOutlined />
+            <template v-if="column.key === 'action'">
+              <a-space>
+                <a-button type="link" size="small" @click="viewOrderDetail(record)">
+                  <EyeOutlined />
                 </a-button>
-              </a-dropdown>
-            </a-space>
+                <a-dropdown>
+                  <template #overlay>
+                    <a-menu @click="handleStatusChange($event, record)">
+                      <a-menu-item key="confirmed">確認訂單</a-menu-item>
+                      <a-menu-item key="shipped">標記為已出貨</a-menu-item>
+                      <a-menu-item key="delivered">標記為已送達</a-menu-item>
+                      <a-menu-divider />
+                      <a-menu-item key="cancelled" class="text-red-600">取消訂單</a-menu-item>
+                    </a-menu>
+                  </template>
+                  <a-button type="link" size="small">
+                    更多 <DownOutlined />
+                  </a-button>
+                </a-dropdown>
+              </a-space>
+            </template>
           </template>
-        </template>
-      </a-table>
-    </a-card>
+        </a-table>
+      </a-card>
+    </div>
 
     <!-- 訂單詳情彈窗 -->
     <a-modal 
@@ -709,6 +721,49 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.admin-page {
+  padding: 24px;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #262626;
+}
+
+.page-description {
+  color: #8c8c8c;
+  margin: 0;
+  font-size: 14px;
+}
+
+.stats-section {
+  margin-bottom: 24px;
+}
+
+.stats-row {
+  margin-bottom: 24px;
+}
+
+.filter-section {
+  margin-bottom: 24px;
+}
+
+.content-section {
+  margin-bottom: 24px;
+}
+
 .ant-statistic-content {
   font-size: 16px;
 }

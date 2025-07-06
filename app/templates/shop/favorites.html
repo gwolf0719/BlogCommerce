@@ -3,17 +3,17 @@
 {% block title %}我的收藏{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8" x-data="favoritesApp()">
-    <h1 class="text-3xl font-bold text-gray-900 mb-8">我的收藏</h1>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="favoritesApp()">
+    <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-8">我的收藏</h1>
     
     <!-- 收藏列表 -->
     <div x-show="!loading && favorites.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <template x-for="item in favorites" :key="item.id">
-            <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow duration-300">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-shadow duration-300">
                 <div class="relative">
                     <img :src="item.product.featured_image || '/static/images/placeholder-product.jpg'" 
                          :alt="item.product.name"
-                         class="w-full h-48 object-cover rounded-t-lg">
+                         class="w-full h-48 object-cover rounded-t-xl">
                     
                     <!-- 移除收藏按鈕 -->
                     <button @click="removeFavorite(item.product_id)" 
@@ -57,11 +57,11 @@
                     <div class="flex space-x-2">
                         <button @click="addToCart(item.product)" 
                                 :disabled="item.product.stock_quantity <= 0"
-                                class="flex-1 bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700 disabled:bg-gray-400 transition-colors">
+                                class="flex-1 bg-green-600 text-white py-2 px-3 rounded-xl text-sm hover:bg-green-700 disabled:bg-gray-400 transition-colors">
                             加入購物車
                         </button>
                         <a :href="'/product/' + item.product.slug" 
-                           class="flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 transition-colors text-center">
+                           class="flex-1 bg-gradient-to-r from-primary-500 to-primary-600 text-white py-2 px-3 rounded-xl text-sm hover:from-primary-600 hover:to-primary-700 transition-colors text-center">
                             查看詳情
                         </a>
                     </div>
@@ -78,13 +78,13 @@
     </div>
     
     <!-- 無收藏商品 -->
-    <div x-show="!loading && favorites.length === 0" class="text-center py-12 bg-gray-50 rounded-lg">
+    <div x-show="!loading && favorites.length === 0" class="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
         <div class="text-gray-400 text-6xl mb-4">
             <i class="far fa-heart"></i>
         </div>
         <h3 class="text-xl font-medium text-gray-600 mb-2">還沒有收藏任何商品</h3>
         <p class="text-gray-500 mb-6">快去挑選您喜歡的商品吧！</p>
-        <a href="/products" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+        <a href="/products" class="inline-block bg-gradient-to-r from-primary-500 to-primary-600 text-white px-6 py-3 rounded-xl hover:from-primary-600 hover:to-primary-700 transition-colors">
             <i class="fas fa-shopping-bag mr-2"></i>瀏覽商品
         </a>
     </div>
@@ -108,7 +108,7 @@ function favoritesApp() {
         },
         
         async loadFavorites() {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('access_token');
             if (!token) {
                 window.location.href = '/login';
                 return;
@@ -138,7 +138,7 @@ function favoritesApp() {
         },
         
         async removeFavorite(productId) {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('access_token');
             if (!token) return;
             
             if (!confirm('確定要取消收藏此商品嗎？')) return;

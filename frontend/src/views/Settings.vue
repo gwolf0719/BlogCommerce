@@ -1,744 +1,827 @@
 <template>
-  <div class="p-6">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">系統設定</h1>
-      <div class="space-x-2">
-        <a-button type="primary" @click="saveAllSettings" :loading="saving">
-          <template #icon><SaveOutlined /></template>
-          儲存所有設定
-        </a-button>
-        <a-button @click="refreshSettings">
-          <template #icon><ReloadOutlined /></template>
-          重新載入
-        </a-button>
+  <div class="admin-page">
+    <!-- 1. 頁面標題區 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">系統設定</h1>
+          <p class="page-description">管理系統配置和功能選項</p>
+        </div>
+        <div class="action-section">
+          <a-space>
+            <a-button type="primary" @click="saveAllSettings" :loading="saving">
+              <template #icon><SaveOutlined /></template>
+              儲存所有設定
+            </a-button>
+            <a-button @click="refreshSettings">
+              <template #icon><ReloadOutlined /></template>
+              重新載入
+            </a-button>
+          </a-space>
+        </div>
       </div>
     </div>
 
-    <a-row :gutter="16">
-      <!-- 左側選單 -->
-      <a-col :span="6">
-        <a-card>
-          <a-menu v-model:selected-keys="selectedKeys" mode="vertical" @click="handleMenuClick">
-            <a-menu-item key="general">
-              <template #icon><SettingOutlined /></template>
-              基本設定
-            </a-menu-item>
-            <a-menu-item key="features">
-              <template #icon><AppstoreOutlined /></template>
-              功能開關
-            </a-menu-item>
-            <a-menu-item key="email">
-              <template #icon><MailOutlined /></template>
-              郵件設定
-            </a-menu-item>
-            <a-menu-item key="analytics">
-              <template #icon><BarChartOutlined /></template>
-              數據分析
-            </a-menu-item>
-            <a-menu-item key="ai">
-              <template #icon><RobotOutlined /></template>
-              AI 設定
-            </a-menu-item>
-            <a-menu-item key="security">
-              <template #icon><SafetyOutlined /></template>
-              安全設定
-            </a-menu-item>
-            <a-menu-item key="payment">
-              <template #icon><CreditCardOutlined /></template>
-              金流設定
-            </a-menu-item>
-          </a-menu>
-        </a-card>
-      </a-col>
+    <!-- 2. 主要內容區 -->
+    <div class="content-section">
+      <a-row :gutter="24">
+        <!-- 左側選單 -->
+        <a-col :span="6">
+          <a-card>
+            <a-menu v-model:selected-keys="selectedKeys" mode="vertical" @click="handleMenuClick">
+              <a-menu-item key="general">
+                <template #icon><SettingOutlined /></template>
+                基本設定
+              </a-menu-item>
+              <a-menu-item key="features">
+                <template #icon><AppstoreOutlined /></template>
+                功能開關
+              </a-menu-item>
+              <a-menu-item key="email">
+                <template #icon><MailOutlined /></template>
+                郵件設定
+              </a-menu-item>
+              <a-menu-item key="analytics">
+                <template #icon><BarChartOutlined /></template>
+                數據分析
+              </a-menu-item>
+              <a-menu-item key="ai">
+                <template #icon><RobotOutlined /></template>
+                AI 設定
+              </a-menu-item>
+              <a-menu-item key="security">
+                <template #icon><SafetyOutlined /></template>
+                安全設定
+              </a-menu-item>
+              <a-menu-item key="payment">
+                <template #icon><CreditCardOutlined /></template>
+                金流設定
+              </a-menu-item>
+            </a-menu>
+          </a-card>
+        </a-col>
 
-      <!-- 右側內容 -->
-      <a-col :span="18">
-        <!-- 基本設定 -->
-        <a-card v-if="activeTab === 'general'" title="基本設定" :loading="loading">
-          <a-form layout="vertical">
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="網站名稱">
-                  <a-input v-model:value="settings.site_name" placeholder="輸入網站名稱" />
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="網站標語">
-                  <a-input v-model:value="settings.site_tagline" placeholder="輸入網站標語" />
-                </a-form-item>
-              </a-col>
-            </a-row>
-            
-            <a-form-item label="網站描述">
-              <a-textarea v-model:value="settings.site_description" :rows="3" placeholder="輸入網站描述" />
-            </a-form-item>
-
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="網站網址">
-                  <a-input v-model:value="settings.site_url" placeholder="https://example.com" />
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="管理員信箱">
-                  <a-input v-model:value="settings.admin_email" placeholder="admin@example.com" />
-                </a-form-item>
-              </a-col>
-            </a-row>
-
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="時區">
-                  <a-select v-model:value="settings.timezone" placeholder="選擇時區">
-                    <a-select-option value="Asia/Taipei">Asia/Taipei</a-select-option>
-                    <a-select-option value="UTC">UTC</a-select-option>
-                    <a-select-option value="America/New_York">America/New_York</a-select-option>
-                  </a-select>
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="語言">
-                  <a-select v-model:value="settings.language" placeholder="選擇語言">
-                    <a-select-option value="zh-TW">繁體中文</a-select-option>
-                    <a-select-option value="zh-CN">簡體中文</a-select-option>
-                    <a-select-option value="en">English</a-select-option>
-                  </a-select>
-                </a-form-item>
-              </a-col>
-            </a-row>
-
-            <a-form-item label="網站 Logo">
-              <upload-image v-model="settings.site_logo" />
-            </a-form-item>
-
-            <a-form-item label="網站圖示 (Favicon)">
-              <upload-image v-model="settings.site_favicon" />
-            </a-form-item>
-          </a-form>
-        </a-card>
-
-        <!-- 功能開關 -->
-        <a-card v-if="activeTab === 'features'" title="功能開關" :loading="loading">
-          <a-form layout="vertical">
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="部落格功能">
-                  <a-switch v-model:checked="settings.blog_enabled" checked-children="開啟" un-checked-children="關閉" />
-                  <div class="text-gray-500 text-sm mt-1">啟用/停用部落格功能</div>
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="商店功能">
-                  <a-switch v-model:checked="settings.shop_enabled" checked-children="開啟" un-checked-children="關閉" />
-                  <div class="text-gray-500 text-sm mt-1">啟用/停用電商功能</div>
-                </a-form-item>
-              </a-col>
-            </a-row>
-
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="會員註冊">
-                  <a-switch v-model:checked="settings.user_registration" checked-children="開啟" un-checked-children="關閉" />
-                  <div class="text-gray-500 text-sm mt-1">允許新用戶註冊</div>
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="評論功能">
-                  <a-switch v-model:checked="settings.comment_enabled" checked-children="開啟" un-checked-children="關閉" />
-                  <div class="text-gray-500 text-sm mt-1">啟用/停用評論功能</div>
-                </a-form-item>
-              </a-col>
-            </a-row>
-
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="搜尋功能">
-                  <a-switch v-model:checked="settings.search_enabled" checked-children="開啟" un-checked-children="關閉" />
-                  <div class="text-gray-500 text-sm mt-1">啟用/停用搜尋功能</div>
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="數據分析">
-                  <a-switch v-model:checked="settings.analytics_enabled" checked-children="開啟" un-checked-children="關閉" />
-                  <div class="text-gray-500 text-sm mt-1">啟用/停用訪客統計</div>
-                </a-form-item>
-              </a-col>
-            </a-row>
-
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="電子報">
-                  <a-switch v-model:checked="settings.newsletter_enabled" checked-children="開啟" un-checked-children="關閉" />
-                  <div class="text-gray-500 text-sm mt-1">啟用/停用電子報功能</div>
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="維護模式">
-                  <a-switch v-model:checked="settings.maintenance_mode" checked-children="開啟" un-checked-children="關閉" />
-                  <div class="text-gray-500 text-sm mt-1">網站維護模式</div>
-                </a-form-item>
-              </a-col>
-            </a-row>
-          </a-form>
-        </a-card>
-
-        <!-- 郵件設定 -->
-        <a-card v-if="activeTab === 'email'" title="郵件設定" :loading="loading">
-          <a-form layout="vertical">
-            <a-form-item label="郵件服務商">
-              <a-select v-model:value="settings.email_provider" placeholder="選擇郵件服務商">
-                <a-select-option value="smtp">SMTP</a-select-option>
-                <a-select-option value="mailgun">Mailgun</a-select-option>
-                <a-select-option value="sendgrid">SendGrid</a-select-option>
-                <a-select-option value="ses">Amazon SES</a-select-option>
-              </a-select>
-            </a-form-item>
-
-            <div v-if="settings.email_provider === 'smtp'">
-              <a-row :gutter="16">
+        <!-- 右側內容 -->
+        <a-col :span="18">
+          <!-- 基本設定 -->
+          <a-card v-if="activeTab === 'general'" title="基本設定" :loading="loading">
+            <a-form layout="vertical">
+              <a-row :gutter="24">
                 <a-col :span="12">
-                  <a-form-item label="SMTP 主機">
-                    <a-input v-model:value="settings.smtp_host" placeholder="smtp.gmail.com" />
+                  <a-form-item label="網站名稱">
+                    <a-input v-model:value="settings.site_name" placeholder="輸入網站名稱" />
                   </a-form-item>
                 </a-col>
                 <a-col :span="12">
-                  <a-form-item label="SMTP 端口">
-                    <a-input-number v-model:value="settings.smtp_port" :min="1" :max="65535" style="width: 100%" />
+                  <a-form-item label="網站標語">
+                    <a-input v-model:value="settings.site_tagline" placeholder="輸入網站標語" />
+                  </a-form-item>
+                </a-col>
+              </a-row>
+              
+              <a-form-item label="網站描述">
+                <a-textarea v-model:value="settings.site_description" :rows="3" placeholder="輸入網站描述" />
+              </a-form-item>
+
+              <a-row :gutter="24">
+                <a-col :span="12">
+                  <a-form-item label="網站網址">
+                    <a-input v-model:value="settings.site_url" placeholder="https://example.com" />
+                  </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                  <a-form-item label="管理員信箱">
+                    <a-input v-model:value="settings.admin_email" placeholder="admin@example.com" />
                   </a-form-item>
                 </a-col>
               </a-row>
 
-              <a-row :gutter="16">
+              <a-row :gutter="24">
                 <a-col :span="12">
-                  <a-form-item label="SMTP 用戶名">
-                    <a-input v-model:value="settings.smtp_username" placeholder="your-email@gmail.com" />
+                  <a-form-item label="時區">
+                    <a-select v-model:value="settings.timezone" placeholder="選擇時區">
+                      <a-select-option value="Asia/Taipei">Asia/Taipei</a-select-option>
+                      <a-select-option value="UTC">UTC</a-select-option>
+                      <a-select-option value="America/New_York">America/New_York</a-select-option>
+                    </a-select>
                   </a-form-item>
                 </a-col>
                 <a-col :span="12">
-                  <a-form-item label="SMTP 密碼">
-                    <a-input-password v-model:value="settings.smtp_password" placeholder="應用程式密碼" />
+                  <a-form-item label="語言">
+                    <a-select v-model:value="settings.language" placeholder="選擇語言">
+                      <a-select-option value="zh-TW">繁體中文</a-select-option>
+                      <a-select-option value="zh-CN">簡體中文</a-select-option>
+                      <a-select-option value="en">English</a-select-option>
+                    </a-select>
                   </a-form-item>
                 </a-col>
               </a-row>
 
-              <a-form-item label="加密方式">
-                <a-select v-model:value="settings.smtp_encryption">
-                  <a-select-option value="tls">TLS</a-select-option>
-                  <a-select-option value="ssl">SSL</a-select-option>
-                  <a-select-option value="none">無</a-select-option>
+              <a-form-item label="網站 Logo">
+                <upload-image v-model="settings.site_logo" />
+              </a-form-item>
+
+              <a-form-item label="網站圖示 (Favicon)">
+                <upload-image v-model="settings.site_favicon" />
+              </a-form-item>
+            </a-form>
+          </a-card>
+
+          <!-- 功能開關 -->
+          <a-card v-if="activeTab === 'features'" title="功能開關" :loading="loading">
+            <a-form layout="vertical">
+              <a-row :gutter="24">
+                <a-col :span="12">
+                  <a-form-item label="部落格功能">
+                    <a-switch v-model:checked="settings.blog_enabled" checked-children="開啟" un-checked-children="關閉" />
+                    <div class="text-gray-500 text-sm mt-1">啟用/停用部落格功能</div>
+                  </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                  <a-form-item label="商店功能">
+                    <a-switch v-model:checked="settings.shop_enabled" checked-children="開啟" un-checked-children="關閉" />
+                    <div class="text-gray-500 text-sm mt-1">啟用/停用電商功能</div>
+                  </a-form-item>
+                </a-col>
+              </a-row>
+
+              <a-row :gutter="24">
+                <a-col :span="12">
+                  <a-form-item label="會員註冊">
+                    <a-switch v-model:checked="settings.user_registration" checked-children="開啟" un-checked-children="關閉" />
+                    <div class="text-gray-500 text-sm mt-1">允許新用戶註冊</div>
+                  </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                  <a-form-item label="評論功能">
+                    <a-switch v-model:checked="settings.comment_enabled" checked-children="開啟" un-checked-children="關閉" />
+                    <div class="text-gray-500 text-sm mt-1">啟用/停用評論功能</div>
+                  </a-form-item>
+                </a-col>
+              </a-row>
+
+              <a-row :gutter="24">
+                <a-col :span="12">
+                  <a-form-item label="搜尋功能">
+                    <a-switch v-model:checked="settings.search_enabled" checked-children="開啟" un-checked-children="關閉" />
+                    <div class="text-gray-500 text-sm mt-1">啟用/停用搜尋功能</div>
+                  </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                  <a-form-item label="數據分析">
+                    <a-switch v-model:checked="settings.analytics_enabled" checked-children="開啟" un-checked-children="關閉" />
+                    <div class="text-gray-500 text-sm mt-1">啟用/停用訪客統計</div>
+                  </a-form-item>
+                </a-col>
+              </a-row>
+
+              <a-row :gutter="24">
+                <a-col :span="12">
+                  <a-form-item label="電子報">
+                    <a-switch v-model:checked="settings.newsletter_enabled" checked-children="開啟" un-checked-children="關閉" />
+                    <div class="text-gray-500 text-sm mt-1">啟用/停用電子報功能</div>
+                  </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                  <a-form-item label="維護模式">
+                    <a-switch v-model:checked="settings.maintenance_mode" checked-children="開啟" un-checked-children="關閉" />
+                    <div class="text-gray-500 text-sm mt-1">網站維護模式</div>
+                  </a-form-item>
+                </a-col>
+              </a-row>
+            </a-form>
+          </a-card>
+
+          <!-- 郵件設定 -->
+          <a-card v-if="activeTab === 'email'" title="郵件設定" :loading="loading">
+            <a-form layout="vertical">
+              <a-form-item label="郵件服務商">
+                <a-select v-model:value="settings.email_provider" placeholder="選擇郵件服務商">
+                  <a-select-option value="smtp">SMTP</a-select-option>
+                  <a-select-option value="mailgun">Mailgun</a-select-option>
+                  <a-select-option value="sendgrid">SendGrid</a-select-option>
+                  <a-select-option value="ses">Amazon SES</a-select-option>
                 </a-select>
               </a-form-item>
-            </div>
 
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="寄件者名稱">
-                  <a-input v-model:value="settings.email_from_name" placeholder="網站名稱" />
+              <div v-if="settings.email_provider === 'smtp'">
+                <a-row :gutter="24">
+                  <a-col :span="12">
+                    <a-form-item label="SMTP 主機">
+                      <a-input v-model:value="settings.smtp_host" placeholder="smtp.gmail.com" />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="12">
+                    <a-form-item label="SMTP 端口">
+                      <a-input-number v-model:value="settings.smtp_port" :min="1" :max="65535" style="width: 100%" />
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+
+                <a-row :gutter="24">
+                  <a-col :span="12">
+                    <a-form-item label="SMTP 用戶名">
+                      <a-input v-model:value="settings.smtp_username" placeholder="your-email@gmail.com" />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="12">
+                    <a-form-item label="SMTP 密碼">
+                      <a-input-password v-model:value="settings.smtp_password" placeholder="應用程式密碼" />
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+
+                <a-form-item label="加密方式">
+                  <a-select v-model:value="settings.smtp_encryption">
+                    <a-select-option value="tls">TLS</a-select-option>
+                    <a-select-option value="ssl">SSL</a-select-option>
+                    <a-select-option value="none">無</a-select-option>
+                  </a-select>
                 </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="寄件者信箱">
-                  <a-input v-model:value="settings.email_from_address" placeholder="noreply@example.com" />
-                </a-form-item>
-              </a-col>
-            </a-row>
+              </div>
 
-            <a-form-item>
-              <a-button @click="testEmail" :loading="testingEmail">測試郵件</a-button>
-            </a-form-item>
-          </a-form>
-        </a-card>
+              <a-row :gutter="24">
+                <a-col :span="12">
+                  <a-form-item label="寄件者名稱">
+                    <a-input v-model:value="settings.email_from_name" placeholder="網站名稱" />
+                  </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                  <a-form-item label="寄件者信箱">
+                    <a-input v-model:value="settings.email_from_address" placeholder="noreply@example.com" />
+                  </a-form-item>
+                </a-col>
+              </a-row>
 
-        <!-- 數據分析設定 -->
-        <a-card v-if="activeTab === 'analytics'" title="數據分析設定" :loading="loading">
-          <a-form layout="vertical">
-            <a-form-item label="Google Analytics">
-              <a-input v-model:value="settings.google_analytics_id" placeholder="G-XXXXXXXXXX" />
-              <div class="text-gray-500 text-sm mt-1">輸入 Google Analytics 追蹤 ID</div>
-            </a-form-item>
+              <a-form-item>
+                <a-button @click="testEmail" :loading="testingEmail">測試郵件</a-button>
+              </a-form-item>
+            </a-form>
+          </a-card>
 
-            <a-form-item label="Google Tag Manager">
-              <a-input v-model:value="settings.google_tag_manager_id" placeholder="GTM-XXXXXXX" />
-              <div class="text-gray-500 text-sm mt-1">輸入 Google Tag Manager 容器 ID</div>
-            </a-form-item>
+          <!-- 數據分析設定 -->
+          <a-card v-if="activeTab === 'analytics'" title="數據分析設定" :loading="loading">
+            <a-form layout="vertical">
+              <a-form-item label="Google Analytics">
+                <a-input v-model:value="settings.google_analytics_id" placeholder="G-XXXXXXXXXX" />
+                <div class="text-gray-500 text-sm mt-1">輸入 Google Analytics 追蹤 ID</div>
+              </a-form-item>
 
-            <a-form-item label="Facebook Pixel">
-              <a-input v-model:value="settings.facebook_pixel_id" placeholder="123456789012345" />
-              <div class="text-gray-500 text-sm mt-1">輸入 Facebook Pixel ID</div>
-            </a-form-item>
+              <a-form-item label="Google Tag Manager">
+                <a-input v-model:value="settings.google_tag_manager_id" placeholder="GTM-XXXXXXX" />
+                <div class="text-gray-500 text-sm mt-1">輸入 Google Tag Manager 容器 ID</div>
+              </a-form-item>
 
-            <a-form-item label="數據保留期限">
-              <a-select v-model:value="settings.analytics_retention_days">
-                <a-select-option :value="30">30 天</a-select-option>
-                <a-select-option :value="90">90 天</a-select-option>
-                <a-select-option :value="365">365 天</a-select-option>
-                <a-select-option :value="0">永久保留</a-select-option>
-              </a-select>
-              <div class="text-gray-500 text-sm mt-1">超過期限的數據將自動刪除</div>
-            </a-form-item>
-          </a-form>
-        </a-card>
+              <a-form-item label="Facebook Pixel">
+                <a-input v-model:value="settings.facebook_pixel_id" placeholder="123456789012345" />
+                <div class="text-gray-500 text-sm mt-1">輸入 Facebook Pixel ID</div>
+              </a-form-item>
 
-        <!-- AI 設定 -->
-        <a-card v-if="activeTab === 'ai'" title="AI 設定" :loading="loading">
-          <a-form layout="vertical">
-            <a-form-item label="OpenAI API Key">
-              <a-input-password v-model:value="settings.openai_api_key" placeholder="sk-..." />
-              <div class="text-gray-500 text-sm mt-1">用於 AI 內容生成功能</div>
-            </a-form-item>
+              <a-form-item label="數據保留期限">
+                <a-select v-model:value="settings.analytics_retention_days">
+                  <a-select-option :value="30">30 天</a-select-option>
+                  <a-select-option :value="90">90 天</a-select-option>
+                  <a-select-option :value="365">365 天</a-select-option>
+                  <a-select-option :value="0">永久保留</a-select-option>
+                </a-select>
+                <div class="text-gray-500 text-sm mt-1">超過期限的數據將自動刪除</div>
+              </a-form-item>
+            </a-form>
+          </a-card>
 
-            <a-form-item label="AI 模型">
-              <a-select v-model:value="settings.ai_model">
-                <a-select-option value="gpt-3.5-turbo">GPT-3.5 Turbo</a-select-option>
-                <a-select-option value="gpt-4">GPT-4</a-select-option>
-                <a-select-option value="gpt-4-turbo">GPT-4 Turbo</a-select-option>
-              </a-select>
-            </a-form-item>
+          <!-- AI 設定 -->
+          <a-card v-if="activeTab === 'ai'" title="AI 設定" :loading="loading">
+            <a-form layout="vertical">
+              <a-form-item label="OpenAI API Key">
+                <a-input-password v-model:value="settings.openai_api_key" placeholder="sk-..." />
+                <div class="text-gray-500 text-sm mt-1">用於 AI 內容生成功能</div>
+              </a-form-item>
 
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="AI 內容生成">
-                  <a-switch v-model:checked="settings.ai_content_generation" checked-children="開啟" un-checked-children="關閉" />
-                  <div class="text-gray-500 text-sm mt-1">啟用 AI 協助寫作</div>
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="AI 圖片生成">
-                  <a-switch v-model:checked="settings.ai_image_generation" checked-children="開啟" un-checked-children="關閉" />
-                  <div class="text-gray-500 text-sm mt-1">啟用 AI 圖片生成</div>
-                </a-form-item>
-              </a-col>
-            </a-row>
+              <a-form-item label="AI 模型">
+                <a-select v-model:value="settings.ai_model">
+                  <a-select-option value="gpt-3.5-turbo">GPT-3.5 Turbo</a-select-option>
+                  <a-select-option value="gpt-4">GPT-4</a-select-option>
+                  <a-select-option value="gpt-4-turbo">GPT-4 Turbo</a-select-option>
+                </a-select>
+              </a-form-item>
 
-            <a-form-item label="AI 提示語溫度">
-              <a-slider v-model:value="settings.ai_temperature" :min="0" :max="1" :step="0.1" />
-              <div class="text-gray-500 text-sm mt-1">控制 AI 回應的創造性 (0 = 保守, 1 = 創造)</div>
-            </a-form-item>
-          </a-form>
-        </a-card>
+              <a-row :gutter="24">
+                <a-col :span="12">
+                  <a-form-item label="AI 內容生成">
+                    <a-switch v-model:checked="settings.ai_content_generation" checked-children="開啟" un-checked-children="關閉" />
+                    <div class="text-gray-500 text-sm mt-1">啟用 AI 協助寫作</div>
+                  </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                  <a-form-item label="AI 圖片生成">
+                    <a-switch v-model:checked="settings.ai_image_generation" checked-children="開啟" un-checked-children="關閉" />
+                    <div class="text-gray-500 text-sm mt-1">啟用 AI 圖片生成</div>
+                  </a-form-item>
+                </a-col>
+              </a-row>
 
-        <!-- 安全設定 -->
-        <a-card v-if="activeTab === 'security'" title="安全設定" :loading="loading">
-          <a-form layout="vertical">
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="登入失敗限制">
-                  <a-input-number v-model:value="settings.login_attempts_limit" :min="1" :max="20" style="width: 100%" />
-                  <div class="text-gray-500 text-sm mt-1">連續登入失敗次數限制</div>
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="鎖定時間 (分鐘)">
-                  <a-input-number v-model:value="settings.lockout_duration" :min="1" :max="1440" style="width: 100%" />
-                  <div class="text-gray-500 text-sm mt-1">達到限制後的鎖定時間</div>
-                </a-form-item>
-              </a-col>
-            </a-row>
+              <a-form-item label="AI 提示語溫度">
+                <a-slider v-model:value="settings.ai_temperature" :min="0" :max="1" :step="0.1" />
+                <div class="text-gray-500 text-sm mt-1">控制 AI 回應的創造性 (0 = 保守, 1 = 創造)</div>
+              </a-form-item>
+            </a-form>
+          </a-card>
 
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="Session 超時 (小時)">
-                  <a-input-number v-model:value="settings.session_timeout" :min="1" :max="168" style="width: 100%" />
-                  <div class="text-gray-500 text-sm mt-1">用戶 Session 過期時間</div>
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="密碼最小長度">
-                  <a-input-number v-model:value="settings.password_min_length" :min="6" :max="50" style="width: 100%" />
-                  <div class="text-gray-500 text-sm mt-1">用戶密碼最小長度要求</div>
-                </a-form-item>
-              </a-col>
-            </a-row>
+          <!-- 安全設定 -->
+          <a-card v-if="activeTab === 'security'" title="安全設定" :loading="loading">
+            <a-form layout="vertical">
+              <a-row :gutter="24">
+                <a-col :span="12">
+                  <a-form-item label="登入失敗限制">
+                    <a-input-number v-model:value="settings.login_attempts_limit" :min="1" :max="20" style="width: 100%" />
+                    <div class="text-gray-500 text-sm mt-1">連續登入失敗次數限制</div>
+                  </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                  <a-form-item label="鎖定時間 (分鐘)">
+                    <a-input-number v-model:value="settings.lockout_duration" :min="1" :max="1440" style="width: 100%" />
+                    <div class="text-gray-500 text-sm mt-1">達到限制後的鎖定時間</div>
+                  </a-form-item>
+                </a-col>
+              </a-row>
 
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="強制 HTTPS">
-                  <a-switch v-model:checked="settings.force_https" checked-children="開啟" un-checked-children="關閉" />
-                  <div class="text-gray-500 text-sm mt-1">強制使用 HTTPS 連線</div>
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="二步驟驗證">
-                  <a-switch v-model:checked="settings.two_factor_auth" checked-children="開啟" un-checked-children="關閉" />
-                  <div class="text-gray-500 text-sm mt-1">啟用二步驟驗證</div>
-                </a-form-item>
-              </a-col>
-            </a-row>
+              <a-row :gutter="24">
+                <a-col :span="12">
+                  <a-form-item label="Session 超時 (小時)">
+                    <a-input-number v-model:value="settings.session_timeout" :min="1" :max="168" style="width: 100%" />
+                    <div class="text-gray-500 text-sm mt-1">用戶 Session 過期時間</div>
+                  </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                  <a-form-item label="密碼最小長度">
+                    <a-input-number v-model:value="settings.password_min_length" :min="6" :max="50" style="width: 100%" />
+                    <div class="text-gray-500 text-sm mt-1">用戶密碼最小長度要求</div>
+                  </a-form-item>
+                </a-col>
+              </a-row>
 
-            <a-form-item label="允許的檔案類型">
-              <a-select v-model:value="settings.allowed_file_types" mode="multiple" placeholder="選擇允許上傳的檔案類型">
-                <a-select-option value="jpg">JPG</a-select-option>
-                <a-select-option value="png">PNG</a-select-option>
-                <a-select-option value="gif">GIF</a-select-option>
-                <a-select-option value="webp">WebP</a-select-option>
-                <a-select-option value="pdf">PDF</a-select-option>
-                <a-select-option value="doc">DOC</a-select-option>
-                <a-select-option value="docx">DOCX</a-select-option>
-              </a-select>
-            </a-form-item>
+              <a-row :gutter="24">
+                <a-col :span="12">
+                  <a-form-item label="強制 HTTPS">
+                    <a-switch v-model:checked="settings.force_https" checked-children="開啟" un-checked-children="關閉" />
+                    <div class="text-gray-500 text-sm mt-1">強制使用 HTTPS 連線</div>
+                  </a-form-item>
+                </a-col>
+                <a-col :span="12">
+                  <a-form-item label="二步驟驗證">
+                    <a-switch v-model:checked="settings.two_factor_auth" checked-children="開啟" un-checked-children="關閉" />
+                    <div class="text-gray-500 text-sm mt-1">啟用二步驟驗證</div>
+                  </a-form-item>
+                </a-col>
+              </a-row>
 
-            <a-form-item label="檔案大小限制 (MB)">
-              <a-input-number v-model:value="settings.max_file_size" :min="1" :max="100" style="width: 100%" />
-              <div class="text-gray-500 text-sm mt-1">單一檔案上傳大小限制</div>
-            </a-form-item>
-          </a-form>
-        </a-card>
+              <a-form-item label="允許的檔案類型">
+                <a-select v-model:value="settings.allowed_file_types" mode="multiple" placeholder="選擇允許上傳的檔案類型">
+                  <a-select-option value="jpg">JPG</a-select-option>
+                  <a-select-option value="png">PNG</a-select-option>
+                  <a-select-option value="gif">GIF</a-select-option>
+                  <a-select-option value="webp">WebP</a-select-option>
+                  <a-select-option value="pdf">PDF</a-select-option>
+                  <a-select-option value="doc">DOC</a-select-option>
+                  <a-select-option value="docx">DOCX</a-select-option>
+                </a-select>
+              </a-form-item>
 
-        <!-- 金流設定 -->
-        <div v-if="activeTab === 'payment'" class="payment-settings">
-          <!-- 金流方式選擇區塊 -->
-          <a-card class="payment-methods-card" title="金流方式設定">
-            <template #extra>
-              <a-tag color="blue">
-                <CreditCardOutlined />
-                {{ payment.enabledMethods.length }} 種已啟用
-              </a-tag>
-            </template>
-            
-            <div class="payment-methods-grid">
-              <div 
-                v-for="method in paymentMethods" 
-                :key="method.key"
-                class="payment-method-card"
-                :class="{ 'active': payment.enabledMethods.includes(method.key) }"
-                @click="togglePaymentMethod(method.key)"
-              >
-                <div class="method-icon">
-                  <component :is="method.icon" :style="{ color: method.color }" />
-                </div>
-                <div class="method-info">
-                  <h4>{{ method.name }}</h4>
-                  <p>{{ method.description }}</p>
-                </div>
-                <div class="method-toggle">
-                  <a-switch 
-                    :checked="payment.enabledMethods.includes(method.key)"
-                    @change="(checked) => togglePaymentMethod(method.key, checked)"
-                    :checked-children="'開'"
-                    :un-checked-children="'關'"
-                  />
+              <a-form-item label="檔案大小限制 (MB)">
+                <a-input-number v-model:value="settings.max_file_size" :min="1" :max="100" style="width: 100%" />
+                <div class="text-gray-500 text-sm mt-1">單一檔案上傳大小限制</div>
+              </a-form-item>
+            </a-form>
+          </a-card>
+
+          <!-- 金流設定 -->
+          <div v-if="activeTab === 'payment'" class="payment-settings">
+            <!-- 運費設定區塊 -->
+            <a-card class="shipping-settings-card" title="運費設定">
+              <template #extra>
+                <a-tag color="orange">
+                  <CarOutlined />
+                  運費配置
+                </a-tag>
+              </template>
+              
+              <a-form layout="vertical">
+                <a-row :gutter="24">
+                  <a-col :span="8">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <MoneyCollectOutlined />
+                          運費金額 (NT$)
+                        </span>
+                      </template>
+                      <a-input-number 
+                        v-model:value="shippingSettings.fee" 
+                        :min="0"
+                        :precision="0"
+                        style="width: 100%"
+                        placeholder="運費金額"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="8">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <GiftOutlined />
+                          免運門檻 (NT$)
+                        </span>
+                      </template>
+                      <a-input-number 
+                        v-model:value="shippingSettings.freeThreshold" 
+                        :min="0"
+                        :precision="0"
+                        style="width: 100%"
+                        placeholder="免運門檻"
+                        size="large"
+                      />
+                    </a-form-item>
+                  </a-col>
+                  <a-col :span="8">
+                    <a-form-item>
+                      <template #label>
+                        <span class="form-label">
+                          <SettingOutlined />
+                          操作
+                        </span>
+                      </template>
+                      <a-button type="primary" @click="saveShippingSettings" :loading="savingShipping" size="large">
+                        儲存運費設定
+                      </a-button>
+                    </a-form-item>
+                  </a-col>
+                </a-row>
+                
+                <a-alert
+                  message="運費設定說明"
+                  description="設定基本運費金額和免運門檻。當消費者購買金額達到免運門檻時，將自動享受免運費優惠。"
+                  type="info"
+                  show-icon
+                  style="margin-top: 16px;"
+                />
+              </a-form>
+            </a-card>
+
+            <!-- 金流方式選擇區塊 -->
+            <a-card class="payment-methods-card" title="金流方式設定">
+              <template #extra>
+                <a-tag color="blue">
+                  <CreditCardOutlined />
+                  {{ payment.enabledMethods.length }} 種已啟用
+                </a-tag>
+              </template>
+              
+              <div class="payment-methods-grid">
+                <div 
+                  v-for="method in paymentMethods" 
+                  :key="method.key"
+                  class="payment-method-card"
+                  :class="{ 'active': payment.enabledMethods.includes(method.key) }"
+                  @click="togglePaymentMethod(method.key)"
+                >
+                  <div class="method-icon">
+                    <component :is="method.icon" :style="{ color: method.color }" />
+                  </div>
+                  <div class="method-info">
+                    <h4>{{ method.name }}</h4>
+                    <p>{{ method.description }}</p>
+                  </div>
+                  <div class="method-toggle">
+                    <a-switch 
+                      :checked="payment.enabledMethods.includes(method.key)"
+                      @change="(checked) => togglePaymentMethod(method.key, checked)"
+                      :checked-children="'開'"
+                      :un-checked-children="'關'"
+                    />
+                  </div>
                 </div>
               </div>
+            </a-card>
+
+            <!-- 金流設定詳細區塊 -->
+            <div class="payment-configs">
+              <!-- 轉帳設定 -->
+              <a-card 
+                v-if="payment.enabledMethods.includes('transfer')" 
+                class="config-card transfer-config"
+                :loading="loading"
+              >
+                <template #title>
+                  <div class="config-title">
+                    <BankOutlined style="color: #1890ff; margin-right: 8px;" />
+                    轉帳設定
+                    <a-tag color="blue" size="small" style="margin-left: 8px;">銀行轉帳</a-tag>
+                  </div>
+                </template>
+                
+                <a-form layout="vertical">
+                  <a-row :gutter="24">
+                    <a-col :span="8">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <BankOutlined />
+                            銀行名稱
+                          </span>
+                        </template>
+                        <a-input 
+                          v-model:value="payment.transfer.bank" 
+                          placeholder="例如：台灣銀行、中國信託"
+                          size="large"
+                        />
+                      </a-form-item>
+                    </a-col>
+                    <a-col :span="8">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <NumberOutlined />
+                            帳號
+                          </span>
+                        </template>
+                        <a-input 
+                          v-model:value="payment.transfer.account" 
+                          placeholder="請輸入完整帳號"
+                          size="large"
+                        />
+                      </a-form-item>
+                    </a-col>
+                    <a-col :span="8">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <UserOutlined />
+                            戶名
+                          </span>
+                        </template>
+                        <a-input 
+                          v-model:value="payment.transfer.name" 
+                          placeholder="請輸入戶名"
+                          size="large"
+                        />
+                      </a-form-item>
+                    </a-col>
+                  </a-row>
+                </a-form>
+              </a-card>
+
+              <!-- Line Pay 設定 -->
+              <a-card 
+                v-if="payment.enabledMethods.includes('linepay')" 
+                class="config-card linepay-config"
+                :loading="loading"
+              >
+                <template #title>
+                  <div class="config-title">
+                    <MessageOutlined style="color: #00c300; margin-right: 8px;" />
+                    Line Pay 設定
+                    <a-tag color="green" size="small" style="margin-left: 8px;">即時付款</a-tag>
+                  </div>
+                </template>
+                
+                <a-form layout="vertical">
+                  <a-row :gutter="24">
+                    <a-col :span="8">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <KeyOutlined />
+                            Channel ID
+                          </span>
+                        </template>
+                        <a-input 
+                          v-model:value="payment.linepay.channel_id" 
+                          placeholder="請輸入 Line Pay Channel ID"
+                          size="large"
+                        />
+                      </a-form-item>
+                    </a-col>
+                    <a-col :span="8">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <SafetyCertificateOutlined />
+                            Channel Secret
+                          </span>
+                        </template>
+                        <a-input-password 
+                          v-model:value="payment.linepay.channel_secret" 
+                          placeholder="請輸入 Channel Secret"
+                          size="large"
+                        />
+                      </a-form-item>
+                    </a-col>
+                    <a-col :span="8">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <ShopOutlined />
+                            商店名稱
+                          </span>
+                        </template>
+                        <a-input 
+                          v-model:value="payment.linepay.store_name" 
+                          placeholder="顯示在付款頁面的商店名稱"
+                          size="large"
+                        />
+                      </a-form-item>
+                    </a-col>
+                  </a-row>
+                </a-form>
+              </a-card>
+
+              <!-- 綠界設定 -->
+              <a-card 
+                v-if="payment.enabledMethods.includes('ecpay')" 
+                class="config-card ecpay-config"
+                :loading="loading"
+              >
+                <template #title>
+                  <div class="config-title">
+                    <CreditCardOutlined style="color: #52c41a; margin-right: 8px;" />
+                    綠界全方位金流設定
+                    <a-tag color="green" size="small" style="margin-left: 8px;">多元付款</a-tag>
+                  </div>
+                </template>
+                
+                <a-form layout="vertical">
+                  <a-row :gutter="24">
+                    <a-col :span="12">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <IdcardOutlined />
+                            Merchant ID
+                          </span>
+                        </template>
+                        <a-input 
+                          v-model:value="payment.ecpay.merchant_id" 
+                          placeholder="請輸入綠界商店代號"
+                          size="large"
+                        />
+                      </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <LinkOutlined />
+                            API URL
+                          </span>
+                        </template>
+                        <a-input 
+                          v-model:value="payment.ecpay.api_url" 
+                          placeholder="https://payment.ecpay.com.tw/..."
+                          size="large"
+                        />
+                      </a-form-item>
+                    </a-col>
+                  </a-row>
+                  <a-row :gutter="24">
+                    <a-col :span="12">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <SafetyCertificateOutlined />
+                            HashKey
+                          </span>
+                        </template>
+                        <a-input-password 
+                          v-model:value="payment.ecpay.hash_key" 
+                          placeholder="請輸入 HashKey"
+                          size="large"
+                        />
+                      </a-form-item>
+                    </a-col>
+                    <a-col :span="12">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <SafetyCertificateOutlined />
+                            HashIV
+                          </span>
+                        </template>
+                        <a-input-password 
+                          v-model:value="payment.ecpay.hash_iv" 
+                          placeholder="請輸入 HashIV"
+                          size="large"
+                        />
+                      </a-form-item>
+                    </a-col>
+                  </a-row>
+                </a-form>
+              </a-card>
+
+              <!-- PayPal 設定 -->
+              <a-card 
+                v-if="payment.enabledMethods.includes('paypal')" 
+                class="config-card paypal-config"
+                :loading="loading"
+              >
+                <template #title>
+                  <div class="config-title">
+                    <GlobalOutlined style="color: #0070ba; margin-right: 8px;" />
+                    PayPal 設定
+                    <a-tag color="blue" size="small" style="margin-left: 8px;">國際付款</a-tag>
+                  </div>
+                </template>
+                
+                <a-form layout="vertical">
+                  <a-row :gutter="24">
+                    <a-col :span="8">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <KeyOutlined />
+                            Client ID
+                          </span>
+                        </template>
+                        <a-input 
+                          v-model:value="payment.paypal.client_id" 
+                          placeholder="請輸入 PayPal Client ID"
+                          size="large"
+                        />
+                      </a-form-item>
+                    </a-col>
+                    <a-col :span="8">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <SafetyCertificateOutlined />
+                            Client Secret
+                          </span>
+                        </template>
+                        <a-input-password 
+                          v-model:value="payment.paypal.client_secret" 
+                          placeholder="請輸入 PayPal Client Secret"
+                          size="large"
+                        />
+                      </a-form-item>
+                    </a-col>
+                    <a-col :span="8">
+                      <a-form-item>
+                        <template #label>
+                          <span class="form-label">
+                            <EnvironmentOutlined />
+                            環境設定
+                          </span>
+                        </template>
+                        <a-select v-model:value="payment.paypal.environment" size="large">
+                          <a-select-option value="sandbox">
+                            <ExperimentOutlined /> Sandbox (測試環境)
+                          </a-select-option>
+                          <a-select-option value="live">
+                            <RocketOutlined /> Live (正式環境)
+                          </a-select-option>
+                        </a-select>
+                      </a-form-item>
+                    </a-col>
+                  </a-row>
+                </a-form>
+              </a-card>
             </div>
-          </a-card>
 
-          <!-- 金流設定詳細區塊 -->
-          <div class="payment-configs">
-            <!-- 轉帳設定 -->
-            <a-card 
-              v-if="payment.enabledMethods.includes('transfer')" 
-              class="config-card transfer-config"
-              :loading="loading"
-            >
-              <template #title>
-                <div class="config-title">
-                  <BankOutlined style="color: #1890ff; margin-right: 8px;" />
-                  轉帳設定
-                  <a-tag color="blue" size="small" style="margin-left: 8px;">銀行轉帳</a-tag>
-                </div>
-              </template>
-              
-              <a-form layout="vertical">
-                <a-row :gutter="16">
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <BankOutlined />
-                          銀行名稱
-                        </span>
-                      </template>
-                      <a-input 
-                        v-model:value="payment.transfer.bank" 
-                        placeholder="例如：台灣銀行、中國信託"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <NumberOutlined />
-                          帳號
-                        </span>
-                      </template>
-                      <a-input 
-                        v-model:value="payment.transfer.account" 
-                        placeholder="請輸入完整帳號"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <UserOutlined />
-                          戶名
-                        </span>
-                      </template>
-                      <a-input 
-                        v-model:value="payment.transfer.name" 
-                        placeholder="請輸入戶名"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                </a-row>
-              </a-form>
-            </a-card>
-
-            <!-- Line Pay 設定 -->
-            <a-card 
-              v-if="payment.enabledMethods.includes('linepay')" 
-              class="config-card linepay-config"
-              :loading="loading"
-            >
-              <template #title>
-                <div class="config-title">
-                  <MessageOutlined style="color: #00c300; margin-right: 8px;" />
-                  Line Pay 設定
-                  <a-tag color="green" size="small" style="margin-left: 8px;">即時付款</a-tag>
-                </div>
-              </template>
-              
-              <a-form layout="vertical">
-                <a-row :gutter="16">
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <KeyOutlined />
-                          Channel ID
-                        </span>
-                      </template>
-                      <a-input 
-                        v-model:value="payment.linepay.channel_id" 
-                        placeholder="請輸入 Line Pay Channel ID"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <SafetyCertificateOutlined />
-                          Channel Secret
-                        </span>
-                      </template>
-                      <a-input-password 
-                        v-model:value="payment.linepay.channel_secret" 
-                        placeholder="請輸入 Channel Secret"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <ShopOutlined />
-                          商店名稱
-                        </span>
-                      </template>
-                      <a-input 
-                        v-model:value="payment.linepay.store_name" 
-                        placeholder="顯示在付款頁面的商店名稱"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                </a-row>
-              </a-form>
-            </a-card>
-
-            <!-- 綠界設定 -->
-            <a-card 
-              v-if="payment.enabledMethods.includes('ecpay')" 
-              class="config-card ecpay-config"
-              :loading="loading"
-            >
-              <template #title>
-                <div class="config-title">
-                  <CreditCardOutlined style="color: #52c41a; margin-right: 8px;" />
-                  綠界全方位金流設定
-                  <a-tag color="green" size="small" style="margin-left: 8px;">多元付款</a-tag>
-                </div>
-              </template>
-              
-              <a-form layout="vertical">
-                <a-row :gutter="16">
-                  <a-col :span="12">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <IdcardOutlined />
-                          Merchant ID
-                        </span>
-                      </template>
-                      <a-input 
-                        v-model:value="payment.ecpay.merchant_id" 
-                        placeholder="請輸入綠界商店代號"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :span="12">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <LinkOutlined />
-                          API URL
-                        </span>
-                      </template>
-                      <a-input 
-                        v-model:value="payment.ecpay.api_url" 
-                        placeholder="https://payment.ecpay.com.tw/..."
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                </a-row>
-                <a-row :gutter="16">
-                  <a-col :span="12">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <SafetyCertificateOutlined />
-                          HashKey
-                        </span>
-                      </template>
-                      <a-input-password 
-                        v-model:value="payment.ecpay.hash_key" 
-                        placeholder="請輸入 HashKey"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :span="12">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <SafetyCertificateOutlined />
-                          HashIV
-                        </span>
-                      </template>
-                      <a-input-password 
-                        v-model:value="payment.ecpay.hash_iv" 
-                        placeholder="請輸入 HashIV"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                </a-row>
-              </a-form>
-            </a-card>
-
-            <!-- PayPal 設定 -->
-            <a-card 
-              v-if="payment.enabledMethods.includes('paypal')" 
-              class="config-card paypal-config"
-              :loading="loading"
-            >
-              <template #title>
-                <div class="config-title">
-                  <GlobalOutlined style="color: #0070ba; margin-right: 8px;" />
-                  PayPal 設定
-                  <a-tag color="blue" size="small" style="margin-left: 8px;">國際付款</a-tag>
-                </div>
-              </template>
-              
-              <a-form layout="vertical">
-                <a-row :gutter="16">
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <KeyOutlined />
-                          Client ID
-                        </span>
-                      </template>
-                      <a-input 
-                        v-model:value="payment.paypal.client_id" 
-                        placeholder="請輸入 PayPal Client ID"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <SafetyCertificateOutlined />
-                          Client Secret
-                        </span>
-                      </template>
-                      <a-input-password 
-                        v-model:value="payment.paypal.client_secret" 
-                        placeholder="請輸入 PayPal Client Secret"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <EnvironmentOutlined />
-                          環境設定
-                        </span>
-                      </template>
-                      <a-select v-model:value="payment.paypal.environment" size="large">
-                        <a-select-option value="sandbox">
-                          <ExperimentOutlined /> Sandbox (測試環境)
-                        </a-select-option>
-                        <a-select-option value="live">
-                          <RocketOutlined /> Live (正式環境)
-                        </a-select-option>
-                      </a-select>
-                    </a-form-item>
-                  </a-col>
-                </a-row>
-              </a-form>
+            <!-- 操作按鈕區 -->
+            <a-card class="action-card">
+              <div class="action-buttons">
+                <a-button 
+                  type="primary" 
+                  size="large"
+                  @click="savePaymentSettings" 
+                  :loading="savingPayment"
+                  class="save-btn"
+                >
+                  <SaveOutlined />
+                  儲存金流設定
+                </a-button>
+                <a-button 
+                  size="large"
+                  @click="loadPaymentSettings" 
+                  class="reload-btn"
+                >
+                  <ReloadOutlined />
+                  重新載入
+                </a-button>
+                <a-button 
+                  size="large"
+                  @click="testPaymentConnection"
+                  class="test-btn"
+                >
+                  <ExperimentOutlined />
+                  測試連線
+                </a-button>
+              </div>
             </a-card>
           </div>
-
-          <!-- 操作按鈕區 -->
-          <a-card class="action-card">
-            <div class="action-buttons">
-              <a-button 
-                type="primary" 
-                size="large"
-                @click="savePaymentSettings" 
-                :loading="savingPayment"
-                class="save-btn"
-              >
-                <SaveOutlined />
-                儲存金流設定
-              </a-button>
-              <a-button 
-                size="large"
-                @click="loadPaymentSettings" 
-                class="reload-btn"
-              >
-                <ReloadOutlined />
-                重新載入
-              </a-button>
-              <a-button 
-                size="large"
-                @click="testPaymentConnection"
-                class="test-btn"
-              >
-                <ExperimentOutlined />
-                測試連線
-              </a-button>
-            </div>
-          </a-card>
-        </div>
-      </a-col>
-    </a-row>
+        </a-col>
+      </a-row>
+    </div>
   </div>
 </template>
 
@@ -767,7 +850,10 @@ import {
   UserOutlined,
   EnvironmentOutlined,
   ExperimentOutlined,
-  RocketOutlined
+  RocketOutlined,
+  CarOutlined,
+  MoneyCollectOutlined,
+  GiftOutlined
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '../stores/auth'
 import UploadImage from '../components/UploadImage.vue'
@@ -845,6 +931,13 @@ const payment = reactive({
   paypal: { client_id: '', client_secret: '', environment: 'sandbox' }
 })
 const savingPayment = ref(false)
+
+// 運費設定
+const shippingSettings = reactive({
+  fee: 60,
+  freeThreshold: 1000
+})
+const savingShipping = ref(false)
 
 // 金流方式配置
 const paymentMethods = [
@@ -1004,43 +1097,42 @@ const testPaymentConnection = async () => {
 const loadPaymentSettings = async () => {
   loading.value = true
   try {
-    // 取得四種金流設定
-    const [transferRes, linepayRes, ecpayRes, paypalRes] = await Promise.all([
-      fetch('/api/settings/payment_transfer', { headers: { 'Authorization': `Bearer ${authStore.token}` } }),
-      fetch('/api/settings/payment_linepay', { headers: { 'Authorization': `Bearer ${authStore.token}` } }),
-      fetch('/api/settings/payment_ecpay', { headers: { 'Authorization': `Bearer ${authStore.token}` } }),
-      fetch('/api/settings/payment_paypal', { headers: { 'Authorization': `Bearer ${authStore.token}` } })
-    ])
-    payment.enabledMethods = []
-    if (transferRes.ok) {
-      const t = await transferRes.json()
-      if (t.value) {
-        payment.transfer = t.value
+    // 使用統一的金流設定端點
+    const response = await fetch('/api/settings/payment/settings', {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+    
+    if (response.ok) {
+      const settings = await response.json()
+      payment.enabledMethods = []
+      
+      // 檢查轉帳設定
+      if (settings.transfer && settings.transfer.enabled) {
         payment.enabledMethods.push('transfer')
+        payment.transfer = { bank: '台灣銀行', account: '123-456-789', name: 'BlogCommerce' }
       }
-    }
-    if (linepayRes.ok) {
-      const l = await linepayRes.json()
-      if (l.value) {
-        payment.linepay = l.value
+      
+      // 檢查 LinePay 設定
+      if (settings.linepay && settings.linepay.enabled) {
         payment.enabledMethods.push('linepay')
+        payment.linepay = { channel_id: '', channel_secret: '', store_name: '' }
       }
-    }
-    if (ecpayRes.ok) {
-      const e = await ecpayRes.json()
-      if (e.value) {
-        payment.ecpay = e.value
+      
+      // 檢查綠界設定
+      if (settings.ecpay && settings.ecpay.enabled) {
         payment.enabledMethods.push('ecpay')
+        payment.ecpay = { merchant_id: '', api_url: '', hash_key: '', hash_iv: '' }
       }
-    }
-    if (paypalRes.ok) {
-      const p = await paypalRes.json()
-      if (p.value) {
-        payment.paypal = p.value
+      
+      // 檢查 PayPal 設定
+      if (settings.paypal && settings.paypal.enabled) {
         payment.enabledMethods.push('paypal')
+        payment.paypal = { client_id: '', client_secret: '', environment: 'sandbox' }
       }
     }
-  } catch (e) {
+    
+  } catch (error) {
+    console.error('載入金流設定失敗:', error)
     message.error('載入金流設定失敗')
   } finally {
     loading.value = false
@@ -1050,66 +1142,117 @@ const loadPaymentSettings = async () => {
 const savePaymentSettings = async () => {
   savingPayment.value = true
   try {
-    // 依啟用狀態分別儲存
-    const reqs = []
-    if (payment.enabledMethods.includes('transfer')) {
-      reqs.push(fetch('/api/settings/payment_transfer', {
+    // 使用正確的API端點更新金流啟用狀態
+    const reqs = [
+      fetch('/api/settings/payment_transfer_enabled', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ value: payment.transfer, category: 'payment', data_type: 'json' })
-      }))
-    } else {
-      reqs.push(fetch('/api/settings/payment_transfer', {
+        body: JSON.stringify({ 
+          value: payment.enabledMethods.includes('transfer') ? 'true' : 'false', 
+          category: 'payment', 
+          data_type: 'boolean' 
+        })
+      }),
+      fetch('/api/settings/payment_linepay_enabled', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ value: null, category: 'payment', data_type: 'json' })
-      }))
-    }
-    if (payment.enabledMethods.includes('linepay')) {
-      reqs.push(fetch('/api/settings/payment_linepay', {
+        body: JSON.stringify({ 
+          value: payment.enabledMethods.includes('linepay') ? 'true' : 'false', 
+          category: 'payment', 
+          data_type: 'boolean' 
+        })
+      }),
+      fetch('/api/settings/payment_ecpay_enabled', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ value: payment.linepay, category: 'payment', data_type: 'json' })
-      }))
-    } else {
-      reqs.push(fetch('/api/settings/payment_linepay', {
+        body: JSON.stringify({ 
+          value: payment.enabledMethods.includes('ecpay') ? 'true' : 'false', 
+          category: 'payment', 
+          data_type: 'boolean' 
+        })
+      }),
+      fetch('/api/settings/payment_paypal_enabled', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ value: null, category: 'payment', data_type: 'json' })
-      }))
-    }
-    if (payment.enabledMethods.includes('ecpay')) {
-      reqs.push(fetch('/api/settings/payment_ecpay', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ value: payment.ecpay, category: 'payment', data_type: 'json' })
-      }))
-    } else {
-      reqs.push(fetch('/api/settings/payment_ecpay', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ value: null, category: 'payment', data_type: 'json' })
-      }))
-    }
-    if (payment.enabledMethods.includes('paypal')) {
-      reqs.push(fetch('/api/settings/payment_paypal', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify(payment.paypal)
-      }))
-    } else {
-      reqs.push(fetch('/api/settings/payment_paypal', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify(null)
-      }))
-    }
+        body: JSON.stringify({ 
+          value: payment.enabledMethods.includes('paypal') ? 'true' : 'false', 
+          category: 'payment', 
+          data_type: 'boolean' 
+        })
+      })
+    ]
+    
     await Promise.all(reqs)
     message.success('金流設定已儲存')
-  } catch (e) {
+  } catch (error) {
+    console.error('儲存金流設定失敗:', error)
     message.error('儲存金流設定失敗')
   } finally {
     savingPayment.value = false
+  }
+}
+
+// 運費設定相關方法
+const loadShippingSettings = async () => {
+  try {
+    const feeResponse = await fetch('/api/settings/shipping_fee', {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+    const thresholdResponse = await fetch('/api/settings/free_shipping_threshold', {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+
+    if (feeResponse.ok) {
+      const feeData = await feeResponse.json()
+      shippingSettings.fee = feeData.value || 60
+    }
+
+    if (thresholdResponse.ok) {
+      const thresholdData = await thresholdResponse.json()
+      shippingSettings.freeThreshold = thresholdData.value || 1000
+    }
+  } catch (error) {
+    message.error('載入運費設定失敗')
+  }
+}
+
+const saveShippingSettings = async () => {
+  savingShipping.value = true
+  try {
+    // 同時更新運費和免運門檻設定
+    const reqs = [
+      fetch('/api/settings/shipping_fee', {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${authStore.token}` 
+        },
+        body: JSON.stringify({ 
+          value: shippingSettings.fee, 
+          category: 'shipping', 
+          data_type: 'integer' 
+        })
+      }),
+      fetch('/api/settings/free_shipping_threshold', {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${authStore.token}` 
+        },
+        body: JSON.stringify({ 
+          value: shippingSettings.freeThreshold, 
+          category: 'shipping', 
+          data_type: 'integer' 
+        })
+      })
+    ]
+
+    await Promise.all(reqs)
+    message.success('運費設定已儲存')
+  } catch (error) {
+    message.error('儲存運費設定失敗')
+  } finally {
+    savingShipping.value = false
   }
 }
 
@@ -1117,6 +1260,7 @@ const savePaymentSettings = async () => {
 onMounted(() => {
   loadSettings()
   loadPaymentSettings()
+  loadShippingSettings()
 })
 </script>
 
@@ -1170,22 +1314,6 @@ onMounted(() => {
   border-color: #1890ff;
   background: linear-gradient(135deg, #e6f7ff 0%, #f0f8ff 100%);
   box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
-}
-
-.payment-method-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #1890ff, #52c41a);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.payment-method-card.active::before {
-  opacity: 1;
 }
 
 .method-icon {

@@ -81,7 +81,7 @@ def get_current_active_user(current_user: User = Depends(get_current_user)):
 
 def get_current_admin_user(current_user: User = Depends(get_current_active_user)):
     """取得目前的管理員使用者"""
-    if current_user.role.value != "admin":
+    if not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="權限不足"

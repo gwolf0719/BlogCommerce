@@ -32,16 +32,17 @@ class Product(BaseModel, SlugMixin):
     # 關聯
     order_items = relationship("OrderItem", back_populates="product")
     favorited_by = relationship("Favorite", back_populates="product", cascade="all, delete-orphan")
+    coupons = relationship("Coupon", back_populates="product", cascade="all, delete-orphan")
     
     @property
     def current_price(self):
         """取得目前價格（特價優先）"""
-        return self.sale_price if self.sale_price else self.price
+        return self.sale_price if self.sale_price else self.price  # type: ignore
     
     @property
     def is_on_sale(self):
         """是否在特價中"""
-        return self.sale_price is not None and self.sale_price < self.price
+        return self.sale_price is not None and self.sale_price < self.price  # type: ignore
     
     def __repr__(self):
         return f"<Product {self.name}>" 

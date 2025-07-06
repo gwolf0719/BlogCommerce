@@ -360,24 +360,37 @@
                     // 檢查 localStorage 中的 token
                     const token = localStorage.getItem('access_token');
                     if (token) {
-                        try {
-                            const response = await fetch('/api/auth/me', {
-                                headers: {
-                                    'Authorization': `Bearer ${token}`
-                                }
-                            });
-                            
-                            if (response.ok) {
-                                const user = await response.json();
-                                this.isLoggedIn = true;
-                                this.userName = user.username;
-                            } else {
-                                // Token 無效，清除
-                                localStorage.removeItem('access_token');
-                            }
-                        } catch (error) {
-                            console.error('驗證失敗:', error);
+                        // 檢查 token 是否過期
+                        if (this.isTokenExpired(token)) {
+                            console.log('Token 已過期，清除登入狀態');
                             localStorage.removeItem('access_token');
+                            this.isLoggedIn = false;
+                            this.userName = '';
+                        } else {
+                            try {
+                                const response = await fetch('/api/auth/me', {
+                                    headers: {
+                                        'Authorization': `Bearer ${token}`
+                                    }
+                                });
+                                
+                                if (response.ok) {
+                                    const user = await response.json();
+                                    this.isLoggedIn = true;
+                                    this.userName = user.username;
+                                } else if (response.status === 401) {
+                                    // Token 無效，清除
+                                    console.log('Token 無效，清除登入狀態');
+                                    localStorage.removeItem('access_token');
+                                    this.isLoggedIn = false;
+                                    this.userName = '';
+                                }
+                            } catch (error) {
+                                console.error('驗證失敗:', error);
+                                localStorage.removeItem('access_token');
+                                this.isLoggedIn = false;
+                                this.userName = '';
+                            }
                         }
                     }
                     
@@ -405,6 +418,22 @@
                     if (cartBadge) {
                         cartBadge.textContent = this.cartCount;
                         cartBadge.style.display = this.cartCount > 0 ? 'flex' : 'none';
+                    }
+                },
+                
+                // 檢查 token 是否過期
+                isTokenExpired(token) {
+                    try {
+                        // JWT token 結構：header.payload.signature
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        const exp = payload.exp * 1000; // 轉換為毫秒
+                        const now = Date.now();
+                        
+                        // 提前 5 分鐘判斷為過期，給予緩衝時間
+                        return exp - now < 5 * 60 * 1000;
+                    } catch (error) {
+                        console.error('解析 token 失敗:', error);
+                        return true; // 解析失敗視為過期
                     }
                 },
                 
@@ -500,6 +529,62 @@
                 }
             }
         });
+        
+        // 全域 Token 管理工具
+        window.TokenManager = {
+            // 取得 token
+            getToken() {
+                return localStorage.getItem('access_token');
+            },
+            
+            // 檢查 token 是否存在且有效
+            isTokenValid() {
+                const token = this.getToken();
+                if (!token) return false;
+                
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    const exp = payload.exp * 1000;
+                    const now = Date.now();
+                    return exp > now + 5 * 60 * 1000; // 提前 5 分鐘判斷
+                } catch (error) {
+                    return false;
+                }
+            },
+            
+            // 清除 token 並重導向到登入頁面
+            clearTokenAndRedirect(redirectPath = null) {
+                localStorage.removeItem('access_token');
+                const currentPath = redirectPath || window.location.pathname;
+                if (currentPath !== '/login') {
+                    localStorage.setItem('redirect_after_login', currentPath);
+                }
+                window.location.href = '/login';
+            },
+            
+            // 帶 token 的 fetch 請求
+            async fetchWithToken(url, options = {}) {
+                const token = this.getToken();
+                if (!token || !this.isTokenValid()) {
+                    this.clearTokenAndRedirect();
+                    throw new Error('Token 無效或已過期');
+                }
+                
+                const headers = {
+                    ...options.headers,
+                    'Authorization': `Bearer ${token}`
+                };
+                
+                const response = await fetch(url, { ...options, headers });
+                
+                if (response.status === 401) {
+                    this.clearTokenAndRedirect();
+                    throw new Error('認證失敗');
+                }
+                
+                return response;
+            }
+        };
     </script>
 
     {% block scripts %}{% endblock %}

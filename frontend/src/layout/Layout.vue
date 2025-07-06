@@ -31,6 +31,16 @@
           <span>訂單管理</span>
         </a-menu-item>
         
+        <a-menu-item key="campaigns" @click="$router.push('/campaigns')">
+          <tag-outlined />
+          <span>行銷專案</span>
+        </a-menu-item>
+        
+        <a-menu-item key="coupons" @click="$router.push('/coupons')">
+          <tag-outlined />
+          <span>優惠券管理</span>
+        </a-menu-item>
+        
         <a-menu-item key="users" @click="$router.push('/users')">
           <user-outlined />
           <span>會員管理</span>
@@ -44,11 +54,6 @@
         <a-menu-item key="settings" @click="$router.push('/settings')">
           <setting-outlined />
           <span>系統設定</span>
-        </a-menu-item>
-        
-        <a-menu-item key="error-logs" @click="$router.push('/error-logs')">
-          <warning-outlined />
-          <span>錯誤日誌</span>
         </a-menu-item>
 
       </a-menu>
@@ -102,7 +107,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   DownOutlined,
-  WarningOutlined
+  TagOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -120,10 +125,11 @@ const pageTitle = {
   posts: '文章管理',
   products: '商品管理',
   orders: '訂單管理',
+  campaigns: '行銷專案',
+  coupons: '優惠券管理',
   users: '會員管理',
   analytics: '數據分析',
-  settings: '系統設定',
-  'error-logs': '錯誤日誌'
+  settings: '系統設定'
 }
 
 const getPageTitle = () => {

@@ -3,7 +3,7 @@
 {% block title %}購物車 - BlogCommerce{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8" x-data="cartApp()">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="cartApp()">
     <!-- 頁面標題 - 與其他頁面保持一致的樣式 -->
     <div class="mb-8">
         <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">購物車</h1>
@@ -357,9 +357,24 @@ function cartApp() {
         },
         
         goToCheckout() {
-            if (this.cart.items.length > 0) {
-                window.location.href = '/checkout';
+            if (this.cart.items.length === 0) {
+                return;
             }
+            
+            // 檢查是否已登入
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                // 顯示登入提示
+                if (confirm('您需要先登入才能進行結帳，是否前往登入頁面？')) {
+                    // 儲存當前路徑，登入後返回
+                    localStorage.setItem('redirect_after_login', '/checkout');
+                    window.location.href = '/login';
+                }
+                return;
+            }
+            
+            // 已登入，直接前往結帳
+            window.location.href = '/checkout';
         }
     }
 }

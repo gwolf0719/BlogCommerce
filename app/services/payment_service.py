@@ -429,7 +429,7 @@ class PaymentService:
             result = response.json()
             if result.get("returnCode") == "0000":
                 # 付款成功，更新訂單狀態
-                order.payment_status = PaymentStatus.PAID
+                order.payment_status = PaymentStatus.paid
                 order.payment_info.update({
                     "confirmed_at": datetime.now().isoformat(),
                     "line_pay_info": result["info"]
@@ -440,7 +440,7 @@ class PaymentService:
                 return {"success": True, "message": "付款成功"}
             else:
                 # 付款失敗
-                order.payment_status = PaymentStatus.FAILED
+                order.payment_status = PaymentStatus.failed
                 order.payment_info.update({
                     "failed_at": datetime.now().isoformat(),
                     "error_message": result.get("returnMessage", "付款失敗")
@@ -478,14 +478,14 @@ class PaymentService:
         rtn_code = callback_data.get("RtnCode")
         if rtn_code == "1":
             # 付款成功
-            order.payment_status = PaymentStatus.PAID
+            order.payment_status = PaymentStatus.paid
             order.payment_info.update({
                 "paid_at": datetime.now().isoformat(),
                 "ecpay_info": callback_data
             })
         else:
             # 付款失敗
-            order.payment_status = PaymentStatus.FAILED
+            order.payment_status = PaymentStatus.failed
             order.payment_info.update({
                 "failed_at": datetime.now().isoformat(),
                 "error_message": callback_data.get("RtnMsg", "付款失敗"),

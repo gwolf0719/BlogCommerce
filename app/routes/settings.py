@@ -328,6 +328,32 @@ async def get_ai_models(
 
 
 # 金流設定專用端點
+@router.get("/payment/settings")
+async def get_payment_settings(db: Session = Depends(get_db)):
+    """獲取已啟用的付款方式設定（公開端點，供前台使用）"""
+    manager = SettingsManager(db)
+    
+    # 獲取各種付款方式的啟用狀態
+    transfer_enabled = manager.get_setting("payment_transfer_enabled", default=False)
+    linepay_enabled = manager.get_setting("payment_linepay_enabled", default=False)
+    ecpay_enabled = manager.get_setting("payment_ecpay_enabled", default=False)
+    paypal_enabled = manager.get_setting("payment_paypal_enabled", default=False)
+    
+    # 獲取運費設定
+    shipping_fee = manager.get_setting("shipping_fee", default=60)
+    free_shipping_threshold = manager.get_setting("free_shipping_threshold", default=1000)
+    
+    return {
+        "transfer": {"enabled": transfer_enabled},
+        "linepay": {"enabled": linepay_enabled},
+        "ecpay": {"enabled": ecpay_enabled},
+        "paypal": {"enabled": paypal_enabled},
+        "shipping": {
+            "fee": shipping_fee,
+            "free_threshold": free_shipping_threshold
+        }
+    }
+
 @router.get("/payment_transfer")
 async def get_payment_transfer_settings(
     db: Session = Depends(get_db),

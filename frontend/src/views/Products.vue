@@ -1,224 +1,233 @@
 <template>
-  <div class="products-page">
-    <!-- 頁面標題 -->
-    <a-page-header 
-      title="商品管理" 
-      sub-title="管理您的電商商品庫存"
-      class="page-header"
-    >
-      <template #extra>
-        <a-button type="primary" @click="showCreateModal" size="large">
-          <PlusOutlined /> 新增商品
-        </a-button>
-      </template>
-    </a-page-header>
+  <div class="admin-page">
+    <!-- 1. 頁面標題區 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">商品管理</h1>
+          <p class="page-description">管理您的電商商品庫存和詳細資訊</p>
+        </div>
+        <div class="action-section">
+          <a-button type="primary" @click="showCreateModal">
+            <template #icon><PlusOutlined /></template>
+            新增商品
+          </a-button>
+        </div>
+      </div>
+    </div>
 
-    <!-- 統計卡片 -->
-    <a-row :gutter="24" class="stats-row">
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="總商品數"
-            :value="products.length"
-            prefix="🛍️"
-            :value-style="{ color: '#1890ff' }"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="啟用商品"
-            :value="activeCount"
-            prefix="✅"
-            :value-style="{ color: '#52c41a' }"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="推薦商品"
-            :value="featuredCount"
-            prefix="⭐"
-            :value-style="{ color: '#faad14' }"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="總庫存值"
-            :value="totalStockValue"
-            prefix="💰"
-            :precision="2"
-            :value-style="{ color: '#722ed1' }"
-          />
-        </a-card>
-      </a-col>
-    </a-row>
+    <!-- 2. 統計卡片區 -->
+    <div class="stats-section">
+      <a-row :gutter="24" class="stats-row">
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="總商品數"
+              :value="products.length"
+              prefix="🛍️"
+              :value-style="{ color: '#1890ff' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="啟用商品"
+              :value="activeCount"
+              prefix="✅"
+              :value-style="{ color: '#52c41a' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="推薦商品"
+              :value="featuredCount"
+              prefix="⭐"
+              :value-style="{ color: '#faad14' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="總庫存值"
+              :value="totalStockValue"
+              prefix="💰"
+              :precision="2"
+              :value-style="{ color: '#722ed1' }"
+            />
+          </a-card>
+        </a-col>
+      </a-row>
+    </div>
 
-    <!-- 搜尋和篩選區塊 -->
-    <a-card title="搜尋與篩選" class="filter-card">
-      <a-form layout="inline" :model="searchForm">
-        <a-form-item label="搜尋商品">
-          <a-input-search
-            v-model:value="searchForm.search"
-            placeholder="搜尋商品名稱或描述"
-            allow-clear
-            enter-button
-            @search="handleSearch"
-            style="width: 280px"
-          />
-        </a-form-item>
-        
-        <a-form-item label="商品狀態">
-          <a-select
-            v-model:value="searchForm.status"
-            placeholder="選擇狀態"
-            style="width: 140px"
-            allow-clear
-            @change="handleSearch"
-          >
-            <a-select-option value="active">
-              <a-tag color="green" size="small">啟用</a-tag>
-            </a-select-option>
-            <a-select-option value="inactive">
-              <a-tag color="red" size="small">停用</a-tag>
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        
-        <a-form-item label="推薦篩選">
-          <a-select
-            v-model:value="searchForm.featured"
-            placeholder="推薦狀態"
-            style="width: 120px"
-            allow-clear
-            @change="handleSearch"
-          >
-            <a-select-option value="true">推薦</a-select-option>
-            <a-select-option value="false">一般</a-select-option>
-          </a-select>
-        </a-form-item>
-        
-        <a-form-item>
-          <a-button @click="resetFilters" icon="reload">重置</a-button>
-        </a-form-item>
-      </a-form>
-    </a-card>
+    <!-- 3. 搜尋篩選區 -->
+    <div class="filter-section">
+      <a-card class="filter-card" title="搜尋與篩選">
+        <a-form layout="inline" :model="searchForm">
+          <a-form-item label="搜尋商品">
+            <a-input-search
+              v-model:value="searchForm.search"
+              placeholder="搜尋商品名稱或描述"
+              allow-clear
+              enter-button
+              @search="handleSearch"
+              style="width: 280px"
+            />
+          </a-form-item>
+          
+          <a-form-item label="商品狀態">
+            <a-select
+              v-model:value="searchForm.status"
+              placeholder="選擇狀態"
+              style="width: 140px"
+              allow-clear
+              @change="handleSearch"
+            >
+              <a-select-option value="active">
+                <a-tag color="green" size="small">啟用</a-tag>
+              </a-select-option>
+              <a-select-option value="inactive">
+                <a-tag color="red" size="small">停用</a-tag>
+              </a-select-option>
+            </a-select>
+          </a-form-item>
+          
+          <a-form-item label="推薦篩選">
+            <a-select
+              v-model:value="searchForm.featured"
+              placeholder="推薦狀態"
+              style="width: 120px"
+              allow-clear
+              @change="handleSearch"
+            >
+              <a-select-option value="true">推薦</a-select-option>
+              <a-select-option value="false">一般</a-select-option>
+            </a-select>
+          </a-form-item>
+          
+          <a-form-item>
+            <a-button @click="resetFilters" icon="reload">重置</a-button>
+          </a-form-item>
+        </a-form>
+      </a-card>
+    </div>
 
-    <!-- 商品列表區塊 -->
-    <a-card title="商品列表" class="table-card">
-      <a-table
-        :columns="columns"
-        :data-source="products"
-        :loading="loading"
-        :pagination="paginationConfig"
-        @change="handleTableChange"
-        row-key="id"
-        :scroll="{ x: 1000 }"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'image'">
-            <div class="product-image">
-              <a-image
-                :src="record.featured_image || '/static/images/default-product.jpg'"
-                :alt="record.name"
-                width="60"
-                height="60"
-                :preview="true"
-                fallback="/static/images/default-product.jpg"
-              />
-            </div>
-          </template>
+    <!-- 4. 主要內容區 -->
+    <div class="content-section">
+      <a-card class="content-card" title="商品列表">
+        <a-table
+          :columns="columns"
+          :data-source="products"
+          :loading="loading"
+          :pagination="paginationConfig"
+          @change="handleTableChange"
+          row-key="id"
+          :scroll="{ x: 1000 }"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'image'">
+              <div class="product-image">
+                <a-image
+                  :src="record.featured_image || '/static/images/default-product.jpg'"
+                  :alt="record.name"
+                  width="60"
+                  height="60"
+                  :preview="true"
+                  fallback="/static/images/default-product.jpg"
+                />
+              </div>
+            </template>
 
-          <template v-if="column.key === 'view_count'">
-            <div class="view-count-cell">
-              <a-statistic 
-                :value="record.view_count || 0" 
-                :value-style="{ fontSize: '14px' }"
-              >
-                <template #suffix>
-                  <span style="font-size: 12px; color: #999;">次</span>
+            <template v-if="column.key === 'view_count'">
+              <div class="view-count-cell">
+                <a-statistic 
+                  :value="record.view_count || 0" 
+                  :value-style="{ fontSize: '14px' }"
+                >
+                  <template #suffix>
+                    <span style="font-size: 12px; color: #999;">次</span>
+                  </template>
+                </a-statistic>
+              </div>
+            </template>
+
+            <template v-if="column.key === 'name'">
+              <div class="product-info">
+                <div class="product-name">{{ record.name }}</div>
+                <div class="product-sku" v-if="record.sku">
+                  <a-tag size="small">SKU: {{ record.sku }}</a-tag>
+                </div>
+                <div class="product-description" v-if="record.short_description">
+                  {{ record.short_description.substring(0, 50) }}{{ record.short_description.length > 50 ? '...' : '' }}
+                </div>
+              </div>
+            </template>
+
+            <template v-if="column.key === 'featured'">
+              <a-tag :color="record.is_featured ? 'gold' : 'default'" size="default">
+                <template #icon>
+                  <span>{{ record.is_featured ? '⭐' : '📦' }}</span>
                 </template>
-              </a-statistic>
-            </div>
-          </template>
-
-          <template v-if="column.key === 'name'">
-            <div class="product-info">
-              <div class="product-name">{{ record.name }}</div>
-              <div class="product-sku" v-if="record.sku">
-                <a-tag size="small">SKU: {{ record.sku }}</a-tag>
-              </div>
-              <div class="product-description" v-if="record.short_description">
-                {{ record.short_description.substring(0, 50) }}{{ record.short_description.length > 50 ? '...' : '' }}
-              </div>
-            </div>
-          </template>
-
-          <template v-if="column.key === 'featured'">
-            <a-tag :color="record.is_featured ? 'gold' : 'default'" size="default">
-              <template #icon>
-                <span>{{ record.is_featured ? '⭐' : '📦' }}</span>
-              </template>
-              {{ record.is_featured ? '推薦' : '一般' }}
-            </a-tag>
-          </template>
-
-          <template v-if="column.key === 'status'">
-            <a-tag :color="record.is_active ? 'green' : 'red'" size="default">
-              <template #icon>
-                <span>{{ record.is_active ? '✅' : '❌' }}</span>
-              </template>
-              {{ record.is_active ? '啟用' : '停用' }}
-            </a-tag>
-          </template>
-
-          <template v-if="column.key === 'price'">
-            <div class="price-cell">
-              <div v-if="record.sale_price" class="sale-price">
-                特價: ${{ record.sale_price }}
-              </div>
-              <div :class="{ 'original-price': record.sale_price, 'regular-price': !record.sale_price }">
-                {{ record.sale_price ? '原價:' : '價格:' }} ${{ record.price }}
-              </div>
-            </div>
-          </template>
-
-          <template v-if="column.key === 'stock'">
-            <div class="stock-cell">
-              <a-tag 
-                :color="getStockColor(record.stock_quantity)"
-                size="default"
-              >
-                {{ record.stock_quantity }} 件
+                {{ record.is_featured ? '推薦' : '一般' }}
               </a-tag>
-            </div>
-          </template>
+            </template>
 
-          <template v-if="column.key === 'actions'">
-            <a-space>
-              <a-button size="small" type="primary" @click="editProduct(record)">
-                <EditOutlined /> 編輯
-              </a-button>
-              <a-popconfirm
-                title="確定要刪除這個商品嗎？"
-                description="此操作不可恢復，請謹慎操作"
-                @confirm="deleteProduct(record.id)"
-                ok-text="確定"
-                cancel-text="取消"
-              >
-                <a-button size="small" danger>
-                  <DeleteOutlined /> 刪除
+            <template v-if="column.key === 'status'">
+              <a-tag :color="record.is_active ? 'green' : 'red'" size="default">
+                <template #icon>
+                  <span>{{ record.is_active ? '✅' : '❌' }}</span>
+                </template>
+                {{ record.is_active ? '啟用' : '停用' }}
+              </a-tag>
+            </template>
+
+            <template v-if="column.key === 'price'">
+              <div class="price-cell">
+                <div v-if="record.sale_price" class="sale-price">
+                  特價: ${{ record.sale_price }}
+                </div>
+                <div :class="{ 'original-price': record.sale_price, 'regular-price': !record.sale_price }">
+                  {{ record.sale_price ? '原價:' : '價格:' }} ${{ record.price }}
+                </div>
+              </div>
+            </template>
+
+            <template v-if="column.key === 'stock'">
+              <div class="stock-cell">
+                <a-tag 
+                  :color="getStockColor(record.stock_quantity)"
+                  size="default"
+                >
+                  {{ record.stock_quantity }} 件
+                </a-tag>
+              </div>
+            </template>
+
+            <template v-if="column.key === 'actions'">
+              <a-space>
+                <a-button size="small" type="primary" @click="editProduct(record)">
+                  <EditOutlined /> 編輯
                 </a-button>
-              </a-popconfirm>
-            </a-space>
+                <a-popconfirm
+                  title="確定要刪除這個商品嗎？"
+                  description="此操作不可恢復，請謹慎操作"
+                  @confirm="deleteProduct(record.id)"
+                  ok-text="確定"
+                  cancel-text="取消"
+                >
+                  <a-button size="small" danger>
+                    <DeleteOutlined /> 刪除
+                  </a-button>
+                </a-popconfirm>
+              </a-space>
+            </template>
           </template>
-        </template>
-      </a-table>
-    </a-card>
+        </a-table>
+      </a-card>
+    </div>
 
     <!-- 新增/編輯商品對話框 -->
     <a-modal
@@ -350,14 +359,14 @@
               </a-form-item>
             </a-col>
             <a-col :span="12">
-                             <a-form-item name="is_featured" :wrapper-col="{ offset: 4, span: 20 }">
-                 <a-checkbox v-model:checked="form.is_featured" size="large">
-                   <StarOutlined /> 推薦商品（首頁展示）
-                 </a-checkbox>
-               </a-form-item>
-             </a-col>
-           </a-row>
-         </a-card>
+              <a-form-item name="is_featured" :wrapper-col="{ offset: 4, span: 20 }">
+                <a-checkbox v-model:checked="form.is_featured" size="large">
+                  <StarOutlined /> 推薦商品（首頁展示）
+                </a-checkbox>
+              </a-form-item>
+            </a-col>
+          </a-row>
+        </a-card>
 
         <!-- SEO 設定 -->
         <a-card title="SEO 設定" size="small" class="form-card">
@@ -676,45 +685,47 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.products-page {
-  padding: 20px;
+.admin-page {
+  padding: 24px;
 }
 
 .page-header {
+  margin-bottom: 24px;
+}
+
+.header-content {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  align-items: flex-start;
 }
 
-.filters {
-  margin-bottom: 20px;
-  padding: 16px;
-  background: #fafafa;
-  border-radius: 6px;
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #262626;
 }
 
-.sale-price {
-  color: #f5222d;
-  font-weight: bold;
-  margin-right: 8px;
+.page-description {
+  color: #8c8c8c;
+  margin: 0;
+  font-size: 14px;
 }
 
-.original-price {
-  text-decoration: line-through;
-  color: #999;
+.stats-section {
+  margin-bottom: 24px;
 }
 
 .stats-row {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-.filter-card {
-  margin-bottom: 20px;
+.filter-section {
+  margin-bottom: 24px;
 }
 
-.table-card {
-  margin-bottom: 20px;
+.content-section {
+  margin-bottom: 24px;
 }
 
 .product-image {
@@ -746,6 +757,22 @@ onMounted(() => {
 .price-cell {
   display: flex;
   flex-direction: column;
+}
+
+.sale-price {
+  color: #f5222d;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.original-price {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.regular-price {
+  color: #333;
+  font-weight: bold;
 }
 
 .stock-cell {

@@ -74,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, watch, defineProps, defineEmits } from 'vue'
+import { ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { PlusOutlined, EyeOutlined, DeleteOutlined, LoadingOutlined } from '@ant-design/icons-vue'
 import { useAuthStore } from '../stores/auth'

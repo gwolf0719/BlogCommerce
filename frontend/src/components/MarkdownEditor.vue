@@ -63,7 +63,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, defineProps, defineEmits } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { PictureOutlined } from '@ant-design/icons-vue'
 import { marked } from 'marked'
@@ -83,8 +83,6 @@ const props = defineProps({
     default: 15
   }
 })
-
-const emit = defineEmits(['update:modelValue'])
 
 const authStore = useAuthStore()
 const editorRef = ref()
@@ -107,11 +105,6 @@ marked.setOptions({
 // 監聽 modelValue 變化
 watch(() => props.modelValue, (newValue) => {
   content.value = newValue
-})
-
-// 監聽 content 變化，向父組件發射更新
-watch(content, (newValue) => {
-  emit('update:modelValue', newValue)
 })
 
 // 編譯 Markdown

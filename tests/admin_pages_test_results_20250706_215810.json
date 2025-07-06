@@ -1,0 +1,186 @@
+{
+  "test_time": "2025-07-06T21:58:09.999659",
+  "pages_tested": [],
+  "api_tests": [
+    {
+      "endpoint": "/api/admin/stats",
+      "method": "GET",
+      "description": "儀表板統計數據",
+      "status": "success",
+      "response_time": 7.56,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/health",
+      "method": "GET",
+      "description": "系統健康檢查",
+      "status": "success",
+      "response_time": 1.53,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/products/",
+      "method": "GET",
+      "description": "商品列表",
+      "status": "success",
+      "response_time": 1.1,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/orders/",
+      "method": "GET",
+      "description": "訂單列表",
+      "status": "success",
+      "response_time": 5.58,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/users/",
+      "method": "GET",
+      "description": "用戶列表",
+      "status": "success",
+      "response_time": 1.21,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/campaigns/",
+      "method": "GET",
+      "description": "行銷專案列表",
+      "status": "success",
+      "response_time": 1.02,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/campaigns/stats/overview",
+      "method": "GET",
+      "description": "行銷專案統計",
+      "status": "success",
+      "response_time": 0.88,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/coupons/",
+      "method": "GET",
+      "description": "優惠券列表",
+      "status": "success",
+      "response_time": 3.85,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/coupons/stats/overview",
+      "method": "GET",
+      "description": "優惠券統計",
+      "status": "success",
+      "response_time": 14.51,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/posts/",
+      "method": "GET",
+      "description": "文章列表",
+      "status": "success",
+      "response_time": 1.2,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/analytics/dashboard",
+      "method": "GET",
+      "description": "分析儀表板",
+      "status": "success",
+      "response_time": 0.95,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/analytics/overview",
+      "method": "GET",
+      "description": "分析總覽",
+      "status": "success",
+      "response_time": 7.22,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/settings/",
+      "method": "GET",
+      "description": "系統設定",
+      "status": "success",
+      "response_time": 3.4,
+      "status_code": 200,
+      "error": null
+    },
+    {
+      "endpoint": "/api/error-logs/",
+      "method": "GET",
+      "description": "錯誤日誌列表",
+      "status": "success",
+      "response_time": 9.18,
+      "status_code": 200,
+      "error": null
+    }
+  ],
+  "structure_issues": [
+    "❌ Dashboard.vue: 文件不存在",
+    "❌ Products.vue: 文件不存在",
+    "❌ Coupons.vue: 文件不存在",
+    "❌ Orders.vue: 文件不存在",
+    "❌ Users.vue: 文件不存在",
+    "❌ Campaigns.vue: 文件不存在"
+  ],
+  "button_tests": [
+    {
+      "page": "Dashboard",
+      "button": "立即刷新",
+      "status": "需要手動測試"
+    },
+    {
+      "page": "Products",
+      "button": "新增商品",
+      "status": "需要手動測試"
+    },
+    {
+      "page": "Orders",
+      "button": "刷新",
+      "status": "需要手動測試"
+    },
+    {
+      "page": "Campaigns",
+      "button": "建立專案",
+      "status": "需要手動測試"
+    },
+    {
+      "page": "Coupons",
+      "button": "建立優惠券",
+      "status": "需要手動測試"
+    },
+    {
+      "page": "Users",
+      "button": "新增用戶",
+      "status": "需要手動測試"
+    },
+    {
+      "page": "Settings",
+      "button": "儲存設定",
+      "status": "需要手動測試"
+    }
+  ],
+  "summary": {
+    "total_api_tests": 14,
+    "success_tests": 14,
+    "failed_tests": 0,
+    "error_tests": 0,
+    "structure_issues_count": 6,
+    "button_tests_count": 7,
+    "success_rate": 100.0
+  }
+}

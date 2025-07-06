@@ -1,183 +1,186 @@
 <template>
-  <div class="p-6">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">會員管理</h1>
-      <div class="space-x-2">
-        <a-button type="primary" @click="handleCreate">
-          <template #icon><PlusOutlined /></template>
-          新增會員
-        </a-button>
-        <a-button @click="refreshUsers">
-          <template #icon><ReloadOutlined /></template>
-          刷新
-        </a-button>
+  <div class="admin-page">
+    <!-- 1. 頁面標題區 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">用戶管理</h1>
+          <p class="page-description">管理系統中的所有用戶帳號和權限</p>
+        </div>
+        <div class="action-section">
+          <a-button type="primary" @click="showCreateModal">
+            <template #icon><UserAddOutlined /></template>
+            新增用戶
+          </a-button>
+        </div>
       </div>
     </div>
 
-    <!-- 搜尋與篩選 -->
-    <a-card class="mb-6">
-      <a-row :gutter="16">
+    <!-- 2. 統計卡片區 -->
+    <div class="stats-section">
+      <a-row :gutter="24" class="stats-row">
         <a-col :span="6">
-          <a-input
-            v-model:value="searchForm.search"
-            placeholder="搜尋用戶名稱 / 信箱"
-            allowClear
-            @change="handleSearch"
-          >
-            <template #prefix><SearchOutlined /></template>
-          </a-input>
-        </a-col>
-        <a-col :span="4">
-          <a-select
-            v-model:value="searchForm.role"
-            placeholder="角色篩選"
-            allowClear
-            @change="handleSearch"
-          >
-            <a-select-option value="admin">管理員</a-select-option>
-            <a-select-option value="user">一般會員</a-select-option>
-          </a-select>
-        </a-col>
-        <a-col :span="4">
-          <a-select
-            v-model:value="searchForm.is_active"
-            placeholder="狀態篩選"
-            allowClear
-            @change="handleSearch"
-          >
-            <a-select-option :value="true">啟用</a-select-option>
-            <a-select-option :value="false">停用</a-select-option>
-          </a-select>
+          <a-card>
+            <a-statistic
+              title="總用戶數"
+              :value="users.length"
+              prefix="👥"
+              :value-style="{ color: '#1890ff' }"
+            />
+          </a-card>
         </a-col>
         <a-col :span="6">
-          <a-range-picker 
-            v-model:value="searchForm.dateRange"
-            :placeholder="['註冊開始日期', '註冊結束日期']"
-            @change="handleSearch"
-          />
+          <a-card>
+            <a-statistic
+              title="活躍用戶"
+              :value="activeUsersCount"
+              prefix="🟢"
+              :value-style="{ color: '#52c41a' }"
+            />
+          </a-card>
         </a-col>
-        <a-col :span="4">
-          <a-button @click="resetSearch">重置</a-button>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="管理員"
+              :value="adminCount"
+              prefix="👑"
+              :value-style="{ color: '#722ed1' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="今日新註冊"
+              :value="todayRegistrations"
+              prefix="📅"
+              :value-style="{ color: '#fa541c' }"
+            />
+          </a-card>
         </a-col>
       </a-row>
-    </a-card>
+    </div>
 
-    <!-- 統計卡片 -->
-    <a-row :gutter="16" class="mb-6">
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="總會員數"
-            :value="stats.total_users"
-            prefix-icon="UserOutlined"
-            value-style="color: #3f8600"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="活躍會員"
-            :value="stats.active_users"
-            prefix-icon="CheckCircleOutlined"
-            value-style="color: #1890ff"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="今日新增"
-            :value="stats.today_new_users"
-            prefix-icon="CalendarOutlined"
-            value-style="color: #722ed1"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="管理員"
-            :value="stats.admin_users"
-            prefix-icon="CrownOutlined"
-            value-style="color: #fa8c16"
-          />
-        </a-card>
-      </a-col>
-    </a-row>
+    <!-- 3. 搜尋篩選區 -->
+    <div class="filter-section">
+      <a-card class="filter-card">
+        <a-row :gutter="24">
+          <a-col :span="8">
+            <a-input
+              v-model:value="searchText"
+              placeholder="搜尋用戶名稱或郵箱"
+              allow-clear
+              @pressEnter="handleSearch"
+            >
+              <template #prefix><SearchOutlined /></template>
+            </a-input>
+          </a-col>
+          <a-col :span="4">
+            <a-select
+              v-model:value="roleFilter"
+              placeholder="角色篩選"
+              allow-clear
+              @change="handleSearch"
+            >
+              <a-select-option value="admin">管理員</a-select-option>
+              <a-select-option value="user">一般用戶</a-select-option>
+            </a-select>
+          </a-col>
+          <a-col :span="4">
+            <a-select
+              v-model:value="statusFilter"
+              placeholder="狀態篩選"
+              allow-clear
+              @change="handleSearch"
+            >
+              <a-select-option value="active">啟用</a-select-option>
+              <a-select-option value="inactive">停用</a-select-option>
+            </a-select>
+          </a-col>
+          <a-col :span="4">
+            <a-button @click="resetFilters">重置篩選</a-button>
+          </a-col>
+          <a-col :span="4">
+            <a-button type="primary" @click="handleSearch">搜尋</a-button>
+          </a-col>
+        </a-row>
+      </a-card>
+    </div>
 
-    <!-- 用戶列表 -->
-    <a-card>
-      <a-table
-        :columns="columns"
-        :data-source="users"
-        :pagination="paginationConfig"
-        :loading="loading"
-        row-key="id"
-        @change="handleTableChange"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'user_info'">
-            <div class="flex items-center space-x-3">
-              <a-avatar :src="record.avatar" :size="40">
-                {{ record.username?.[0]?.toUpperCase() || record.email?.[0]?.toUpperCase() }}
-              </a-avatar>
-              <div>
-                <div class="font-medium">{{ record.username || record.email }}</div>
-                <div class="text-gray-500 text-sm">{{ record.email }}</div>
+    <!-- 4. 主要內容區 -->
+    <div class="content-section">
+      <a-card class="content-card">
+        <a-table
+          :columns="columns"
+          :data-source="filteredUsers"
+          :loading="loading"
+          row-key="id"
+          :pagination="paginationConfig"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'user_info'">
+              <div class="flex items-center space-x-3">
+                <a-avatar :src="record.avatar" :size="40">
+                  {{ record.username?.[0]?.toUpperCase() || record.email?.[0]?.toUpperCase() }}
+                </a-avatar>
+                <div>
+                  <div class="font-medium">{{ record.username || record.email }}</div>
+                  <div class="text-gray-500 text-sm">{{ record.email }}</div>
+                </div>
               </div>
-            </div>
-          </template>
+            </template>
 
-          <template v-if="column.key === 'role'">
-            <a-tag :color="record.role === 'admin' ? 'red' : 'blue'">
-              {{ record.role === 'admin' ? '管理員' : '一般會員' }}
-            </a-tag>
-          </template>
+            <template v-if="column.key === 'role'">
+              <a-tag :color="record.role === 'admin' ? 'red' : 'blue'">
+                {{ record.role === 'admin' ? '管理員' : '一般會員' }}
+              </a-tag>
+            </template>
 
-          <template v-if="column.key === 'is_active'">
-            <a-tag :color="record.is_active ? 'green' : 'red'">
-              {{ record.is_active ? '啟用' : '停用' }}
-            </a-tag>
-          </template>
+            <template v-if="column.key === 'is_active'">
+              <a-tag :color="record.is_active ? 'green' : 'red'">
+                {{ record.is_active ? '啟用' : '停用' }}
+              </a-tag>
+            </template>
 
-          <template v-if="column.key === 'created_at'">
-            <span>{{ formatDate(record.created_at) }}</span>
-          </template>
+            <template v-if="column.key === 'created_at'">
+              <span>{{ formatDate(record.created_at) }}</span>
+            </template>
 
-          <template v-if="column.key === 'last_login'">
-            <span>{{ formatDate(record.last_login) || '未曾登入' }}</span>
-          </template>
+            <template v-if="column.key === 'last_login'">
+              <span>{{ formatDate(record.last_login) || '未曾登入' }}</span>
+            </template>
 
-          <template v-if="column.key === 'action'">
-            <a-space>
-              <a-button type="link" size="small" @click="handleEdit(record)">
-                <EditOutlined />
-              </a-button>
-              <a-button 
-                type="link" 
-                size="small" 
-                :class="record.is_active ? 'text-red-500' : 'text-green-500'"
-                @click="toggleUserStatus(record)"
-              >
-                {{ record.is_active ? '停用' : '啟用' }}
-              </a-button>
-              <a-popconfirm 
-                title="確定刪除此會員？" 
-                ok-text="確定" 
-                cancel-text="取消" 
-                @confirm="handleDelete(record.id)"
-                v-if="record.role !== 'admin' || record.id !== authStore.user?.id"
-              >
-                <a-button type="link" danger size="small">
-                  <DeleteOutlined />
+            <template v-if="column.key === 'action'">
+              <a-space>
+                <a-button type="link" size="small" @click="handleEdit(record)">
+                  <EditOutlined />
                 </a-button>
-              </a-popconfirm>
-            </a-space>
+                <a-button 
+                  type="link" 
+                  size="small" 
+                  :class="record.is_active ? 'text-red-500' : 'text-green-500'"
+                  @click="toggleUserStatus(record)"
+                >
+                  {{ record.is_active ? '停用' : '啟用' }}
+                </a-button>
+                <a-popconfirm 
+                  title="確定刪除此會員？" 
+                  ok-text="確定" 
+                  cancel-text="取消" 
+                  @confirm="handleDelete(record.id)"
+                  v-if="record.role !== 'admin' || record.id !== authStore.user?.id"
+                >
+                  <a-button type="link" danger size="small">
+                    <DeleteOutlined />
+                  </a-button>
+                </a-popconfirm>
+              </a-space>
+            </template>
           </template>
-        </template>
-      </a-table>
-    </a-card>
+        </a-table>
+      </a-card>
+    </div>
 
     <!-- 新增/編輯會員彈窗 -->
     <a-modal 
@@ -253,7 +256,8 @@ import {
   UserOutlined,
   CheckCircleOutlined,
   CalendarOutlined,
-  CrownOutlined
+  CrownOutlined,
+  UserAddOutlined
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '../stores/auth'
 import dayjs from 'dayjs'
@@ -624,6 +628,49 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.admin-page {
+  padding: 24px;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #262626;
+}
+
+.page-description {
+  color: #8c8c8c;
+  margin: 0;
+  font-size: 14px;
+}
+
+.stats-section {
+  margin-bottom: 24px;
+}
+
+.stats-row {
+  margin-bottom: 24px;
+}
+
+.filter-section {
+  margin-bottom: 24px;
+}
+
+.content-section {
+  margin-bottom: 24px;
+}
+
 .ant-statistic-content {
   font-size: 16px;
 }

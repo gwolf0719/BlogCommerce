@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     # JWT 設定
     jwt_secret_key: str = "jwt-secret-key-change-in-production"
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 1440
+    access_token_expire_minutes: int = 1440  # 24 小時
+    remember_token_expire_days: int = 30  # 記住登入狀態 30 天
     
     # 管理員帳號設定
     admin_username: str = "admin"

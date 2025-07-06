@@ -1,97 +1,111 @@
 <template>
-  <div class="analytics-page">
+  <div class="admin-page">
+    <!-- 1. 頁面標題區 -->
     <div class="page-header">
-      <h1>數據分析</h1>
-      <a-button @click="refreshData" :loading="loading">
-        <ReloadOutlined /> 刷新數據
-      </a-button>
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">數據分析</h1>
+          <p class="page-description">查看系統數據統計和分析報告</p>
+        </div>
+        <div class="action-section">
+          <a-button @click="refreshData" :loading="loading">
+            <template #icon><ReloadOutlined /></template>
+            刷新數據
+          </a-button>
+        </div>
+      </div>
     </div>
 
-    <!-- 概覽卡片 -->
-    <a-row :gutter="16" class="overview-cards">
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="總用戶數"
-            :value="stats.total_users"
-            :value-style="{ color: '#3f8600' }"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="總商品數"
-            :value="stats.total_products"
-            :value-style="{ color: '#cf1322' }"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="總文章數"
-            :value="stats.total_posts"
-            :value-style="{ color: '#722ed1' }"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="6">
-        <a-card>
-          <a-statistic
-            title="總訂單數"
-            :value="stats.total_orders"
-            :value-style="{ color: '#fa8c16' }"
-          />
-        </a-card>
-      </a-col>
-    </a-row>
+    <!-- 2. 統計卡片區 -->
+    <div class="stats-section">
+      <a-row :gutter="24" class="stats-row">
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="總用戶數"
+              :value="stats.total_users"
+              :value-style="{ color: '#3f8600' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="總商品數"
+              :value="stats.total_products"
+              :value-style="{ color: '#cf1322' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="總文章數"
+              :value="stats.total_posts"
+              :value-style="{ color: '#722ed1' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic
+              title="總訂單數"
+              :value="stats.total_orders"
+              :value-style="{ color: '#fa8c16' }"
+            />
+          </a-card>
+        </a-col>
+      </a-row>
+    </div>
 
-    <!-- 熱門內容 -->
-    <a-row :gutter="16" style="margin-top: 20px;">
-      <a-col :span="12">
-        <a-card title="熱門商品" :loading="loading">
-          <a-table
-            :columns="productColumns"
-            :data-source="popularProducts"
-            :pagination="false"
-            size="small"
-          />
-        </a-card>
-      </a-col>
-      <a-col :span="12">
-        <a-card title="熱門文章" :loading="loading">
-          <a-table
-            :columns="postColumns"
-            :data-source="popularPosts"
-            :pagination="false"
-            size="small"
-          />
-        </a-card>
-      </a-col>
-    </a-row>
+    <!-- 3. 主要內容區 -->
+    <div class="content-section">
+      <!-- 熱門內容 -->
+      <a-row :gutter="24" style="margin-bottom: 24px;">
+        <a-col :span="12">
+          <a-card title="熱門商品" :loading="loading">
+            <a-table
+              :columns="productColumns"
+              :data-source="popularProducts"
+              :pagination="false"
+              size="small"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="12">
+          <a-card title="熱門文章" :loading="loading">
+            <a-table
+              :columns="postColumns"
+              :data-source="popularPosts"
+              :pagination="false"
+              size="small"
+            />
+          </a-card>
+        </a-col>
+      </a-row>
 
-    <!-- 最近活動 -->
-    <a-row :gutter="16" style="margin-top: 20px;">
-      <a-col :span="24">
-        <a-card title="最近活動" :loading="loading">
-          <a-table
-            :columns="activityColumns"
-            :data-source="recentActivities"
-            :pagination="{ pageSize: 10 }"
-            size="small"
-          >
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'type'">
-                <a-tag :color="getActivityColor(record.type)">
-                  {{ getActivityLabel(record.type) }}
-                </a-tag>
+      <!-- 最近活動 -->
+      <a-row :gutter="24">
+        <a-col :span="24">
+          <a-card title="最近活動" :loading="loading">
+            <a-table
+              :columns="activityColumns"
+              :data-source="recentActivities"
+              :pagination="{ pageSize: 10 }"
+              size="small"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'type'">
+                  <a-tag :color="getActivityColor(record.type)">
+                    {{ getActivityLabel(record.type) }}
+                  </a-tag>
+                </template>
               </template>
-            </template>
-          </a-table>
-        </a-card>
-      </a-col>
-    </a-row>
+            </a-table>
+          </a-card>
+        </a-col>
+      </a-row>
+    </div>
   </div>
 </template>
 
@@ -284,7 +298,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.analytics-page {
+.admin-page {
   padding: 20px;
 }
 
@@ -295,11 +309,40 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.overview-cards {
+.header-content {
+  display: flex;
+  align-items: center;
+}
+
+.title-section {
+  margin-right: 20px;
+}
+
+.page-title {
+  margin: 0;
+}
+
+.page-description {
+  margin: 0;
+}
+
+.action-section {
+  /* Add any necessary styles for the action section */
+}
+
+.stats-section {
   margin-bottom: 20px;
 }
 
-.overview-cards .ant-card {
+.stats-row {
+  margin-bottom: 16px;
+}
+
+.stats-row .ant-card {
   text-align: center;
+}
+
+.content-section {
+  /* Add any necessary styles for the content section */
 }
 </style> 

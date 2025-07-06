@@ -225,10 +225,31 @@ async def validation_exception_handler(request: Request, exc: ValidationError):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    """處理一般異常"""
+    """處理一般異常 - 詳細診斷版本"""
+    
+    # 詳細記錄異常信息
+    error_detail = {
+        "exception_type": str(type(exc)),
+        "exception_message": str(exc),
+        "request_path": request.url.path,
+        "request_method": request.method
+    }
+    
+    app_logger.error(f"捕獲異常: {error_detail}")
+    
+    # 對於特定類型的異常，重新拋出
+    if any(keyword in str(type(exc)) for keyword in ['pydantic', 'ValidationError', 'serialization', 'JSONDecodeError', 'UnicodeDecodeError']):
+        app_logger.error(f"重新拋出異常: {type(exc)}")
+        raise exc
+    
+    # 對於JSON序列化錯誤，也重新拋出
+    if 'json' in str(exc).lower() or 'serialize' in str(exc).lower():
+        app_logger.error(f"JSON相關異常，重新拋出: {exc}")
+        raise exc
+    
     log_api_error(f"{request.method} {request.url.path}", exc)
     
-    # 同時記錄到錯誤日誌系統
+    # 簡化錯誤日誌記錄，避免在錯誤處理中再次出錯
     try:
         from app.database import SessionLocal
         from app.services.error_log_service import ErrorLogService
