@@ -12,6 +12,7 @@ class PostBase(BaseSchema):
     is_published: bool = False
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
+    meta_keywords: Optional[str] = None
 
 
 class PostCreate(PostBase):
@@ -36,6 +37,7 @@ class PostUpdate(BaseSchema):
     is_published: Optional[bool] = None
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
+    meta_keywords: Optional[str] = None
 
 
 class PostResponse(PostBase, BaseResponseSchema, SlugSchema):

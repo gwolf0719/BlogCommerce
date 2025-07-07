@@ -3,14 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ settings.site_name }}{% endblock %}</title>
+    <title>{% block title %}{{ settings.site_name }}{% if settings.site_description %} - {{ settings.site_description }}{% endif %}{% endblock %}</title>
     
     <!-- Meta tags -->
     <meta name="description" content="{% block description %}{{ settings.site_description }}{% endblock %}">
+    <meta name="keywords" content="{% block keywords %}{{ settings.default_meta_keywords or '電商,部落格,購物,文章,商品' }}{% endblock %}">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="{% block og_title %}{{ settings.site_name }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ settings.site_description }}{% endblock %}">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{{ request.url }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ settings.site_logo }}{% endblock %}">
+    <meta property="og:site_name" content="{{ settings.site_name }}">
+    
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ settings.site_name }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ settings.site_description }}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ settings.site_logo }}{% endblock %}">
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="zh-TW">
+    <meta name="revisit-after" content="7 days">
+    <meta name="author" content="{{ settings.site_name }}">
+    
     {% block meta %}{% endblock %}
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ settings.site_favicon or '/static/images/favicon.svg' }}">
     
     <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -70,9 +97,7 @@
                 <!-- Logo -->
                 <div class="flex items-center space-x-4 lg:space-x-8">
                     <a href="/" class="flex items-center space-x-2 lg:space-x-3">
-                        <div class="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
-                            <span class="text-white font-bold text-lg lg:text-xl">B</span>
-                        </div>
+                        <img src="{{ settings.site_logo }}" alt="{{ settings.site_name }}" class="h-8 lg:h-10 w-auto">
                         <span class="text-lg lg:text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent hidden sm:block">
                             {{ settings.site_name }}
                         </span>
@@ -275,9 +300,7 @@
                 <!-- 公司資訊 -->
                 <div class="lg:col-span-2">
                     <div class="flex items-center space-x-3 mb-6">
-                        <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
-                            <span class="text-white font-bold text-xl">B</span>
-                        </div>
+                        <img src="{{ settings.site_logo }}" alt="{{ settings.site_name }}" class="h-10 w-auto filter brightness-0 invert">
                         <span class="text-2xl font-bold">{{ settings.site_name }}</span>
                     </div>
                     <p class="text-gray-300 leading-relaxed mb-6 max-w-md">{{ settings.site_description }}</p>
@@ -592,5 +615,4 @@
     <!-- 流量統計系統 -->
     <script src="{{ url_for('static', path='/js/analytics.js') }}"></script>
 </body>
-</html> 
 </html> 

@@ -1,12 +1,24 @@
 {% extends "base.html" %}
 
-{% block title %}{{ settings.site_name }} - {{ settings.site_description }}{% endblock %}
+{% block title %}{{ settings.site_name }}{% if settings.site_description %} - {{ settings.site_description }}{% endif %}{% endblock %}
 
-{% block meta %}
-<meta property="og:title" content="{{ settings.site_name }}">
-<meta property="og:description" content="{{ settings.site_description }}">
-<meta property="og:type" content="website">
-{% endblock %}
+{% block description %}{{ settings.site_description }}{% endblock %}
+
+{% block keywords %}{{ settings.default_meta_keywords or '電商,部落格,購物,文章,商品' }}{% endblock %}
+
+{% block og_title %}{{ settings.site_name }}{% endblock %}
+
+{% block og_description %}{{ settings.site_description }}{% endblock %}
+
+{% block og_type %}website{% endblock %}
+
+{% block og_image %}{{ settings.site_logo }}{% endblock %}
+
+{% block twitter_title %}{{ settings.site_name }}{% endblock %}
+
+{% block twitter_description %}{{ settings.site_description }}{% endblock %}
+
+{% block twitter_image %}{{ settings.site_logo }}{% endblock %}
 
 {% block content %}
 <div x-data="homeApp()" x-init="loadContent()">

@@ -177,102 +177,127 @@
       @cancel="handleCancel"
       class="post-modal"
     >
-      <a-form
-        :model="form"
-        :rules="rules"
-        :label-col="{ span: 4 }"
-        :wrapper-col="{ span: 20 }"
-        ref="formRef"
-        layout="horizontal"
-      >
-        <!-- 基本信息 -->
-        <a-card title="基本信息" size="small" class="form-card">
-          <a-form-item label="文章標題" name="title">
-            <a-input 
-              v-model:value="form.title" 
-              placeholder="請輸入文章標題"
-              show-count
-              :maxlength="100"
-            />
-          </a-form-item>
+      <!-- 載入狀態 -->
+      <div v-if="loadingPost" class="loading-container">
+        <a-spin size="large">
+          <div class="loading-content">
+            <p>正在載入文章資料...</p>
+          </div>
+        </a-spin>
+      </div>
 
-          <a-form-item label="文章內容" name="content">
-            <MarkdownEditor 
-              v-model="form.content" 
-              :rows="15" 
-              placeholder="請輸入文章內容（支援 Markdown 語法）..." 
-            />
-          </a-form-item>
-
-          <a-form-item label="文章摘要" name="excerpt">
-            <a-textarea 
-              v-model:value="form.excerpt" 
-              :rows="3" 
-              placeholder="可選，如果不填寫會自動從內容中提取"
-              show-count
-              :maxlength="200"
-            />
-          </a-form-item>
-
-          <a-form-item label="特色圖片" name="featured_image">
-            <UploadImage v-model="form.featured_image" />
-          </a-form-item>
-        </a-card>
-
-        <!-- 發布設定 -->
-        <a-card title="發布設定" size="small" class="form-card">
-          <a-form-item label="發布狀態" name="is_published">
-            <a-radio-group v-model:value="form.is_published" size="large">
-              <a-radio-button :value="false">
-                <FileTextOutlined /> 保存為草稿
-              </a-radio-button>
-              <a-radio-button :value="true">
-                <CheckCircleOutlined /> 立即發布
-              </a-radio-button>
-            </a-radio-group>
-            <div class="form-help-text">
-              <a-alert
-                :message="form.is_published ? '文章將立即對外可見' : '草稿不會顯示在前台'"
-                :type="form.is_published ? 'info' : 'warning'"
-                show-icon
-                banner
+      <!-- 表單內容 -->
+      <div v-else>
+        <a-form
+          :model="form"
+          :rules="rules"
+          :label-col="{ span: 4 }"
+          :wrapper-col="{ span: 20 }"
+          ref="formRef"
+          layout="horizontal"
+        >
+          <!-- 基本信息 -->
+          <a-card title="基本信息" size="small" class="form-card">
+            <a-form-item label="文章標題" name="title">
+              <a-input 
+                v-model:value="form.title" 
+                placeholder="請輸入文章標題"
+                show-count
+                :maxlength="100"
               />
-            </div>
-          </a-form-item>
-        </a-card>
+            </a-form-item>
 
-        <!-- SEO 設定 -->
-        <a-card title="SEO 設定" size="small" class="form-card">
-          <a-form-item label="SEO 標題" name="meta_title">
-            <a-input 
-              v-model:value="form.meta_title" 
-              placeholder="用於搜尋引擎優化，建議 50-60 個字符"
-              show-count
-              :maxlength="60"
-            />
-          </a-form-item>
+            <a-form-item label="文章內容" name="content">
+              <MarkdownEditor 
+                v-model="form.content" 
+                :rows="15" 
+                placeholder="請輸入文章內容（支援 Markdown 語法）..." 
+              />
+            </a-form-item>
 
-          <a-form-item label="SEO 描述" name="meta_description">
-            <a-textarea 
-              v-model:value="form.meta_description" 
-              :rows="3" 
-              placeholder="用於搜尋引擎優化，建議 150-160 個字符"
-              show-count
-              :maxlength="160"
-            />
-          </a-form-item>
-        </a-card>
+            <a-form-item label="文章摘要" name="excerpt">
+              <a-textarea 
+                v-model:value="form.excerpt" 
+                :rows="3" 
+                placeholder="可選，如果不填寫會自動從內容中提取"
+                show-count
+                :maxlength="200"
+              />
+            </a-form-item>
 
-        <!-- 操作按鈕 -->
-        <div class="form-actions">
-          <a-space>
-            <a-button @click="handleCancel" size="large">取消</a-button>
-            <a-button type="primary" @click="handleSubmit" :loading="submitting" size="large">
-              <SaveOutlined /> {{ isEditing ? '更新文章' : '新增文章' }}
-            </a-button>
-          </a-space>
-        </div>
-      </a-form>
+            <a-form-item label="特色圖片" name="featured_image">
+              <UploadImage v-model="form.featured_image" />
+            </a-form-item>
+          </a-card>
+
+          <!-- 發布設定 -->
+          <a-card title="發布設定" size="small" class="form-card">
+            <a-form-item label="發布狀態" name="is_published">
+              <a-radio-group v-model:value="form.is_published" size="large">
+                <a-radio-button :value="false">
+                  <FileTextOutlined /> 保存為草稿
+                </a-radio-button>
+                <a-radio-button :value="true">
+                  <CheckCircleOutlined /> 立即發布
+                </a-radio-button>
+              </a-radio-group>
+              <div class="form-help-text">
+                <a-alert
+                  :message="form.is_published ? '文章將立即對外可見' : '草稿不會顯示在前台'"
+                  :type="form.is_published ? 'info' : 'warning'"
+                  show-icon
+                  banner
+                />
+              </div>
+            </a-form-item>
+          </a-card>
+
+          <!-- SEO 設定 -->
+          <a-card title="SEO 設定" size="small" class="form-card">
+            <a-form-item label="SEO 標題" name="meta_title">
+              <a-input 
+                v-model:value="form.meta_title" 
+                placeholder="用於搜尋引擎優化，建議 50-60 個字符"
+                show-count
+                :maxlength="60"
+              />
+            </a-form-item>
+
+            <a-form-item label="SEO 描述" name="meta_description">
+              <a-textarea 
+                v-model:value="form.meta_description" 
+                :rows="3" 
+                placeholder="用於搜尋引擎優化，建議 150-160 個字符"
+                show-count
+                :maxlength="160"
+              />
+            </a-form-item>
+
+            <a-form-item label="SEO 關鍵字" name="meta_keywords">
+              <a-textarea 
+                v-model:value="form.meta_keywords" 
+                :rows="2" 
+                placeholder="多個關鍵字請用逗號分隔，例如：電商,部落格,購物"
+                show-count
+                :maxlength="200"
+              />
+              <div class="form-help-text">
+                <small class="text-gray-500">建議使用5-10個相關關鍵字，以逗號分隔</small>
+              </div>
+            </a-form-item>
+          </a-card>
+
+          <!-- 操作按鈕 -->
+          <div class="form-actions">
+            <a-space>
+              <a-button @click="handleCancel" size="large">取消</a-button>
+              <a-button type="primary" @click="handleSubmit" :loading="submitting" size="large">
+                <SaveOutlined /> {{ isEditing ? '更新文章' : '新增文章' }}
+              </a-button>
+            </a-space>
+          </div>
+        </a-form>
+      </div>
     </a-modal>
   </div>
 </template>
@@ -302,6 +327,7 @@ const loading = ref(false)
 const modalVisible = ref(false)
 const isEditing = ref(false)
 const submitting = ref(false)
+const loadingPost = ref(false)  // 新增：載入單一文章的狀態
 const formRef = ref()
 
 // 搜尋表單
@@ -383,18 +409,19 @@ const form = reactive({
   featured_image: '',
   is_published: false,
   meta_title: '',
-  meta_description: ''
+  meta_description: '',
+  meta_keywords: ''
 })
 
 // 表單驗證規則
 const rules = {
   title: [
-    { required: true, message: '請輸入文章標題' },
-    { min: 5, max: 100, message: '標題長度應在5-100字符之間' }
+    { required: true, message: '請輸入文章標題', trigger: 'blur' },
+    { min: 5, max: 100, message: '標題長度應在5-100字符之間', trigger: 'blur' }
   ],
   content: [
-    { required: true, message: '請輸入文章內容' },
-    { min: 10, message: '內容至少需要10個字符' }
+    { required: true, message: '請輸入文章內容', trigger: 'blur' },
+    { min: 10, message: '內容至少需要10個字符', trigger: 'blur' }
   ]
 }
 
@@ -456,16 +483,42 @@ const showCreateModal = () => {
 }
 
 // 編輯文章
-const editPost = (post) => {
-  isEditing.value = true
-  modalVisible.value = true
-  Object.assign(form, post)
+const editPost = async (post) => {
+  try {
+    loadingPost.value = true
+    isEditing.value = true
+    modalVisible.value = true
+    
+    // 先載入完整的文章資料
+    const response = await axios.get(`/api/posts/${post.id}`)
+    const fullPostData = response.data
+    
+    // 將完整資料載入到表單中
+    Object.assign(form, {
+      id: fullPostData.id,
+      title: fullPostData.title || '',
+      content: fullPostData.content || '',
+      excerpt: fullPostData.excerpt || '',
+      featured_image: fullPostData.featured_image || '',
+      is_published: fullPostData.is_published || false,
+      meta_title: fullPostData.meta_title || '',
+      meta_description: fullPostData.meta_description || '',
+      meta_keywords: fullPostData.meta_keywords || ''
+    })
+    
+  } catch (error) {
+    console.error('載入文章詳細資料失敗:', error)
+    message.error('載入文章詳細資料失敗')
+    modalVisible.value = false
+  } finally {
+    loadingPost.value = false
+  }
 }
 
 // 重置表單
 const resetForm = () => {
   Object.assign(form, {
-    title: '', content: '', excerpt: '', featured_image: '', is_published: false, meta_title: '', meta_description: ''
+    title: '', content: '', excerpt: '', featured_image: '', is_published: false, meta_title: '', meta_description: '', meta_keywords: ''
   })
 }
 
@@ -595,5 +648,16 @@ onMounted(() => {
 
 .post-modal {
   width: 1000px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.loading-content {
+  text-align: center;
 }
 </style> 

@@ -18,6 +18,7 @@ class ProductBase(BaseSchema):
     is_featured: bool = False
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
+    meta_keywords: Optional[str] = None
 
 
 class ProductCreate(ProductBase):
@@ -65,6 +66,7 @@ class ProductUpdate(BaseSchema):
     is_featured: Optional[bool] = None
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
+    meta_keywords: Optional[str] = None
 
 
 class ProductResponse(ProductBase, BaseResponseSchema, SlugSchema):

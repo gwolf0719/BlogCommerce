@@ -142,9 +142,9 @@ info "資料庫填充完成。"
 
 # --- 前端設定 ---
 
-if [ -d "$PROJECT_ROOT/frontend" ]; then
+if [ -d "$PROJECT_ROOT/admin-src" ]; then
     info "偵測到前端目錄，開始設定前端環境..."
-    cd "$PROJECT_ROOT/frontend" || die "無法進入 frontend 目錄。"
+    cd "$PROJECT_ROOT/admin-src" || die "無法進入 admin-src 目錄。"
 
     # 6. 安裝 Node.js 依賴
     if [ -f "package.json" ]; then
@@ -178,7 +178,7 @@ cat <<'EOF'
     ./start_server.sh
 
 3.  **啟動前端開發伺服器**:
-    cd frontend
+    cd admin-src
     npm run dev
 
 感謝您的使用！

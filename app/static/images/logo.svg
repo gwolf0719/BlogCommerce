@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="40" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景漸變 -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F3F4F6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景圓角矩形 -->
+  <rect x="0" y="0" width="36" height="36" rx="8" ry="8" fill="url(#bgGradient)" />
+  
+  <!-- 字母 B -->
+  <text x="18" y="26" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="url(#textGradient)">B</text>
+  
+  <!-- 品牌名稱 -->
+  <text x="44" y="18" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1F2937">BlogCommerce</text>
+  <text x="44" y="30" font-family="Arial, sans-serif" font-size="8" fill="#6B7280">部落格電商平台</text>
+</svg> 

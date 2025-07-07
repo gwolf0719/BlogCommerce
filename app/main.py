@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse
 from app.api import router as api_router
 from app.utils.logger import app_logger, log_api_error, log_validation_error, LoggingMiddleware
 from datetime import datetime
+from app.services.markdown_service import markdown_service
 
 # 建立 FastAPI 應用程式
 app = FastAPI(
@@ -161,6 +162,14 @@ app.mount("/static", StaticFiles(directory="app/static", html=True), name="stati
 # 模板設定
 templates = Jinja2Templates(directory="app/templates")
 
+# 輔助函數：生成帶有動態設定的模板回應
+def render_template(template_name: str, request: Request, **kwargs):
+    """渲染模板並自動載入動態設定"""
+    dynamic_settings = get_public_settings()
+    context = {"request": request, "settings": dynamic_settings}
+    context.update(kwargs)
+    return templates.TemplateResponse(template_name, context)
+
 # 包含 API 路由
 app.include_router(api_router)
 
@@ -286,90 +295,101 @@ async def startup_event():
 # 前端路由
 @app.get("/")
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "settings": settings})
+    return render_template("index.html", request)
 
 @app.get("/login")
 async def login_page(request: Request):
-    return templates.TemplateResponse("auth/login.html", {"request": request, "settings": settings})
+    return render_template("auth/login.html", request)
 
 @app.get("/register")
 async def register_page(request: Request):
-    return templates.TemplateResponse("auth/register.html", {"request": request, "settings": settings})
+    return render_template("auth/register.html", request)
 
 @app.get("/products")
 async def products_page(request: Request):
-    return templates.TemplateResponse("shop/products.html", {"request": request, "settings": settings})
+    return render_template("shop/products.html", request)
 
 @app.get("/product/{slug}")
 async def product_detail_page(request: Request, slug: str):
-    return templates.TemplateResponse("shop/product_detail.html", {"request": request, "slug": slug, "settings": settings})
+    return render_template("shop/product_detail.html", request, slug=slug)
 
 @app.get("/cart")
 async def cart_page(request: Request):
-    return templates.TemplateResponse("shop/cart.html", {"request": request, "settings": settings})
+    return render_template("shop/cart.html", request)
 
 @app.get("/checkout")
 async def checkout_page(request: Request):
-    return templates.TemplateResponse("shop/checkout.html", {"request": request, "settings": settings})
+    return render_template("shop/checkout.html", request)
 
 @app.get("/blog")
 async def blog_page(request: Request):
-    return templates.TemplateResponse("blog/posts.html", {"request": request, "settings": settings})
+    return render_template("blog/posts.html", request)
 
 @app.get("/blog/{slug}")
 async def post_detail_page(request: Request, slug: str):
-    # 這個路由現在會由前端 JavaScript 處理，模板只需要 slug
-    return templates.TemplateResponse("blog/post_detail.html", {
-        "request": request, 
-        "slug": slug, 
-        "settings": settings,
-        "post": None  # 暫時設為 None，由前端 API 載入
-    })
+    """文章詳細頁面 - 載入文章以確保SEO標籤正確設置"""
+    from app.database import get_db
+    from app.models.post import Post
+    from sqlalchemy.orm import Session
+    
+    # 獲取數據庫會話
+    db: Session = next(get_db())
+    post = None
+    
+    try:
+        # 載入已發布的文章
+        post = db.query(Post).filter(Post.slug == slug, Post.is_published == True).first()
+    except Exception as e:
+        app_logger.error(f"載入文章失敗: {e}")
+    finally:
+        db.close()
+    
+    return render_template("blog/post_detail.html", request, slug=slug, post=post)
 
 @app.get("/profile")
 async def profile_page(request: Request):
-    return templates.TemplateResponse("auth/profile.html", {"request": request, "settings": settings})
+    return render_template("auth/profile.html", request)
 
 @app.get("/orders")
 async def orders_page(request: Request):
-    return templates.TemplateResponse("shop/orders.html", {"request": request, "settings": settings})
+    return render_template("shop/orders.html", request)
 
 @app.get("/favorites")
 async def favorites_page(request: Request):
-    return templates.TemplateResponse("shop/favorites.html", {"request": request, "settings": settings})
+    return render_template("shop/favorites.html", request)
 
 # Footer 頁面路由
 @app.get("/about")
 async def about_page(request: Request):
-    return templates.TemplateResponse("pages/about.html", {"request": request, "settings": settings})
+    return render_template("pages/about.html", request)
 
 @app.get("/contact")
 async def contact_page(request: Request):
-    return templates.TemplateResponse("pages/contact.html", {"request": request, "settings": settings})
+    return render_template("pages/contact.html", request)
 
 @app.get("/help")
 async def help_page(request: Request):
-    return templates.TemplateResponse("pages/help.html", {"request": request, "settings": settings})
+    return render_template("pages/help.html", request)
 
 @app.get("/shipping")
 async def shipping_page(request: Request):
-    return templates.TemplateResponse("pages/shipping.html", {"request": request, "settings": settings})
+    return render_template("pages/shipping.html", request)
 
 @app.get("/returns")
 async def returns_page(request: Request):
-    return templates.TemplateResponse("pages/returns.html", {"request": request, "settings": settings})
+    return render_template("pages/returns.html", request)
 
 @app.get("/privacy")
 async def privacy_page(request: Request):
-    return templates.TemplateResponse("pages/privacy.html", {"request": request, "settings": settings})
+    return render_template("pages/privacy.html", request)
 
 @app.get("/terms")
 async def terms_page(request: Request):
-    return templates.TemplateResponse("pages/terms.html", {"request": request, "settings": settings})
+    return render_template("pages/terms.html", request)
 
 
 # Admin SPA: Mount the entire built frontend under /admin
-admin_spa_path = Path("app/static")
+admin_spa_path = Path("admin")
 
 if admin_spa_path.exists() and (admin_spa_path / "index.html").exists():
     # Mount assets directory for static files

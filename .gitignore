@@ -75,16 +75,18 @@ yarn-debug.log*
 yarn-error.log*
 
 # Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/.nuxt/
-frontend/.output/
-frontend/.vite/
+admin-src/node_modules/
+admin-src/dist/
+admin-src/.nuxt/
+admin-src/.output/
+admin-src/.vite/
 
 # Static files
 app/static/assets/
 app/static/public/
-app/static/images/
+app/static/images/*
+!app/static/images/logo.svg
+!app/static/images/favicon.svg
 app/static/css/style.css
 app/static/js/
 

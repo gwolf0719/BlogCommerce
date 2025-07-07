@@ -25,6 +25,7 @@ class Product(BaseModel, SlugMixin):
     # SEO 欄位
     meta_title = Column(String(200), nullable=True)
     meta_description = Column(Text, nullable=True)
+    meta_keywords = Column(Text, nullable=True)  # SEO 關鍵字
     
     # 瀏覽統計
     view_count = Column(Integer, default=0, nullable=False)

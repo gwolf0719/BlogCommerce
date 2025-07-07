@@ -388,6 +388,19 @@
               :maxlength="160"
             />
           </a-form-item>
+
+          <a-form-item label="SEO 關鍵字" name="meta_keywords">
+            <a-textarea 
+              v-model:value="form.meta_keywords" 
+              :rows="2" 
+              placeholder="多個關鍵字請用逗號分隔，例如：手機,3C,電子產品"
+              show-count
+              :maxlength="200"
+            />
+            <div class="form-help-text">
+              <small class="text-gray-500">建議使用5-10個相關關鍵字，以逗號分隔</small>
+            </div>
+          </a-form-item>
         </a-card>
 
         <!-- 操作按鈕 -->
@@ -543,7 +556,8 @@ const form = reactive({
   is_active: true,
   is_featured: false,
   meta_title: '',
-  meta_description: ''
+  meta_description: '',
+  meta_keywords: ''
 })
 
 // 表單驗證規則
@@ -620,17 +634,51 @@ const showCreateModal = () => {
 }
 
 // 編輯商品
-const editProduct = (product) => {
-  isEditing.value = true
-  modalVisible.value = true
-  Object.assign(form, product)
+const editProduct = async (product) => {
+  try {
+    isEditing.value = true
+    modalVisible.value = true
+    
+    // 重置表單並顯示載入狀態
+    resetForm()
+    submitting.value = true
+    
+    // 載入完整的商品詳細資料
+    const response = await axios.get(`/api/products/${product.id}`)
+    const fullProductData = response.data
+    
+    // 將完整資料載入到表單
+    Object.assign(form, {
+      id: fullProductData.id,
+      name: fullProductData.name || '',
+      description: fullProductData.description || '',
+      short_description: fullProductData.short_description || '',
+      price: fullProductData.price || null,
+      sale_price: fullProductData.sale_price || null,
+      stock_quantity: fullProductData.stock_quantity || 0,
+      sku: fullProductData.sku || '',
+      featured_image: fullProductData.featured_image || '',
+      gallery_images: fullProductData.gallery_images || '',
+      is_active: fullProductData.is_active !== undefined ? fullProductData.is_active : true,
+      is_featured: fullProductData.is_featured !== undefined ? fullProductData.is_featured : false,
+      meta_title: fullProductData.meta_title || '',
+      meta_description: fullProductData.meta_description || '',
+      meta_keywords: fullProductData.meta_keywords || ''
+    })
+  } catch (error) {
+    console.error('載入商品詳細資料失敗:', error)
+    message.error('載入商品詳細資料失敗')
+    modalVisible.value = false
+  } finally {
+    submitting.value = false
+  }
 }
 
 // 重置表單
 const resetForm = () => {
   Object.assign(form, {
     name: '', description: '', short_description: '', price: null, sale_price: null,
-    stock_quantity: 0, sku: '', featured_image: '', gallery_images: '', is_active: true, is_featured: false, meta_title: '', meta_description: ''
+    stock_quantity: 0, sku: '', featured_image: '', gallery_images: '', is_active: true, is_featured: false, meta_title: '', meta_description: '', meta_keywords: ''
   })
 }
 

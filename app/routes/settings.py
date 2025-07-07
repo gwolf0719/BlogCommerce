@@ -327,6 +327,14 @@ async def get_ai_models(
             raise HTTPException(status_code=400, detail=str(e))
 
 
+# 公開設定端點
+@router.get("/public")
+async def get_public_settings_api(db: Session = Depends(get_db)):
+    """獲取公開設定（供前台使用）"""
+    from ..middleware import get_public_settings
+    return get_public_settings()
+
+
 # 金流設定專用端點
 @router.get("/payment/settings")
 async def get_payment_settings(db: Session = Depends(get_db)):

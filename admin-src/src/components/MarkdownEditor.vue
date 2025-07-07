@@ -84,6 +84,8 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits(['update:modelValue'])
+
 const authStore = useAuthStore()
 const editorRef = ref()
 const content = ref(props.modelValue)
@@ -105,6 +107,11 @@ marked.setOptions({
 // 監聽 modelValue 變化
 watch(() => props.modelValue, (newValue) => {
   content.value = newValue
+})
+
+// 監聽 content 變化，向父組件發射更新事件
+watch(content, (newValue) => {
+  emit('update:modelValue', newValue)
 })
 
 // 編譯 Markdown

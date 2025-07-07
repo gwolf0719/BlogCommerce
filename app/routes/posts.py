@@ -23,6 +23,7 @@ def process_post_content(post: Post) -> dict:
         "is_published": post.is_published,
         "meta_title": post.meta_title,
         "meta_description": post.meta_description,
+        "meta_keywords": post.meta_keywords,
         "slug": post.slug,
         "view_count": post.view_count,
         "created_at": post.created_at,

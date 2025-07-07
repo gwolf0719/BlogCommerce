@@ -7,8 +7,8 @@ class Settings(BaseSettings):
     site_name: str = "BlogCommerce"
     site_description: str = "部落格與電商整合平台"
     site_url: str = "http://localhost:8001"
-    site_logo: str = "/static/images/logo.png"
-    site_favicon: str = "/static/images/favicon.ico"
+    site_logo: str = "/static/images/logo.svg"
+    site_favicon: str = "/static/images/favicon.svg"
     
     # 應用程式設定
     debug: bool = False

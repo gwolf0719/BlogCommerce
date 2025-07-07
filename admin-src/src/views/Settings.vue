@@ -70,59 +70,30 @@
                 <a-col :span="12">
                   <a-form-item label="網站名稱">
                     <a-input v-model:value="settings.site_name" placeholder="輸入網站名稱" />
+                    <div class="text-gray-500 text-sm mt-1">此名稱將顯示在首頁標題和導航列</div>
                   </a-form-item>
                 </a-col>
                 <a-col :span="12">
                   <a-form-item label="網站標語">
                     <a-input v-model:value="settings.site_tagline" placeholder="輸入網站標語" />
+                    <div class="text-gray-500 text-sm mt-1">簡短的網站標語</div>
                   </a-form-item>
                 </a-col>
               </a-row>
               
               <a-form-item label="網站描述">
                 <a-textarea v-model:value="settings.site_description" :rows="3" placeholder="輸入網站描述" />
+                <div class="text-gray-500 text-sm mt-1">此描述將用於首頁SEO和Open Graph標籤</div>
               </a-form-item>
-
-              <a-row :gutter="24">
-                <a-col :span="12">
-                  <a-form-item label="網站網址">
-                    <a-input v-model:value="settings.site_url" placeholder="https://example.com" />
-                  </a-form-item>
-                </a-col>
-                <a-col :span="12">
-                  <a-form-item label="管理員信箱">
-                    <a-input v-model:value="settings.admin_email" placeholder="admin@example.com" />
-                  </a-form-item>
-                </a-col>
-              </a-row>
-
-              <a-row :gutter="24">
-                <a-col :span="12">
-                  <a-form-item label="時區">
-                    <a-select v-model:value="settings.timezone" placeholder="選擇時區">
-                      <a-select-option value="Asia/Taipei">Asia/Taipei</a-select-option>
-                      <a-select-option value="UTC">UTC</a-select-option>
-                      <a-select-option value="America/New_York">America/New_York</a-select-option>
-                    </a-select>
-                  </a-form-item>
-                </a-col>
-                <a-col :span="12">
-                  <a-form-item label="語言">
-                    <a-select v-model:value="settings.language" placeholder="選擇語言">
-                      <a-select-option value="zh-TW">繁體中文</a-select-option>
-                      <a-select-option value="zh-CN">簡體中文</a-select-option>
-                      <a-select-option value="en">English</a-select-option>
-                    </a-select>
-                  </a-form-item>
-                </a-col>
-              </a-row>
 
               <a-form-item label="網站 Logo">
                 <upload-image v-model="settings.site_logo" />
+                <div class="text-gray-500 text-sm mt-1">建議尺寸：300x100px，支援PNG/JPG格式</div>
               </a-form-item>
 
               <a-form-item label="網站圖示 (Favicon)">
                 <upload-image v-model="settings.site_favicon" />
+                <div class="text-gray-500 text-sm mt-1">建議尺寸：32x32px，支援ICO/PNG格式</div>
               </a-form-item>
             </a-form>
           </a-card>
@@ -872,10 +843,6 @@ const settings = reactive({
   site_name: '',
   site_tagline: '',
   site_description: '',
-  site_url: '',
-  admin_email: '',
-  timezone: 'Asia/Taipei',
-  language: 'zh-TW',
   site_logo: '',
   site_favicon: '',
 

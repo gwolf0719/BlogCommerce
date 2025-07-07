@@ -1,20 +1,36 @@
 {% extends "base.html" %}
 
-{% block title %}{{ post.title if post else '文章載入中' }} - {{ settings.site_name }}{% endblock %}
+{% block title %}{{ (post.meta_title or post.title) if post else '文章載入中' }} - {{ settings.site_name }}{% endblock %}
+
+{% block description %}{{ post.meta_description or post.excerpt or settings.site_description if post else settings.site_description }}{% endblock %}
+
+{% block keywords %}{{ post.meta_keywords or settings.default_meta_keywords or '電商,部落格,購物,文章,商品' if post else settings.default_meta_keywords or '電商,部落格,購物,文章,商品' }}{% endblock %}
+
+{% block og_title %}{{ (post.meta_title or post.title) if post else settings.site_name }}{% endblock %}
+
+{% block og_description %}{{ post.meta_description or post.excerpt or settings.site_description if post else settings.site_description }}{% endblock %}
+
+{% block og_type %}article{% endblock %}
+
+{% block og_image %}{{ post.featured_image if post and post.featured_image else settings.site_logo }}{% endblock %}
+
+{% block twitter_title %}{{ (post.meta_title or post.title) if post else settings.site_name }}{% endblock %}
+
+{% block twitter_description %}{{ post.meta_description or post.excerpt or settings.site_description if post else settings.site_description }}{% endblock %}
+
+{% block twitter_image %}{{ post.featured_image if post and post.featured_image else settings.site_logo }}{% endblock %}
 
 {% block meta %}
-<meta name="description" content="{{ post.meta_description or post.excerpt or settings.site_description }}">
-<meta property="og:title" content="{{ post.title if post else settings.site_name }}">
-<meta property="og:description" content="{{ post.meta_description or post.excerpt or settings.site_description }}">
-<meta property="og:image" content="{{ post.featured_image if post else settings.og_image }}">
-<meta property="og:type" content="article">
-<meta property="article:published_time" content="{{ post.created_at.isoformat() if post else '' }}">
-<meta property="article:modified_time" content="{{ post.updated_at.isoformat() if post and post.updated_at else '' }}">
-<meta name="twitter:card" content="summary_large_image">
+{% if post %}
+<meta property="article:published_time" content="{{ post.created_at.isoformat() }}">
+{% if post.updated_at %}
+<meta property="article:modified_time" content="{{ post.updated_at.isoformat() }}">
+{% endif %}
+{% endif %}
 {% endblock %}
 
 {% block content %}
-<div x-data="postDetailApp()" x-init="loadPost('{{ slug }}')" data-content-id="" x-bind:data-content-id="post ? post.id : ''">
+<div x-data="postDetailApp()" x-init="loadPost('{{ slug }}')" data-content-id="">
     <!-- 載入中 -->
     <div x-show="loading" class="flex justify-center items-center py-20">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -76,24 +92,19 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-3">分享文章</h3>
             <div class="flex space-x-4">
                 <button @click="shareToFacebook()" 
-                        class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    <i class="fab fa-facebook-f mr-2"></i>
-                    Facebook
+                        class="w-12 h-12 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
+                        title="分享到 Facebook">
+                    <i class="fab fa-facebook-f text-lg"></i>
                 </button>
-                <button @click="shareToTwitter()" 
-                        class="flex items-center px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors">
-                    <i class="fab fa-twitter mr-2"></i>
-                    Twitter
-                </button>
-                <button @click="shareToLinkedIn()" 
-                        class="flex items-center px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors">
-                    <i class="fab fa-linkedin-in mr-2"></i>
-                    LinkedIn
+                <button @click="shareToX()" 
+                        class="w-12 h-12 bg-black text-white rounded-lg flex items-center justify-center hover:bg-gray-800 transition-colors"
+                        title="分享到 X">
+                    <i class="fab fa-twitter text-lg"></i>
                 </button>
                 <button @click="copyLink()" 
-                        class="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                    <i class="fas fa-link mr-2"></i>
-                    <span x-text="linkCopied ? '已複製！' : '複製連結'"></span>
+                        class="w-12 h-12 bg-gray-600 text-white rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors"
+                        :title="linkCopied ? '已複製！' : '複製連結'">
+                    <i class="fas fa-link text-lg" :class="linkCopied ? 'text-green-300' : ''"></i>
                 </button>
             </div>
         </div>
@@ -181,16 +192,19 @@
     <div class="fixed right-4 top-1/2 transform -translate-y-1/2 z-40" x-show="post">
         <div class="bg-white rounded-lg shadow-lg p-2 space-y-2">
             <button @click="shareToFacebook()" 
-                    class="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors">
+                    class="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
+                    title="分享到 Facebook">
                 <i class="fab fa-facebook-f"></i>
             </button>
-            <button @click="shareToTwitter()" 
-                    class="w-10 h-10 bg-sky-500 text-white rounded-lg flex items-center justify-center hover:bg-sky-600 transition-colors">
+            <button @click="shareToX()" 
+                    class="w-10 h-10 bg-black text-white rounded-lg flex items-center justify-center hover:bg-gray-800 transition-colors"
+                    title="分享到 X">
                 <i class="fab fa-twitter"></i>
             </button>
-            <button @click="shareToLinkedIn()" 
-                    class="w-10 h-10 bg-blue-700 text-white rounded-lg flex items-center justify-center hover:bg-blue-800 transition-colors">
-                <i class="fab fa-linkedin-in"></i>
+            <button @click="copyLink()" 
+                    class="w-10 h-10 bg-gray-600 text-white rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors"
+                    :title="linkCopied ? '已複製！' : '複製連結'">
+                <i class="fas fa-link" :class="linkCopied ? 'text-green-300' : ''"></i>
             </button>
         </div>
     </div>
@@ -203,17 +217,21 @@ function postDetailApp() {
         relatedPosts: [],
         loading: true,
         linkCopied: false,
+        settings: {}, // 動態設定
 
         async loadPost(slug) {
             this.loading = true;
             try {
+                // 先載入公開設定
+                await this.loadSettings();
+                
                 // 載入文章詳情
                 const response = await fetch(`/api/posts/slug/${slug}`);
                 if (response.ok) {
                     this.post = await response.json();
                     
                     // 更新頁面標題和元標籤
-                    document.title = `${this.post.title} - {{ settings.site_name }}`;
+                    document.title = `${this.post.title} - ${this.settings.site_name || 'BlogCommerce'}`;
                     this.updateMetaTags();
                     
                     // 載入相關文章
@@ -228,6 +246,22 @@ function postDetailApp() {
                 this.post = null;
             } finally {
                 this.loading = false;
+            }
+        },
+
+        async loadSettings() {
+            try {
+                const response = await fetch('/api/settings/public');
+                if (response.ok) {
+                    this.settings = await response.json();
+                }
+            } catch (error) {
+                console.error('載入設定失敗:', error);
+                // 使用預設值
+                this.settings = {
+                    site_name: 'BlogCommerce',
+                    site_description: '部落格與電商整合平台'
+                };
             }
         },
 
@@ -250,18 +284,24 @@ function postDetailApp() {
             // 更新 meta description
             const metaDescription = document.querySelector('meta[name="description"]');
             if (metaDescription) {
-                metaDescription.content = this.post.meta_description || this.post.excerpt || '';
+                metaDescription.content = this.post.meta_description || this.post.excerpt || this.settings.site_description || '';
+            }
+
+            // 更新 meta keywords
+            const metaKeywords = document.querySelector('meta[name="keywords"]');
+            if (metaKeywords) {
+                metaKeywords.content = this.post.meta_keywords || this.settings.default_meta_keywords || '電商,部落格,購物,文章,商品';
             }
 
             // 更新 OG tags
             const ogTitle = document.querySelector('meta[property="og:title"]');
             if (ogTitle) {
-                ogTitle.content = this.post.title;
+                ogTitle.content = this.post.meta_title || this.post.title;
             }
 
             const ogDescription = document.querySelector('meta[property="og:description"]');
             if (ogDescription) {
-                ogDescription.content = this.post.meta_description || this.post.excerpt || '';
+                ogDescription.content = this.post.meta_description || this.post.excerpt || this.settings.site_description || '';
             }
 
             const ogImage = document.querySelector('meta[property="og:image"]');
@@ -275,16 +315,13 @@ function postDetailApp() {
             window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
         },
 
-        shareToTwitter() {
+        shareToX() {
             const url = encodeURIComponent(window.location.href);
             const text = encodeURIComponent(this.post.title);
-            window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=400');
+            window.open(`https://x.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=400');
         },
 
-        shareToLinkedIn() {
-            const url = encodeURIComponent(window.location.href);
-            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'width=600,height=400');
-        },
+
 
         async copyLink() {
             try {

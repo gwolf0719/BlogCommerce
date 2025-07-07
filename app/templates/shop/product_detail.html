@@ -1,6 +1,32 @@
 {% extends "base.html" %}
 
-{% block title %}商品詳情{% endblock %}
+{% block title %}{{ (product.meta_title or product.name) if product else '商品詳情' }} - {{ settings.site_name }}{% endblock %}
+
+{% block description %}{{ product.meta_description or product.short_description or product.description[:160] or settings.site_description if product else settings.site_description }}{% endblock %}
+
+{% block keywords %}{{ product.meta_keywords or settings.default_meta_keywords or '電商,部落格,購物,文章,商品' if product else settings.default_meta_keywords or '電商,部落格,購物,文章,商品' }}{% endblock %}
+
+{% block og_title %}{{ (product.meta_title or product.name) if product else settings.site_name }}{% endblock %}
+
+{% block og_description %}{{ product.meta_description or product.short_description or product.description[:160] or settings.site_description if product else settings.site_description }}{% endblock %}
+
+{% block og_type %}product{% endblock %}
+
+{% block og_image %}{{ product.featured_image if product and product.featured_image else settings.site_logo }}{% endblock %}
+
+{% block twitter_title %}{{ (product.meta_title or product.name) if product else settings.site_name }}{% endblock %}
+
+{% block twitter_description %}{{ product.meta_description or product.short_description or product.description[:160] or settings.site_description if product else settings.site_description }}{% endblock %}
+
+{% block twitter_image %}{{ product.featured_image if product and product.featured_image else settings.site_logo }}{% endblock %}
+
+{% block meta %}
+{% if product %}
+<meta property="product:price:amount" content="{{ product.current_price }}">
+<meta property="product:price:currency" content="TWD">
+<meta property="product:availability" content="{% if product.stock_quantity > 0 %}in stock{% else %}out of stock{% endif %}">
+{% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="productDetailApp('{{ slug }}')">
