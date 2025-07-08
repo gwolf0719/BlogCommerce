@@ -3,19 +3,19 @@
 {% block title %}會員註冊 - {{ settings.site_name }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-primary-gradient py-8 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md mx-auto">
         <!-- Logo 區域 -->
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl shadow-lg mb-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-primary-logo rounded-2xl shadow-primary-lg mb-6">
                 <span class="text-2xl font-bold text-white">B</span>
             </div>
             <h1 class="text-3xl font-bold text-gray-900 mb-2">建立新帳戶</h1>
-            <p class="text-gray-600">加入 伴獸家 會員</p>
+            <p class="text-primary-600">加入 伴獸家 會員</p>
         </div>
         
         <!-- 註冊卡片 -->
-        <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+        <div class="bg-white rounded-2xl shadow-primary-xl p-8 border border-primary-100">
             <form class="space-y-6" x-data="registerApp()" @submit.prevent="register">
                 <div class="space-y-4">
                     <div>
@@ -25,7 +25,7 @@
                                name="username" 
                                type="text" 
                                required
-                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-primary-50 focus:bg-white"
                                placeholder="使用者名稱">
                     </div>
                     
@@ -36,7 +36,7 @@
                                name="email" 
                                type="email" 
                                required
-                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-primary-50 focus:bg-white"
                                placeholder="電子郵件">
                     </div>
                     
@@ -46,7 +46,7 @@
                                id="full_name" 
                                name="full_name" 
                                type="text"
-                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-primary-50 focus:bg-white"
                                placeholder="姓名（選填）">
                     </div>
                     
@@ -57,9 +57,9 @@
                                name="password" 
                                type="password" 
                                required
-                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-primary-50 focus:bg-white"
                                placeholder="密碼（至少6個字元）">
-                        <p class="text-xs text-gray-500 mt-1">密碼至少需要6個字元</p>
+                        <p class="text-xs text-primary-500 mt-1">密碼至少需要6個字元</p>
                     </div>
                     
                     <div>
@@ -69,7 +69,7 @@
                                name="confirm_password" 
                                type="password" 
                                required
-                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-primary-50 focus:bg-white"
                                placeholder="確認密碼">
                         <div x-show="form.password && form.confirm_password && form.password !== form.confirm_password" 
                              class="text-red-500 text-xs mt-1">
@@ -96,7 +96,7 @@
                 <!-- 註冊按鈕 -->
                 <button type="submit" 
                         :disabled="submitting || (form.password && form.confirm_password && form.password !== form.confirm_password)"
-                        class="w-full bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center space-x-2">
+                        class="w-full bg-primary-button hover:bg-primary-button-hover text-white font-semibold py-3 px-4 rounded-xl shadow-primary-lg hover:shadow-primary-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center space-x-2">
                     <span x-show="!submitting">註冊</span>
                     <span x-show="submitting" class="flex items-center">
                         <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
@@ -109,10 +109,10 @@
             </form>
             
             <!-- 分隔線 -->
-            <div class="mt-8 pt-6 border-t border-gray-200">
+            <div class="mt-8 pt-6 border-t border-primary-200">
                 <p class="text-center text-sm text-gray-600">
                     已有帳戶？
-                    <a href="/login" class="font-semibold text-purple-600 hover:text-purple-500 transition-colors duration-200">
+                    <a href="/login" class="font-semibold text-primary-600 hover:text-primary-500 transition-colors duration-200">
                         立即登入
                     </a>
                 </p>
@@ -120,12 +120,12 @@
         </div>
         
         <!-- 會員優惠 -->
-        <div class="mt-8 bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+        <div class="mt-8 bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-primary-100/50">
             <h3 class="text-lg font-semibold text-gray-900 mb-4 text-center">會員專屬優惠</h3>
             <div class="grid grid-cols-1 gap-3">
                 <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                         </svg>
                     </div>
@@ -133,8 +133,8 @@
                 </div>
                 
                 <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                         </svg>
                     </div>
@@ -142,8 +142,8 @@
                 </div>
                 
                 <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h4a1 1 0 011 1v2m-6 0h6m-6 0v16l3-3 3 3V4"></path>
                         </svg>
                     </div>
@@ -153,6 +153,7 @@
         </div>
     </div>
 </div>
+
 
 <script>
 function registerApp() {
