@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}購物車 - BlogCommerce{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="cartApp()">
+    <!-- 頁面標題 - 與其他頁面保持一致的樣式 -->
+    <div class="mb-8">
+        <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">購物車</h1>
+        <p class="text-gray-600">管理您選購的商品</p>
+    </div>
+    
+    <!-- 購物車內容 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- 購物車商品列表 -->
+        <div class="lg:col-span-3" x-show="cart.items.length === 0">
+            <div class="flex flex-col items-center justify-center py-16 px-8">
+                <!-- 購物車圖標 -->
+                <div class="w-32 h-32 mb-8 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center shadow-lg">
+                    <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" 
+                              d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L5 3H3m4 10v6a1 1 0 001 1h10a1 1 0 001-1v-6M9 19a1 1 0 100 2 1 1 0 000-2zm8 0a1 1 0 100 2 1 1 0 000-2z"></path>
+                    </svg>
+                </div>
+                
+                <!-- 主標題 -->
+                <h2 class="text-2xl font-bold text-gray-800 mb-3">您的購物車是空的</h2>
+                
+                <!-- 副標題 -->
+                <p class="text-gray-600 mb-8 max-w-md leading-relaxed text-center">
+                    還沒有找到心儀的商品嗎？快來探索我們精選的商品，開始您的購物之旅！
+                </p>
+                
+                <!-- 行動按鈕 -->
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <a href="/products" 
+                       class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center space-x-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                        </svg>
+                        <span>開始購物</span>
+                    </a>
+                    
+                    <a href="/" 
+                       class="bg-white hover:bg-gray-50 text-gray-700 font-semibold py-4 px-8 rounded-xl border-2 border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transform hover:scale-105 transition-all duration-300 flex items-center space-x-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                        </svg>
+                        <span>回到首頁</span>
+                    </a>
+                </div>
+                
+                <!-- 特色說明 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 w-full max-w-3xl">
+                    <div class="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-800 mb-2">滿千免運</h3>
+                        <p class="text-sm text-gray-600">購物滿 NT$1,000 即享免運費優惠</p>
+                    </div>
+                    
+                    <div class="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-800 mb-2">品質保證</h3>
+                        <p class="text-sm text-gray-600">所有商品均經過嚴格品質檢驗</p>
+                    </div>
+                    
+                    <div class="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                        <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-800 mb-2">貼心服務</h3>
+                        <p class="text-sm text-gray-600">專業客服團隊為您提供優質服務</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 購物車商品列表（有商品時） -->
+        <div class="lg:col-span-2" x-show="cart.items.length > 0">
+            <div class="space-y-4">
+                <template x-for="(item, index) in cart.items" :key="item.product_id">
+                    <!-- 桌面版佈局 -->
+                    <div class="hidden md:flex card items-center space-x-4">
+                        <img :src="item.product.featured_image || '/static/images/placeholder.jpg'" 
+                             :alt="item.product.name" 
+                             class="w-20 h-20 object-cover rounded">
+                        
+                        <div class="flex-1">
+                            <h3 class="font-semibold" x-text="item.product.name"></h3>
+                            <p class="text-gray-600 text-sm truncate" x-text="'NT$' + item.product.current_price.toLocaleString()"></p>
+                            <span x-show="item.product.is_on_sale" class="text-sm text-green-600">特價中</span>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <button @click="updateQuantity(item.product_id, item.quantity - 1)" 
+                                    class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+                                    :disabled="loading">
+                                -
+                            </button>
+                            <span class="w-12 text-center" x-text="item.quantity"></span>
+                            <button @click="updateQuantity(item.product_id, item.quantity + 1)"
+                                    class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+                                    :disabled="loading">
+                                +
+                            </button>
+                        </div>
+                        
+                        <div class="text-right min-w-[100px]">
+                            <div class="font-semibold whitespace-nowrap" x-text="'NT$' + item.subtotal.toLocaleString()"></div>
+                            <button @click="removeItem(item.product_id)" 
+                                    class="text-red-500 hover:text-red-700 text-sm mt-1"
+                                    :disabled="loading">
+                                移除
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 手機版佈局 -->
+                    <div class="md:hidden card">
+                        <div class="flex space-x-3 mb-3">
+                            <img :src="item.product.featured_image || '/static/images/placeholder.jpg'" 
+                                 :alt="item.product.name" 
+                                 class="w-16 h-16 object-cover rounded">
+                            <div class="flex-1">
+                                <h3 class="font-semibold text-sm" x-text="item.product.name"></h3>
+                                <p class="text-gray-600 text-sm truncate" x-text="'NT$' + item.product.current_price.toLocaleString()"></p>
+                                <span x-show="item.product.is_on_sale" class="text-xs text-green-600">特價中</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-gray-600">數量：</span>
+                                <button @click="updateQuantity(item.product_id, item.quantity - 1)" 
+                                        class="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-sm"
+                                        :disabled="loading">
+                                    -
+                                </button>
+                                <span class="w-8 text-center text-sm" x-text="item.quantity"></span>
+                                <button @click="updateQuantity(item.product_id, item.quantity + 1)"
+                                        class="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-sm"
+                                        :disabled="loading">
+                                    +
+                                </button>
+                            </div>
+                            
+                            <div class="text-right min-w-[90px]">
+                                <div class="font-semibold text-sm whitespace-nowrap" x-text="'NT$' + item.subtotal.toLocaleString()"></div>
+                                <button @click="removeItem(item.product_id)" 
+                                        class="text-red-500 hover:text-red-700 text-xs mt-1"
+                                        :disabled="loading">
+                                    移除
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+        
+        <!-- 訂單摘要 -->
+        <div x-show="cart.items.length > 0" class="lg:col-span-1">
+            <div class="card sticky top-4">
+                <h2 class="text-xl font-semibold mb-4">訂單摘要</h2>
+                
+                <div class="space-y-3 mb-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">小計</span>
+                        <span class="font-medium" x-text="'NT$' + cart.subtotal.toLocaleString()"></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">運費</span>
+                        <span class="font-medium" x-text="shippingFee > 0 ? 'NT$' + shippingFee.toLocaleString() : '免運費'"></span>
+                    </div>
+                    <hr class="border-gray-200">
+                    <div class="flex justify-between items-center font-bold text-lg text-gray-900">
+                        <span>總計</span>
+                        <span class="text-xl text-red-600" x-text="'NT$' + (cart.total + shippingFee).toLocaleString()"></span>
+                    </div>
+                </div>
+                
+                <div class="text-sm text-gray-600 mb-4" x-show="shippingFee > 0">
+                    滿 NT$1,000 享免運費
+                </div>
+                
+                <button @click="goToCheckout()" 
+                        class="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center space-x-2"
+                        :disabled="cart.items.length === 0 || loading">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                    </svg>
+                    <span x-show="!loading">前往結帳</span>
+                    <span x-show="loading" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        處理中...
+                    </span>
+                </button>
+                
+                <a href="/products" class="block text-center bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl border border-gray-300 hover:border-gray-400 transform hover:scale-105 transition-all duration-300 shadow-sm hover:shadow-md mt-4 flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path>
+                    </svg>
+                    <span>繼續購物</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function cartApp() {
+    return {
+        cart: {
+            items: [],
+            total_items: 0,
+            subtotal: 0,
+            total: 0
+        },
+        loading: false,
+        
+        get shippingFee() {
+            return this.cart.total < 1000 ? 60 : 0;
+        },
+        
+        init() {
+            this.loadCart();
+        },
+        
+        async loadCart() {
+            this.loading = true;
+            try {
+                const response = await fetch('/api/cart/');
+                if (response.ok) {
+                    this.cart = await response.json();
+                    // 更新全域購物車計數
+                    if (window.updateCartCount) {
+                        // 直接更新計數，避免重複請求
+                        const authComponent = document.querySelector('[x-data*="authApp"]')?.__x?.$data;
+                        if (authComponent) {
+                            authComponent.cartCount = this.cart.total_items || 0;
+                            authComponent.updateCartCountDisplay();
+                        }
+                    }
+                } else {
+                    console.error('載入購物車失敗');
+                }
+            } catch (error) {
+                console.error('載入購物車失敗:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        async updateQuantity(productId, newQuantity) {
+            if (newQuantity <= 0) {
+                await this.removeItem(productId);
+                return;
+            }
+            
+            this.loading = true;
+            try {
+                const response = await fetch('/api/cart/update', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        quantity: newQuantity
+                    })
+                });
+                
+                if (response.ok) {
+                    await this.loadCart();
+                    // 即時更新右上角購物車數字
+                    if (window.updateCartCount) {
+                        window.updateCartCount();
+                    }
+                } else {
+                    const error = await response.json();
+                    alert(error.detail || '更新失敗');
+                }
+            } catch (error) {
+                console.error('更新數量失敗:', error);
+                alert('更新失敗，請稍後再試');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        async removeItem(productId) {
+            this.loading = true;
+            try {
+                const response = await fetch(`/api/cart/remove/${productId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    await this.loadCart();
+                    // 即時更新右上角購物車數字
+                    if (window.updateCartCount) {
+                        window.updateCartCount();
+                    }
+                } else {
+                    const error = await response.json();
+                    alert(error.detail || '移除失敗');
+                }
+            } catch (error) {
+                console.error('移除商品失敗:', error);
+                alert('移除失敗，請稍後再試');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        async clearCart() {
+            if (!confirm('確定要清空購物車嗎？')) {
+                return;
+            }
+            
+            this.loading = true;
+            try {
+                const response = await fetch('/api/cart/clear', {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    await this.loadCart();
+                    // 即時更新右上角購物車數字
+                    if (window.updateCartCount) {
+                        window.updateCartCount();
+                    }
+                } else {
+                    alert('清空購物車失敗');
+                }
+            } catch (error) {
+                console.error('清空購物車失敗:', error);
+                alert('清空購物車失敗，請稍後再試');
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        goToCheckout() {
+            if (this.cart.items.length === 0) {
+                return;
+            }
+            
+            // 檢查是否已登入
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                // 顯示登入提示
+                if (confirm('您需要先登入才能進行結帳，是否前往登入頁面？')) {
+                    // 儲存當前路徑，登入後返回
+                    localStorage.setItem('redirect_after_login', '/checkout');
+                    window.location.href = '/login';
+                }
+                return;
+            }
+            
+            // 已登入，直接前往結帳
+            window.location.href = '/checkout';
+        }
+    }
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}配送說明 - {{ settings.site_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- 頁面標題 -->
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 mb-4">配送說明</h1>
+                <p class="text-xl text-gray-600">了解我們的配送服務</p>
+            </div>
+
+            <!-- 配送資訊 -->
+            <div class="bg-white rounded-lg shadow-sm p-8 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-6">配送方式與時間</h2>
+                
+                <div class="grid md:grid-cols-2 gap-8 mb-8">
+                    <div class="border rounded-lg p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 9M7 13h10"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">宅配到府</h3>
+                        </div>
+                        <p class="text-gray-700 mb-3">由專業配送人員直接送達您指定的地址</p>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• 配送時間：1-3 個工作天</li>
+                            <li>• 配送範圍：台灣本島</li>
+                            <li>• 配送時段：09:00-18:00</li>
+                        </ul>
+                    </div>
+
+                    <div class="border rounded-lg p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">超商取貨</h3>
+                        </div>
+                        <p class="text-gray-700 mb-3">到您指定的便利商店取貨，24小時都方便</p>
+                        <ul class="text-sm text-gray-600 space-y-1">
+                            <li>• 配送時間：2-4 個工作天</li>
+                            <li>• 取貨期限：到店後 7 天內</li>
+                            <li>• 支援店家：7-11、全家、萊爾富</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h2 class="text-2xl font-semibold text-gray-900 mb-6">運費說明</h2>
+                
+                <div class="bg-blue-50 rounded-lg p-6 mb-6">
+                    <div class="flex items-center mb-4">
+                        <svg class="w-8 h-8 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        <h3 class="text-xl font-bold text-gray-900">免運費優惠</h3>
+                    </div>
+                    <p class="text-lg text-gray-800 font-medium">
+                        訂單金額滿 <span class="text-red-600 font-bold">NT$1,000</span> 即享免運費優惠！
+                    </p>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="border border-gray-300 px-4 py-3 text-left font-semibold">配送方式</th>
+                                <th class="border border-gray-300 px-4 py-3 text-left font-semibold">配送區域</th>
+                                <th class="border border-gray-300 px-4 py-3 text-left font-semibold">運費</th>
+                                <th class="border border-gray-300 px-4 py-3 text-left font-semibold">配送時間</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border border-gray-300 px-4 py-3">宅配到府</td>
+                                <td class="border border-gray-300 px-4 py-3">台灣本島</td>
+                                <td class="border border-gray-300 px-4 py-3">NT$60 (滿千免運)</td>
+                                <td class="border border-gray-300 px-4 py-3">1-3 個工作天</td>
+                            </tr>
+                            <tr class="bg-gray-50">
+                                <td class="border border-gray-300 px-4 py-3">超商取貨</td>
+                                <td class="border border-gray-300 px-4 py-3">台灣本島</td>
+                                <td class="border border-gray-300 px-4 py-3">NT$60 (滿千免運)</td>
+                                <td class="border border-gray-300 px-4 py-3">2-4 個工作天</td>
+                            </tr>
+                            <tr>
+                                <td class="border border-gray-300 px-4 py-3">宅配到府</td>
+                                <td class="border border-gray-300 px-4 py-3">離島地區</td>
+                                <td class="border border-gray-300 px-4 py-3">NT$150</td>
+                                <td class="border border-gray-300 px-4 py-3">3-5 個工作天</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 配送注意事項 -->
+            <div class="bg-white rounded-lg shadow-sm p-8 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-6">配送注意事項</h2>
+                
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                            <span class="text-yellow-600 text-xs font-bold">1</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-1">收件資料確認</h4>
+                            <p class="text-gray-700">請務必確認收件人姓名、電話、地址等資料正確，避免配送延誤。</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                            <span class="text-yellow-600 text-xs font-bold">2</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-1">配送時間說明</h4>
+                            <p class="text-gray-700">配送時間不包含例假日，遇連續假期可能延後配送。</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                            <span class="text-yellow-600 text-xs font-bold">3</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-1">商品檢查</h4>
+                            <p class="text-gray-700">收到商品請立即檢查，如有損壞請在收件當日聯絡客服。</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                            <span class="text-yellow-600 text-xs font-bold">4</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-1">無人收件</h4>
+                            <p class="text-gray-700">如無人收件，配送員會留下取貨通知單，請依通知單指示重新安排配送。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 返回按鈕 -->
+            <div class="text-center">
+                <a href="/" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                    返回首頁
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

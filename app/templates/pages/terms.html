@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}服務條款 - {{ settings.site_name }}{% endblock %}
+
+{% block meta_description %}{{ settings.site_name }} 服務條款，了解我們的服務規範和用戶權益。{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- 頁面標題 -->
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 mb-4">服務條款</h1>
+                <p class="text-lg text-gray-600">最後更新日期：2024年6月7日</p>
+            </div>
+
+        <!-- 服務條款內容 -->
+        <div class="bg-white rounded-lg shadow-sm p-8 space-y-8">
+            
+            <!-- 1. 服務概述 -->
+            <section>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">1. 服務概述</h2>
+                <div class="prose prose-gray max-w-none">
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        歡迎使用 {{ settings.site_name }}（以下簡稱「本平台」）。本服務條款（以下簡稱「條款」）規範您使用本平台所提供的所有服務。
+                    </p>
+                    <p class="text-gray-700 leading-relaxed">
+                        本平台提供部落格內容閱讀、商品瀏覽購買、會員註冊等服務。當您使用本平台任何服務時，即表示您已閱讀、了解並同意遵守本條款的所有規定。
+                    </p>
+                </div>
+            </section>
+
+            <!-- 2. 用戶註冊與帳號 -->
+            <section>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">2. 用戶註冊與帳號</h2>
+                <div class="prose prose-gray max-w-none">
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li>您必須提供真實、準確、完整的註冊資訊</li>
+                        <li>您有責任維護帳號密碼的安全性</li>
+                        <li>您不得將帳號轉讓給他人使用</li>
+                        <li>如發現帳號被盜用，請立即通知我們</li>
+                        <li>我們保留暫停或終止違規帳號的權利</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 3. 商品與訂單 -->
+            <section>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">3. 商品與訂單</h2>
+                <div class="prose prose-gray max-w-none">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">3.1 商品資訊</h3>
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        我們致力於提供準確的商品資訊，包括價格、規格、庫存等。但由於技術限制，可能存在資訊更新延遲的情況。
+                    </p>
+                    
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">3.2 訂單處理</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li>訂單成立後，我們將在 1-2 個工作日內處理</li>
+                        <li>如商品缺貨，我們將主動聯繫您處理</li>
+                        <li>我們保留拒絕異常訂單的權利</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 4. 付款與退款 -->
+            <section>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">4. 付款與退款</h2>
+                <div class="prose prose-gray max-w-none">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">4.1 付款方式</h3>
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        我們接受信用卡、轉帳等多種付款方式。所有交易均採用安全加密技術保護。
+                    </p>
+                    
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">4.2 退款政策</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li>商品未出貨前可申請取消訂單</li>
+                        <li>收到商品後 7 天內可申請退貨</li>
+                        <li>退貨商品須保持原包裝完整</li>
+                        <li>退款將在確認退貨後 3-5 個工作日內處理</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 5. 配送服務 -->
+            <section>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">5. 配送服務</h2>
+                <div class="prose prose-gray max-w-none">
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li>一般商品配送時間為 3-7 個工作日</li>
+                        <li>偏遠地區可能需要額外配送時間</li>
+                        <li>配送費用依商品重量和配送地區計算</li>
+                        <li>滿 {{ settings.free_shipping_threshold or 1000 }} 元免運費</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 6. 智慧財產權 -->
+            <section>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">6. 智慧財產權</h2>
+                <div class="prose prose-gray max-w-none">
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        本平台的所有內容，包括但不限於文字、圖片、影片、商標、設計等，均受智慧財產權法保護。
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li>未經授權不得複製、修改、分發本平台內容</li>
+                        <li>用戶上傳的內容須確保不侵犯他人權益</li>
+                        <li>如發現侵權行為，我們將依法處理</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 7. 隱私保護 -->
+            <section>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">7. 隱私保護</h2>
+                <div class="prose prose-gray max-w-none">
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        我們重視您的隱私權，詳細的隱私政策請參閱 <a href="/privacy" class="text-primary-600 hover:text-primary-700">隱私權政策</a>。
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li>我們僅收集必要的個人資訊</li>
+                        <li>不會將您的資訊提供給第三方</li>
+                        <li>採用安全技術保護您的資料</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 8. 免責聲明 -->
+            <section>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">8. 免責聲明</h2>
+                <div class="prose prose-gray max-w-none">
+                    <ul class="list-disc list-inside space-y-2 text-gray-700">
+                        <li>本平台不保證服務不會中斷或完全無錯誤</li>
+                        <li>因不可抗力因素導致的服務中斷，我們不承擔責任</li>
+                        <li>用戶因使用本服務產生的損失，我們僅在法律範圍內承擔責任</li>
+                        <li>第三方連結的內容不代表本平台立場</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 9. 條款修改 -->
+            <section>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">9. 條款修改</h2>
+                <div class="prose prose-gray max-w-none">
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        我們保留隨時修改本條款的權利。修改後的條款將在本頁面公布，並自公布之日起生效。
+                    </p>
+                    <p class="text-gray-700 leading-relaxed">
+                        建議您定期查看本條款。繼續使用本服務即表示您接受修改後的條款。
+                    </p>
+                </div>
+            </section>
+
+            <!-- 10. 聯絡我們 -->
+            <section>
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">10. 聯絡我們</h2>
+                <div class="prose prose-gray max-w-none">
+                    <p class="text-gray-700 leading-relaxed mb-4">
+                        如果您對本服務條款有任何疑問，請透過以下方式聯絡我們：
+                    </p>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <ul class="space-y-2 text-gray-700">
+                            <li><strong>客服信箱：</strong> support@{{ settings.site_name.lower() }}.com</li>
+                            <li><strong>客服電話：</strong> (02) 1234-5678</li>
+                            <li><strong>服務時間：</strong> 週一至週五 09:00-18:00</li>
+                            <li><strong>聯絡頁面：</strong> <a href="/contact" class="text-primary-600 hover:text-primary-700">聯絡我們</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+            <!-- 返回首頁按鈕 -->
+            <div class="text-center mt-12">
+                <a href="/" class="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors duration-200">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    返回首頁
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

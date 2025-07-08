@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}{{ (post.meta_title or post.title) if post else '文章載入中' }} - {{ settings.site_name }}{% endblock %}
+
+{% block description %}{{ post.meta_description or post.excerpt or settings.site_description if post else settings.site_description }}{% endblock %}
+
+{% block keywords %}{{ post.meta_keywords or settings.default_meta_keywords or '電商,部落格,購物,文章,商品' if post else settings.default_meta_keywords or '電商,部落格,購物,文章,商品' }}{% endblock %}
+
+{% block og_title %}{{ (post.meta_title or post.title) if post else settings.site_name }}{% endblock %}
+
+{% block og_description %}{{ post.meta_description or post.excerpt or settings.site_description if post else settings.site_description }}{% endblock %}
+
+{% block og_type %}article{% endblock %}
+
+{% block og_image %}{{ post.featured_image if post and post.featured_image else settings.site_logo }}{% endblock %}
+
+{% block twitter_title %}{{ (post.meta_title or post.title) if post else settings.site_name }}{% endblock %}
+
+{% block twitter_description %}{{ post.meta_description or post.excerpt or settings.site_description if post else settings.site_description }}{% endblock %}
+
+{% block twitter_image %}{{ post.featured_image if post and post.featured_image else settings.site_logo }}{% endblock %}
+
+{% block meta %}
+{% if post %}
+<meta property="article:published_time" content="{{ post.created_at.isoformat() }}">
+{% if post.updated_at %}
+<meta property="article:modified_time" content="{{ post.updated_at.isoformat() }}">
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div x-data="postDetailApp()" x-init="loadPost('{{ slug }}')" data-content-id="">
+    <!-- 載入中 -->
+    <div x-show="loading" class="flex justify-center items-center py-20">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+
+    <!-- 文章內容 -->
+    <div x-show="!loading && post" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 文章標題區 -->
+        <header class="mb-8">
+            <div class="text-center">
+                <!-- 分類功能已移除 -->
+
+                <!-- 文章標題 -->
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4" x-text="post.title"></h1>
+
+                <!-- 文章摘要 -->
+                <p class="text-lg text-gray-600 mb-6" x-text="post.excerpt" x-show="post.excerpt"></p>
+
+                <!-- 文章資訊 -->
+                <div class="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-6 text-sm text-gray-500">
+                    <div class="flex items-center">
+                        <i class="fas fa-user mr-2"></i>
+                        <span x-text="post.author?.username || '作者'"></span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar mr-2"></i>
+                        <span x-text="formatDate(post.created_at)"></span>
+                    </div>
+                    <div class="flex items-center" x-show="post.reading_time">
+                        <i class="fas fa-clock mr-2"></i>
+                        <span x-text="post.reading_time + ' 分鐘閱讀'"></span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 特色圖片 -->
+        <div class="mb-8" x-show="post.featured_image">
+            <img :src="post.featured_image" 
+                 :alt="post.title" 
+                 class="w-full h-96 object-cover rounded-lg shadow-lg">
+        </div>
+
+        <!-- 目錄 (如果有的話) -->
+        <div x-show="post.toc" class="mb-8 bg-gray-50 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold mb-3">目錄</h3>
+            <div x-html="post.toc" class="toc-content"></div>
+        </div>
+
+        <!-- 文章內容 -->
+        <article class="prose prose-lg max-w-none mb-12">
+            <div x-html="post.content_html || post.content"></div>
+        </article>
+
+        <!-- 標籤功能已移除 -->
+
+        <!-- 分享按鈕 -->
+        <div class="mb-12">
+            <h3 class="text-lg font-semibold text-gray-900 mb-3">分享文章</h3>
+            <div class="flex space-x-4">
+                <button @click="shareToFacebook()" 
+                        class="w-12 h-12 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
+                        title="分享到 Facebook">
+                    <i class="fab fa-facebook-f text-lg"></i>
+                </button>
+                <button @click="shareToX()" 
+                        class="w-12 h-12 bg-black text-white rounded-lg flex items-center justify-center hover:bg-gray-800 transition-colors"
+                        title="分享到 X">
+                    <i class="fab fa-twitter text-lg"></i>
+                </button>
+                <button @click="copyLink()" 
+                        class="w-12 h-12 bg-gray-600 text-white rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors"
+                        :title="linkCopied ? '已複製！' : '複製連結'">
+                    <i class="fas fa-link text-lg" :class="linkCopied ? 'text-green-300' : ''"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 作者資訊 -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-12" x-show="post.author">
+            <div class="flex items-start space-x-4">
+                <img :src="post.author?.avatar || '/static/images/default-avatar.png'" 
+                     :alt="post.author?.username" 
+                     class="w-16 h-16 rounded-full object-cover">
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900" x-text="post.author?.username"></h3>
+                    <p class="text-gray-600" x-text="post.author?.bio || '這位作者還沒有填寫個人簡介。'"></p>
+                    <div class="mt-2 flex space-x-3" x-show="post.author?.social_links">
+                        <a :href="post.author?.social_links?.website" 
+                           x-show="post.author?.social_links?.website"
+                           class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-globe"></i>
+                        </a>
+                        <a :href="post.author?.social_links?.twitter" 
+                           x-show="post.author?.social_links?.twitter"
+                           class="text-gray-500 hover:text-gray-700">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a :href="post.author?.social_links?.linkedin" 
+                           x-show="post.author?.social_links?.linkedin"
+                           class="text-gray-500 hover:text-gray-700">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 相關文章 -->
+        <div class="mb-12" x-show="relatedPosts.length > 0">
+            <h3 class="text-2xl font-bold text-gray-900 mb-6">相關文章</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <template x-for="relatedPost in relatedPosts" :key="relatedPost.id">
+                    <article class="bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
+                        <a :href="'/blog/' + relatedPost.slug">
+                            <img :src="relatedPost.featured_image || '/static/images/placeholder.jpg'" 
+                                 :alt="relatedPost.title" 
+                                 class="w-full h-48 object-cover">
+                            <div class="p-4">
+                                <h4 class="font-semibold text-gray-900 mb-2 line-clamp-2" x-text="relatedPost.title"></h4>
+                                <p class="text-gray-600 text-sm line-clamp-3" x-text="relatedPost.excerpt"></p>
+                                <div class="mt-3 text-xs text-gray-500">
+                                    <span x-text="formatDate(relatedPost.created_at)"></span>
+                                </div>
+                            </div>
+                        </a>
+                    </article>
+                </template>
+            </div>
+        </div>
+
+        <!-- 導航按鈕 -->
+        <div class="flex justify-between items-center">
+            <a href="/blog" 
+               class="flex items-center text-blue-600 hover:text-blue-800 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>
+                返回文章列表
+            </a>
+            <button @click="scrollToTop()" 
+                    class="flex items-center text-gray-600 hover:text-gray-800 transition-colors">
+                <i class="fas fa-arrow-up mr-2"></i>
+                回到頂部
+            </button>
+        </div>
+    </div>
+
+    <!-- 404 錯誤 -->
+    <div x-show="!loading && !post" class="text-center py-20">
+        <i class="fas fa-file-alt text-6xl text-gray-400 mb-4"></i>
+        <h1 class="text-3xl font-bold text-gray-900 mb-4">文章不存在</h1>
+        <p class="text-gray-600 mb-8">抱歉，您要查看的文章不存在或已被刪除。</p>
+        <a href="/blog" 
+           class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+            瀏覽其他文章
+        </a>
+    </div>
+
+    <!-- 固定的社群分享按鈕 -->
+    <div class="fixed right-4 top-1/2 transform -translate-y-1/2 z-40" x-show="post">
+        <div class="bg-white rounded-lg shadow-lg p-2 space-y-2">
+            <button @click="shareToFacebook()" 
+                    class="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
+                    title="分享到 Facebook">
+                <i class="fab fa-facebook-f"></i>
+            </button>
+            <button @click="shareToX()" 
+                    class="w-10 h-10 bg-black text-white rounded-lg flex items-center justify-center hover:bg-gray-800 transition-colors"
+                    title="分享到 X">
+                <i class="fab fa-twitter"></i>
+            </button>
+            <button @click="copyLink()" 
+                    class="w-10 h-10 bg-gray-600 text-white rounded-lg flex items-center justify-center hover:bg-gray-700 transition-colors"
+                    :title="linkCopied ? '已複製！' : '複製連結'">
+                <i class="fas fa-link" :class="linkCopied ? 'text-green-300' : ''"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function postDetailApp() {
+    return {
+        post: null,
+        relatedPosts: [],
+        loading: true,
+        linkCopied: false,
+        settings: {}, // 動態設定
+
+        async loadPost(slug) {
+            this.loading = true;
+            try {
+                // 先載入公開設定
+                await this.loadSettings();
+                
+                // 載入文章詳情
+                const response = await fetch(`/api/posts/slug/${slug}`);
+                if (response.ok) {
+                    this.post = await response.json();
+                    
+                    // 更新頁面標題和元標籤
+                    document.title = `${this.post.title} - ${this.settings.site_name || 'BlogCommerce'}`;
+                    this.updateMetaTags();
+                    
+                    // 載入相關文章
+                    await this.loadRelatedPosts();
+                } else if (response.status === 404) {
+                    this.post = null;
+                } else {
+                    console.error('載入文章失敗');
+                }
+            } catch (error) {
+                console.error('載入文章錯誤:', error);
+                this.post = null;
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async loadSettings() {
+            try {
+                const response = await fetch('/api/settings/public');
+                if (response.ok) {
+                    this.settings = await response.json();
+                }
+            } catch (error) {
+                console.error('載入設定失敗:', error);
+                // 使用預設值
+                this.settings = {
+                    site_name: 'BlogCommerce',
+                    site_description: '部落格與電商整合平台'
+                };
+            }
+        },
+
+        async loadRelatedPosts() {
+            if (!this.post) return;
+            
+            try {
+                const response = await fetch(`/api/posts/${this.post.id}/related`);
+                if (response.ok) {
+                    this.relatedPosts = await response.json();
+                }
+            } catch (error) {
+                console.error('載入相關文章失敗:', error);
+            }
+        },
+
+        updateMetaTags() {
+            if (!this.post) return;
+
+            // 更新 meta description
+            const metaDescription = document.querySelector('meta[name="description"]');
+            if (metaDescription) {
+                metaDescription.content = this.post.meta_description || this.post.excerpt || this.settings.site_description || '';
+            }
+
+            // 更新 meta keywords
+            const metaKeywords = document.querySelector('meta[name="keywords"]');
+            if (metaKeywords) {
+                metaKeywords.content = this.post.meta_keywords || this.settings.default_meta_keywords || '電商,部落格,購物,文章,商品';
+            }
+
+            // 更新 OG tags
+            const ogTitle = document.querySelector('meta[property="og:title"]');
+            if (ogTitle) {
+                ogTitle.content = this.post.meta_title || this.post.title;
+            }
+
+            const ogDescription = document.querySelector('meta[property="og:description"]');
+            if (ogDescription) {
+                ogDescription.content = this.post.meta_description || this.post.excerpt || this.settings.site_description || '';
+            }
+
+            const ogImage = document.querySelector('meta[property="og:image"]');
+            if (ogImage && this.post.featured_image) {
+                ogImage.content = this.post.featured_image;
+            }
+        },
+
+        shareToFacebook() {
+            const url = encodeURIComponent(window.location.href);
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=400');
+        },
+
+        shareToX() {
+            const url = encodeURIComponent(window.location.href);
+            const text = encodeURIComponent(this.post.title);
+            window.open(`https://x.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=400');
+        },
+
+
+
+        async copyLink() {
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                this.linkCopied = true;
+                setTimeout(() => {
+                    this.linkCopied = false;
+                }, 2000);
+            } catch (error) {
+                console.error('複製連結失敗:', error);
+            }
+        },
+
+        scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        },
+
+        formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('zh-TW', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+    }
+}
+</script>
+{% endblock %} 

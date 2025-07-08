@@ -1,0 +1,784 @@
+{% extends "base.html" %}
+
+{% block title %}結帳 - BlogCommerce{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-8">結帳</h1>
+    
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 訂單資訊 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold mb-4">訂單明細</h2>
+                
+                <div class="space-y-4" id="order-items">
+                    <!-- 購物車商品將在這裡顯示 -->
+                </div>
+                
+                <!-- 優惠碼輸入 -->
+                <div class="border-t pt-4 mt-4">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">優惠碼</label>
+                        <div class="flex space-x-2">
+                            <input type="text" 
+                                   id="coupon-code" 
+                                   placeholder="請輸入優惠碼"
+                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                            <button type="button" 
+                                    id="apply-coupon-btn"
+                                    onclick="applyCoupon()"
+                                    class="px-4 py-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                                套用
+                            </button>
+                        </div>
+                        <div id="coupon-message" class="mt-2 text-sm hidden"></div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span>小計</span>
+                            <span id="subtotal-amount">$0</span>
+                        </div>
+                        <div id="coupon-discount" class="flex justify-between items-center text-green-600 hidden">
+                            <span>優惠折扣</span>
+                            <span id="discount-amount">-$0</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>運費</span>
+                            <div id="shipping-amount" class="text-right">
+                                <span id="original-shipping" class="text-gray-900">NT$0</span>
+                                <span id="free-shipping" class="text-green-600 font-medium hidden">免運費</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center text-lg font-semibold border-t pt-2">
+                            <span>總計</span>
+                            <span id="total-amount">$0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 結帳表單 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 class="text-xl font-semibold mb-4">結帳資訊</h2>
+                
+                <form id="checkout-form" class="space-y-4">
+                    <!-- 收件人資訊 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">收件人姓名 *</label>
+                        <input type="text" name="customer_name" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">聯絡電話 *</label>
+                        <input type="tel" name="customer_phone" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">電子信箱 *</label>
+                        <input type="email" name="customer_email" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">收件地址 *</label>
+                        <textarea name="shipping_address" required rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">備註</label>
+                        <textarea name="notes" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"></textarea>
+                    </div>
+                    
+                    <!-- 付款方式選擇 -->
+                    <div class="border-t pt-4">
+                        <h3 class="text-lg font-medium mb-3">付款方式</h3>
+                        
+                        <div id="no-payment-warning" class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg" style="display: none;">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-yellow-800">
+                                        注意
+                                    </h3>
+                                    <div class="mt-1 text-sm text-yellow-700">
+                                        目前沒有可用的付款方式。請聯絡客服或管理員。
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <label class="flex items-start p-3 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors" id="transfer-option" style="display: none;">
+                                <input type="radio" name="payment_method" value="transfer" class="mt-1 mr-3 text-primary-600 focus:ring-primary-500" required>
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-900">銀行轉帳</div>
+                                    <div class="text-sm text-gray-500 mt-1">完成訂單後將提供轉帳資訊</div>
+                                </div>
+                            </label>
+                            
+                            <label class="flex items-start p-3 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors" id="linepay-option" style="display: none;">
+                                <input type="radio" name="payment_method" value="linepay" class="mt-1 mr-3 text-primary-600 focus:ring-primary-500">
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-900 flex items-center">
+                                        <span>Line Pay</span>
+                                        <img src="https://pay.line.me/static/general/web/pc/zh-hant/img/logo.png" alt="Line Pay" class="ml-2 h-6">
+                                    </div>
+                                    <div class="text-sm text-gray-500 mt-1">使用 Line Pay 線上付款</div>
+                                </div>
+                            </label>
+                            
+                            <label class="flex items-start p-3 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors" id="ecpay-option" style="display: none;">
+                                <input type="radio" name="payment_method" value="ecpay" class="mt-1 mr-3 text-primary-600 focus:ring-primary-500">
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-900">綠界科技</div>
+                                    <div class="text-sm text-gray-500 mt-1">信用卡、ATM、超商付款</div>
+                                </div>
+                            </label>
+                            
+                            <label class="flex items-start p-3 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors" id="paypal-option" style="display: none;">
+                                <input type="radio" name="payment_method" value="paypal" class="mt-1 mr-3 text-primary-600 focus:ring-primary-500">
+                                <div class="flex-1">
+                                    <div class="font-medium text-gray-900">PayPal</div>
+                                    <div class="text-sm text-gray-500 mt-1">使用 PayPal 線上付款</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 提交按鈕 -->
+                    <div class="pt-4">
+                        <button type="submit" id="submit-btn" 
+                                class="w-full bg-gradient-to-r from-primary-500 to-primary-600 text-white py-3 px-4 rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 transition-colors font-medium">
+                            確認下單
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+</div>
+
+<!-- 付款處理彈窗 -->
+<div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="text-center">
+            <div class="mb-4">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            </div>
+            <h3 class="text-lg font-medium mb-2">處理中...</h3>
+            <p class="text-gray-600" id="payment-status">正在建立訂單</p>
+        </div>
+    </div>
+</div>
+
+<!-- 轉帳資訊彈窗 -->
+<div id="transfer-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-medium mb-4">轉帳資訊</h3>
+        <div class="space-y-3" id="transfer-info">
+            <!-- 轉帳資訊將在這裡顯示 -->
+        </div>
+        <div class="mt-6 flex space-x-3">
+            <button onclick="closeTransferModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-xl hover:bg-gray-400 transition-colors">
+                關閉
+            </button>
+            <button onclick="viewOrder()" class="flex-1 bg-gradient-to-r from-primary-500 to-primary-600 text-white py-2 px-4 rounded-xl hover:from-primary-600 hover:to-primary-700 transition-colors">
+                查看訂單
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let cartItems = [];
+let currentOrderId = null;
+let appliedCoupon = null;
+let couponDiscount = 0;
+
+// 初始化頁面
+document.addEventListener('DOMContentLoaded', function() {
+    loadCart();
+    checkPaymentMethods();
+    setupForm();
+    loadUserProfile();
+});
+
+// 載入購物車
+async function loadCart() {
+    try {
+        const response = await fetch('/api/cart/');
+
+        if (response.ok) {
+            const data = await response.json();
+            cartItems = data.items || [];
+            displayOrderItems();
+            calculateTotal();
+        } else {
+            alert('無法載入購物車資料');
+            window.location.href = '/cart';
+        }
+    } catch (error) {
+        console.error('載入購物車失敗:', error);
+        alert('載入購物車失敗');
+    }
+}
+
+// 顯示訂單商品
+function displayOrderItems() {
+    const container = document.getElementById('order-items');
+    
+    if (cartItems.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">購物車是空的</p>';
+        return;
+    }
+    
+    container.innerHTML = cartItems.map(item => `
+        <div class="flex items-center space-x-4 p-3 border-b">
+            <img src="${item.product.featured_image || '/static/images/placeholder-product.jpg'}" 
+                 alt="${item.product.name}" class="w-16 h-16 object-cover rounded">
+            <div class="flex-1">
+                <h4 class="font-medium">${item.product.name}</h4>
+                <p class="text-gray-600">數量: ${item.quantity}</p>
+            </div>
+            <div class="text-right">
+                <p class="font-medium">$${(item.product.price * item.quantity).toFixed(2)}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 計算總金額
+function calculateTotal() {
+    const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    
+    // 使用動態運費設定
+    const shippingFee = window.shippingFee || 60;
+    const freeShippingThreshold = window.freeShippingThreshold || 1000;
+    
+    // 檢查免運條件
+    const reachedFreeThreshold = subtotal >= freeShippingThreshold;
+    const hasFreeShippingCoupon = appliedCoupon && appliedCoupon.free_shipping;
+    const isFreeShipping = reachedFreeThreshold || hasFreeShippingCoupon;
+    
+    const shipping = isFreeShipping ? 0 : shippingFee;
+    const total = subtotal - couponDiscount + shipping;
+    
+    // 更新顯示
+    document.getElementById('subtotal-amount').textContent = `NT$${subtotal.toLocaleString()}`;
+    updateShippingDisplay(shippingFee, isFreeShipping, reachedFreeThreshold, hasFreeShippingCoupon);
+    document.getElementById('total-amount').textContent = `NT$${total.toLocaleString()}`;
+    
+    // 顯示/隱藏優惠折扣
+    if (couponDiscount > 0) {
+        document.getElementById('coupon-discount').classList.remove('hidden');
+        document.getElementById('discount-amount').textContent = `-NT$${couponDiscount.toLocaleString()}`;
+    } else {
+        document.getElementById('coupon-discount').classList.add('hidden');
+    }
+}
+
+// 更新運費顯示
+function updateShippingDisplay(originalFee, isFreeShipping, reachedFreeThreshold, hasFreeShippingCoupon) {
+    const originalShippingElement = document.getElementById('original-shipping');
+    const freeShippingElement = document.getElementById('free-shipping');
+    
+    // 先顯示原運費
+    originalShippingElement.textContent = `NT$${originalFee.toLocaleString()}`;
+    
+    if (isFreeShipping) {
+        // 免運條件：劃掉原運費，顯示免運費
+        originalShippingElement.classList.add('line-through', 'text-gray-400');
+        freeShippingElement.classList.remove('hidden');
+        
+        // 根據免運原因顯示不同訊息
+        if (hasFreeShippingCoupon) {
+            freeShippingElement.innerHTML = '🎫 優惠券免運';
+        } else if (reachedFreeThreshold) {
+            freeShippingElement.innerHTML = '🚚 滿額免運';
+        } else {
+            freeShippingElement.innerHTML = '免運費';
+        }
+    } else {
+        // 需要運費：正常顯示
+        originalShippingElement.classList.remove('line-through', 'text-gray-400');
+        freeShippingElement.classList.add('hidden');
+    }
+}
+
+// 套用優惠碼
+async function applyCoupon() {
+    const couponCode = document.getElementById('coupon-code').value.trim();
+    const messageDiv = document.getElementById('coupon-message');
+    const applyBtn = document.getElementById('apply-coupon-btn');
+    
+    if (!couponCode) {
+        showCouponMessage('請輸入優惠碼', 'error');
+        return;
+    }
+    
+    // 如果已有套用的優惠碼，先清除
+    if (appliedCoupon) {
+        removeCoupon();
+    }
+    
+    applyBtn.disabled = true;
+    applyBtn.textContent = '驗證中...';
+    
+    try {
+        const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+        
+        const response = await fetch('/api/coupons/validate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                code: couponCode,
+                amount: subtotal
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.is_valid) {
+            appliedCoupon = result;
+            couponDiscount = result.discount_amount;
+            
+            showCouponMessage(`優惠碼已套用！折扣：NT$${couponDiscount.toLocaleString()}`, 'success');
+            calculateTotal();
+            
+            // 更新按鈕為移除狀態
+            applyBtn.textContent = '移除';
+            applyBtn.onclick = removeCoupon;
+        } else {
+            showCouponMessage(result.message || '優惠碼無效', 'error');
+        }
+    } catch (error) {
+        console.error('驗證優惠碼失敗:', error);
+        showCouponMessage('驗證優惠碼失敗，請稍後再試', 'error');
+    } finally {
+        applyBtn.disabled = false;
+        if (applyBtn.textContent === '驗證中...') {
+            applyBtn.textContent = '套用';
+        }
+    }
+}
+
+// 移除優惠碼
+function removeCoupon() {
+    appliedCoupon = null;
+    couponDiscount = 0;
+    
+    document.getElementById('coupon-code').value = '';
+    showCouponMessage('優惠碼已移除', 'info');
+    calculateTotal();
+    
+    // 重設按鈕
+    const applyBtn = document.getElementById('apply-coupon-btn');
+    applyBtn.textContent = '套用';
+    applyBtn.onclick = applyCoupon;
+}
+
+// 顯示優惠碼訊息
+function showCouponMessage(message, type) {
+    const messageDiv = document.getElementById('coupon-message');
+    messageDiv.textContent = message;
+    messageDiv.classList.remove('hidden', 'text-red-600', 'text-green-600', 'text-blue-600');
+    
+    if (type === 'error') {
+        messageDiv.classList.add('text-red-600');
+    } else if (type === 'success') {
+        messageDiv.classList.add('text-green-600');
+    } else {
+        messageDiv.classList.add('text-blue-600');
+    }
+    
+    messageDiv.classList.remove('hidden');
+    
+    // 3秒後隱藏訊息
+    setTimeout(() => {
+        messageDiv.classList.add('hidden');
+    }, 3000);
+}
+
+// 顯示沒有付款方式的警告
+function showNoPaymentMethodsWarning() {
+    document.getElementById('no-payment-warning').style.display = 'block';
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('submit-btn').textContent = '沒有可用的付款方式';
+}
+
+// 隱藏沒有付款方式的警告
+function hideNoPaymentMethodsWarning() {
+    document.getElementById('no-payment-warning').style.display = 'none';
+    document.getElementById('submit-btn').disabled = false;
+    document.getElementById('submit-btn').textContent = '確認下單';
+}
+
+// 檢查可用的付款方式
+async function checkPaymentMethods() {
+    try {
+        const response = await fetch('/api/settings/payment/settings');
+
+        if (response.ok) {
+            const settings = await response.json();
+            
+            // 顯示可用的付款方式
+            if (settings.transfer && settings.transfer.enabled) {
+                document.getElementById('transfer-option').style.display = 'block';
+            } else {
+                document.getElementById('transfer-option').style.display = 'none';
+            }
+            
+            if (settings.linepay && settings.linepay.enabled) {
+                document.getElementById('linepay-option').style.display = 'block';
+            } else {
+                document.getElementById('linepay-option').style.display = 'none';
+            }
+            
+            if (settings.ecpay && settings.ecpay.enabled) {
+                document.getElementById('ecpay-option').style.display = 'block';
+            } else {
+                document.getElementById('ecpay-option').style.display = 'none';
+            }
+            
+            if (settings.paypal && settings.paypal.enabled) {
+                document.getElementById('paypal-option').style.display = 'block';
+            } else {
+                document.getElementById('paypal-option').style.display = 'none';
+            }
+            
+            // 更新運費設定
+            if (settings.shipping) {
+                window.shippingFee = settings.shipping.fee;
+                window.freeShippingThreshold = settings.shipping.free_threshold;
+            }
+            
+            // 檢查是否至少有一個付款方式啟用
+            const enabledMethods = Object.keys(settings).filter(key => 
+                key !== 'shipping' && settings[key] && settings[key].enabled
+            );
+            
+            if (enabledMethods.length === 0) {
+                // 沒有啟用的付款方式時，顯示提示並停用提交按鈕
+                showNoPaymentMethodsWarning();
+            } else {
+                hideNoPaymentMethodsWarning();
+            }
+        }
+    } catch (error) {
+        console.error('檢查付款方式失敗:', error);
+        // 預設顯示轉帳選項
+        document.getElementById('transfer-option').style.display = 'block';
+        hideNoPaymentMethodsWarning();
+    }
+}
+
+// 設定表單處理
+function setupForm() {
+    document.getElementById('checkout-form').addEventListener('submit', handleSubmit);
+}
+
+// 載入用戶資料並自動填入表單
+async function loadUserProfile() {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        // 用戶未登入，不需要載入資料
+        console.log('用戶未登入，跳過載入個人資料');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/auth/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const user = await response.json();
+            console.log('載入用戶資料成功:', user);
+            
+            // 確保表單元素存在後再填入
+            setTimeout(() => {
+                // 自動填入表單欄位
+                const customerNameField = document.getElementsByName('customer_name')[0];
+                const customerPhoneField = document.getElementsByName('customer_phone')[0];
+                const customerEmailField = document.getElementsByName('customer_email')[0];
+                const shippingAddressField = document.getElementsByName('shipping_address')[0];
+                
+                if (customerNameField && user.full_name) {
+                    customerNameField.value = user.full_name;
+                    console.log('填入姓名:', user.full_name);
+                }
+                if (customerPhoneField && user.phone) {
+                    customerPhoneField.value = user.phone;
+                    console.log('填入電話:', user.phone);
+                }
+                if (customerEmailField && user.email) {
+                    customerEmailField.value = user.email;
+                    console.log('填入信箱:', user.email);
+                }
+                if (shippingAddressField && user.address) {
+                    shippingAddressField.value = user.address;
+                    console.log('填入地址:', user.address);
+                }
+            }, 100); // 短暫延遲確保 DOM 完全載入
+        } else {
+            console.error('無法載入用戶資料，HTTP狀態:', response.status);
+        }
+    } catch (error) {
+        console.error('載入用戶資料失敗:', error);
+        // 載入失敗時不影響結帳流程，靜默處理
+    }
+}
+
+// 處理表單提交
+async function handleSubmit(e) {
+    e.preventDefault();
+    
+    // 檢查是否已登入
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        if (confirm('您需要先登入才能完成訂單。是否前往登入頁面？')) {
+            // 儲存當前頁面以便登入後返回
+            localStorage.setItem('redirect_after_login', '/checkout');
+            window.location.href = '/login';
+        }
+        return;
+    }
+    
+    if (cartItems.length === 0) {
+        alert('購物車是空的');
+        return;
+    }
+    
+    const formData = new FormData(e.target);
+    const orderData = Object.fromEntries(formData.entries());
+    
+    // 添加購物車商品
+    orderData.items = cartItems.map(item => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price
+    }));
+    
+    // 添加優惠碼資訊
+    if (appliedCoupon) {
+        orderData.coupon_code = appliedCoupon.code;
+        orderData.discount_amount = couponDiscount;
+    }
+    
+    showPaymentModal('正在建立訂單...');
+    
+    try {
+        // 建立訂單
+        const orderResponse = await fetch('/api/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!orderResponse.ok) {
+            throw new Error('建立訂單失敗');
+        }
+        
+        const orderResult = await orderResponse.json();
+        currentOrderId = orderResult.id;
+        
+        // 根據付款方式處理
+        const paymentMethod = orderData.payment_method;
+        
+        if (paymentMethod === 'transfer') {
+            await handleTransferPayment(orderResult.id);
+        } else if (paymentMethod === 'linepay') {
+            await handleLinePayPayment(orderResult.id);
+        } else if (paymentMethod === 'ecpay') {
+            await handleEcpayPayment(orderResult.id);
+        }
+        
+    } catch (error) {
+        hidePaymentModal();
+        alert(error.message || '處理失敗');
+    }
+}
+
+// 處理轉帳付款
+async function handleTransferPayment(orderId) {
+    try {
+        updatePaymentStatus('取得轉帳資訊...');
+        
+        const response = await fetch(`/api/payment/transfer/info/${orderId}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('無法取得轉帳資訊');
+        }
+        
+        const transferInfo = await response.json();
+        hidePaymentModal();
+        showTransferInfo(transferInfo);
+        
+        // 清空購物車
+        await clearCart();
+        
+    } catch (error) {
+        hidePaymentModal();
+        throw error;
+    }
+}
+
+// 處理 Line Pay 付款
+async function handleLinePayPayment(orderId) {
+    try {
+        updatePaymentStatus('連接 Line Pay...');
+        
+        const response = await fetch(`/api/payment/linepay/create/${orderId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('無法建立 Line Pay 付款');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 重導向到 Line Pay 付款頁面
+            window.location.href = result.payment_url;
+        } else {
+            throw new Error(result.message || 'Line Pay 付款建立失敗');
+        }
+        
+    } catch (error) {
+        hidePaymentModal();
+        throw error;
+    }
+}
+
+// 處理綠界付款
+async function handleEcpayPayment(orderId) {
+    try {
+        updatePaymentStatus('連接綠界金流...');
+        
+        const response = await fetch(`/api/payment/ecpay/create/${orderId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('無法建立綠界付款');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 動態建立表單並提交到綠界
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = result.action_url;
+            
+            Object.entries(result.form_data).forEach(([key, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value;
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            form.submit();
+        } else {
+            throw new Error(result.message || '綠界付款建立失敗');
+        }
+        
+    } catch (error) {
+        hidePaymentModal();
+        throw error;
+    }
+}
+
+// 清空購物車
+async function clearCart() {
+    try {
+        await fetch('/api/cart/clear', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+    } catch (error) {
+        console.error('清空購物車失敗:', error);
+    }
+}
+
+// 顯示付款處理彈窗
+function showPaymentModal(status) {
+    document.getElementById('payment-status').textContent = status;
+    document.getElementById('payment-modal').classList.remove('hidden');
+    document.getElementById('payment-modal').classList.add('flex');
+}
+
+// 更新付款狀態
+function updatePaymentStatus(status) {
+    document.getElementById('payment-status').textContent = status;
+}
+
+// 隱藏付款處理彈窗
+function hidePaymentModal() {
+    document.getElementById('payment-modal').classList.add('hidden');
+    document.getElementById('payment-modal').classList.remove('flex');
+}
+
+// 顯示轉帳資訊
+function showTransferInfo(info) {
+    const container = document.getElementById('transfer-info');
+    container.innerHTML = `
+        <div class="bg-blue-50 p-4 rounded-lg">
+            <h4 class="font-medium mb-2">訂單編號：${info.order_number}</h4>
+            <p class="text-lg font-semibold text-blue-600">金額：$${info.total_amount}</p>
+        </div>
+        <div class="space-y-2">
+            <div><strong>銀行名稱：</strong>${info.bank_name}</div>
+            <div><strong>戶名：</strong>${info.account_name}</div>
+            <div><strong>帳號：</strong>${info.account_number}</div>
+            <div class="text-sm text-gray-600 bg-yellow-50 p-2 rounded">${info.note}</div>
+        </div>
+    `;
+    
+    document.getElementById('transfer-modal').classList.remove('hidden');
+    document.getElementById('transfer-modal').classList.add('flex');
+}
+
+// 關閉轉帳資訊彈窗
+function closeTransferModal() {
+    document.getElementById('transfer-modal').classList.add('hidden');
+    document.getElementById('transfer-modal').classList.remove('flex');
+    window.location.href = '/';
+}
+
+// 查看訂單
+function viewOrder() {
+    window.location.href = '/orders';
+}
+</script>
+{% endblock %} 

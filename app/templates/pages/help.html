@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}常見問題 - {{ settings.site_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- 頁面標題 -->
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 mb-4">常見問題</h1>
+                <p class="text-xl text-gray-600">找到您需要的答案</p>
+            </div>
+
+            <!-- FAQ 內容 -->
+            <div class="bg-white rounded-lg shadow-sm p-8" x-data="{ activeTab: 'general' }">
+                <!-- 分類標籤 -->
+                <div class="flex flex-wrap border-b mb-8">
+                    <button @click="activeTab = 'general'" 
+                            :class="activeTab === 'general' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'"
+                            class="px-4 py-2 border-b-2 font-medium text-sm transition-colors">
+                        一般問題
+                    </button>
+                    <button @click="activeTab = 'order'" 
+                            :class="activeTab === 'order' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'"
+                            class="px-4 py-2 border-b-2 font-medium text-sm transition-colors">
+                        訂單相關
+                    </button>
+                    <button @click="activeTab = 'shipping'" 
+                            :class="activeTab === 'shipping' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'"
+                            class="px-4 py-2 border-b-2 font-medium text-sm transition-colors">
+                        配送問題
+                    </button>
+                    <button @click="activeTab = 'payment'" 
+                            :class="activeTab === 'payment' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'"
+                            class="px-4 py-2 border-b-2 font-medium text-sm transition-colors">
+                        付款方式
+                    </button>
+                </div>
+
+                <!-- 一般問題 -->
+                <div x-show="activeTab === 'general'" class="space-y-6">
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">如何註冊會員？</h3>
+                        <p class="text-gray-700">
+                            點擊網站右上角的「註冊」按鈕，填入您的基本資料，包括使用者名稱、電子信箱和密碼。
+                            完成註冊後，您就可以享受會員專屬的服務和優惠。
+                        </p>
+                    </div>
+
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">忘記密碼怎麼辦？</h3>
+                        <p class="text-gray-700">
+                            在登入頁面點擊「忘記密碼？」連結，輸入您註冊時使用的電子信箱地址，
+                            我們會發送密碼重設連結到您的信箱。
+                        </p>
+                    </div>
+
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">如何修改個人資料？</h3>
+                        <p class="text-gray-700">
+                            登入後點擊右上角的個人選單，選擇「個人資料」即可修改您的基本資訊、聯絡方式等。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 訂單相關 -->
+                <div x-show="activeTab === 'order'" class="space-y-6">
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">如何查詢訂單狀態？</h3>
+                        <p class="text-gray-700">
+                            登入會員後，在「我的訂單」頁面可以查看所有訂單的詳細狀態，
+                            包括訂單處理、出貨、配送等各個階段的進度。
+                        </p>
+                    </div>
+
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">可以取消訂單嗎？</h3>
+                        <p class="text-gray-700">
+                            在訂單尚未出貨前，您可以聯絡客服申請取消。一旦商品已經出貨，
+                            則需要等收到商品後辦理退貨。
+                        </p>
+                    </div>
+
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">訂單確認後多久會出貨？</h3>
+                        <p class="text-gray-700">
+                            一般商品在確認付款後 1-2 個工作天內出貨，特殊商品或預購商品的出貨時間會另行說明。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 配送問題 -->
+                <div x-show="activeTab === 'shipping'" class="space-y-6">
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">配送範圍有哪些？</h3>
+                        <p class="text-gray-700">
+                            目前提供台灣本島配送服務，離島地區需要額外的運費計算。
+                            國際配送服務正在規劃中，敬請期待。
+                        </p>
+                    </div>
+
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">運費如何計算？</h3>
+                        <p class="text-gray-700">
+                            訂單金額滿 NT$1,000 享免運費優惠，未滿 NT$1,000 的訂單酌收 NT$60 運費。
+                        </p>
+                    </div>
+
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">配送時間需要多久？</h3>
+                        <p class="text-gray-700">
+                            一般而言，商品出貨後 1-3 個工作天內會送達。偏遠地區可能需要額外 1-2 天。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 付款方式 -->
+                <div x-show="activeTab === 'payment'" class="space-y-6">
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">支援哪些付款方式？</h3>
+                        <p class="text-gray-700">
+                            我們支援信用卡、ATM 轉帳、超商代碼繳費、貨到付款等多種付款方式，
+                            讓您選擇最方便的付款方式。
+                        </p>
+                    </div>
+
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">付款後多久會確認？</h3>
+                        <p class="text-gray-700">
+                            信用卡付款會即時確認，ATM 轉帳通常在 1-2 個工作天內確認，
+                            超商代碼繳費在繳費後隔日確認。
+                        </p>
+                    </div>
+
+                    <div class="border rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">交易安全嗎？</h3>
+                        <p class="text-gray-700">
+                            我們使用 SSL 加密技術保護您的交易資料，並與知名金流服務商合作，
+                            確保您的付款資訊安全無虞。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 聯絡我們 -->
+            <div class="text-center mt-12 bg-blue-50 rounded-lg p-8">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">找不到您要的答案？</h3>
+                <p class="text-gray-600 mb-6">歡迎直接聯絡我們的客服團隊，我們將竭誠為您服務</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="/contact" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                        聯絡我們
+                    </a>
+                    <a href="/" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                        返回首頁
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

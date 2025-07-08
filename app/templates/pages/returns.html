@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}退貨政策 - {{ settings.site_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- 頁面標題 -->
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-gray-900 mb-4">退貨政策</h1>
+                <p class="text-xl text-gray-600">保障您的購物權益</p>
+            </div>
+
+            <!-- 退貨條件 -->
+            <div class="bg-white rounded-lg shadow-sm p-8 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-6">退貨條件</h2>
+                
+                <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+                    <div class="flex items-center mb-3">
+                        <svg class="w-6 h-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-green-800">7 天鑑賞期</h3>
+                    </div>
+                    <p class="text-green-700">
+                        依據消費者保護法，您享有商品到貨後 7 天的鑑賞期（非試用期），
+                        在此期間內您可以申請退貨。
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <h4 class="text-lg font-semibold text-gray-900 text-green-600">✓ 可退貨商品</h4>
+                        <ul class="space-y-2 text-gray-700">
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">•</span>
+                                商品包裝完整，未拆封使用
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">•</span>
+                                商品本體無損壞、刮傷
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">•</span>
+                                附件配件齊全
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">•</span>
+                                保有原廠包裝及說明書
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">•</span>
+                                發票或收據齊全
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h4 class="text-lg font-semibold text-gray-900 text-red-600">✗ 不可退貨商品</h4>
+                        <ul class="space-y-2 text-gray-700">
+                            <li class="flex items-start">
+                                <span class="text-red-500 mr-2">•</span>
+                                已拆封之個人衛生用品
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-red-500 mr-2">•</span>
+                                客製化商品
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-red-500 mr-2">•</span>
+                                易腐敗之商品
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-red-500 mr-2">•</span>
+                                下載版軟體
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-red-500 mr-2">•</span>
+                                特價促銷商品（另有說明除外）
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 退貨流程 -->
+            <div class="bg-white rounded-lg shadow-sm p-8 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-6">退貨流程</h2>
+                
+                <div class="space-y-6">
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <span class="text-blue-600 font-bold text-sm">1</span>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-lg font-semibold text-gray-900 mb-2">申請退貨</h4>
+                            <p class="text-gray-700 mb-3">
+                                請在商品到貨後 7 天內，透過以下方式申請退貨：
+                            </p>
+                            <ul class="text-gray-600 space-y-1 ml-4">
+                                <li>• 線上客服系統</li>
+                                <li>• 客服專線：0800-123-456</li>
+                                <li>• 電子信箱：support@blogcommerce.com</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <span class="text-blue-600 font-bold text-sm">2</span>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-lg font-semibold text-gray-900 mb-2">客服審核</h4>
+                            <p class="text-gray-700">
+                                客服人員將與您確認退貨原因及商品狀況，核准後提供退貨單號及寄送地址。
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <span class="text-blue-600 font-bold text-sm">3</span>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-lg font-semibold text-gray-900 mb-2">寄回商品</h4>
+                            <p class="text-gray-700">
+                                請將商品完整包裝，連同退貨單一併寄回。運費由顧客自行負擔（商品瑕疵除外）。
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-4 mt-1">
+                            <span class="text-blue-600 font-bold text-sm">4</span>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-lg font-semibold text-gray-900 mb-2">退款處理</h4>
+                            <p class="text-gray-700">
+                                收到退貨商品並確認無誤後，將於 3-5 個工作天內辦理退款。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 退款方式 -->
+            <div class="bg-white rounded-lg shadow-sm p-8 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-6">退款方式說明</h2>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="border border-gray-300 px-4 py-3 text-left font-semibold">原付款方式</th>
+                                <th class="border border-gray-300 px-4 py-3 text-left font-semibold">退款方式</th>
+                                <th class="border border-gray-300 px-4 py-3 text-left font-semibold">退款時間</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border border-gray-300 px-4 py-3">信用卡</td>
+                                <td class="border border-gray-300 px-4 py-3">原卡退刷</td>
+                                <td class="border border-gray-300 px-4 py-3">3-5 個工作天</td>
+                            </tr>
+                            <tr class="bg-gray-50">
+                                <td class="border border-gray-300 px-4 py-3">ATM 轉帳</td>
+                                <td class="border border-gray-300 px-4 py-3">銀行轉帳</td>
+                                <td class="border border-gray-300 px-4 py-3">3-5 個工作天</td>
+                            </tr>
+                            <tr>
+                                <td class="border border-gray-300 px-4 py-3">超商代碼</td>
+                                <td class="border border-gray-300 px-4 py-3">銀行轉帳</td>
+                                <td class="border border-gray-300 px-4 py-3">3-5 個工作天</td>
+                            </tr>
+                            <tr class="bg-gray-50">
+                                <td class="border border-gray-300 px-4 py-3">貨到付款</td>
+                                <td class="border border-gray-300 px-4 py-3">銀行轉帳</td>
+                                <td class="border border-gray-300 px-4 py-3">3-5 個工作天</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p class="text-yellow-800 text-sm">
+                        <strong>注意：</strong>銀行轉帳退款需提供退款帳戶資料，請確保帳戶資訊正確。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 特殊情況 -->
+            <div class="bg-white rounded-lg shadow-sm p-8 mb-8">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-6">特殊情況處理</h2>
+                
+                <div class="space-y-6">
+                    <div class="border-l-4 border-red-500 pl-4">
+                        <h4 class="text-lg font-semibold text-gray-900 mb-2">商品瑕疵或錯誤</h4>
+                        <p class="text-gray-700">
+                            如收到的商品有瑕疵或與訂購商品不符，我們將負責來回運費，
+                            並優先為您換貨或協助退款。
+                        </p>
+                    </div>
+
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h4 class="text-lg font-semibold text-gray-900 mb-2">配送過程損壞</h4>
+                        <p class="text-gray-700">
+                            如商品在配送過程中損壞，請在收件當下拍照存證，
+                            並立即聯絡客服處理，我們將儘快為您處理換貨事宜。
+                        </p>
+                    </div>
+
+                    <div class="border-l-4 border-green-500 pl-4">
+                        <h4 class="text-lg font-semibold text-gray-900 mb-2">換貨服務</h4>
+                        <p class="text-gray-700">
+                            如需換貨（尺寸、顏色等），請先申請退貨，
+                            退貨完成後再重新下單購買所需商品。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 聯絡資訊 -->
+            <div class="text-center bg-blue-50 rounded-lg p-8">
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">需要協助？</h3>
+                <p class="text-gray-600 mb-6">如有任何退貨相關問題，歡迎聯絡我們的客服團隊</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="/contact" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                        聯絡客服
+                    </a>
+                    <a href="/" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors">
+                        返回首頁
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

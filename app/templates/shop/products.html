@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}商品列表{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="productsApp()">
+    <div class="mb-8">
+        <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">商品列表</h1>
+        <p class="text-gray-600">探索我們精選的優質商品</p>
+    </div>
+
+    <!-- 搜尋和篩選 -->
+    <div class="mb-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+                <input type="text" 
+                       x-model="searchTerm" 
+                       @input.debounce.500ms="loadProducts()" 
+                       placeholder="搜尋商品名稱或描述..."
+                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+            </div>
+            <!-- 分類篩選已移除 -->
+            <div class="md:w-32">
+                <select x-model="sortBy" @change="loadProducts()" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                    <option value="newest">最新</option>
+                    <option value="price_asc">價格由低到高</option>
+                    <option value="price_desc">價格由高到低</option>
+                    <option value="name">名稱</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 商品網格 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+        <template x-for="product in products" :key="product.id">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group overflow-hidden flex flex-col h-full">
+                <!-- 商品圖片 -->
+                <div class="aspect-square overflow-hidden bg-gray-100 relative">
+                    <img :src="product.featured_image || '/static/images/default-product.jpg'" 
+                         :alt="product.name"
+                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                    
+                    <!-- 標籤區 -->
+                    <div class="absolute top-3 left-3 flex flex-col gap-2">
+                        <!-- 特價標籤 -->
+                        <div x-show="product.sale_price && product.sale_price < product.price" 
+                             class="bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 text-xs font-semibold rounded-full shadow-lg">
+                            特價
+                        </div>
+                        
+                        <!-- 推薦標籤 -->
+                        <div x-show="product.is_featured" 
+                             class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 text-xs font-semibold rounded-full shadow-lg">
+                            推薦
+                        </div>
+                    </div>
+
+                    <!-- 快速查看按鈕 -->
+                    <div class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <a :href="'/product/' + product.slug" 
+                           class="bg-white text-gray-800 px-4 py-2 rounded-lg font-medium shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            快速查看
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 商品資訊 -->
+                <div class="p-6 flex flex-col flex-grow">
+                    <h3 class="text-lg font-bold text-gray-900 mb-2 line-clamp-2 h-12 flex items-start">
+                        <a :href="'/product/' + product.slug" 
+                           class="hover:text-primary-600 transition-colors"
+                           x-text="product.name">
+                        </a>
+                    </h3>
+                    
+                    <p class="text-gray-600 text-sm mb-4 line-clamp-2 flex-grow" 
+                       x-text="product.short_description || (product.description?.substring(0, 80) + '...' || '')"></p>
+                    
+                    <!-- 價格 -->
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex flex-col space-y-1">
+                            <span class="text-lg font-bold text-red-600" 
+                                  x-text="'NT$ ' + (product.sale_price || product.price).toLocaleString()"></span>
+                            <span x-show="product.sale_price && product.sale_price < product.price" 
+                                  class="text-sm text-gray-500 line-through" 
+                                  x-text="'NT$ ' + product.price.toLocaleString()"></span>
+                        </div>
+                        <div x-show="product.sale_price && product.sale_price < product.price" class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
+                            <span x-text="Math.round((1 - product.sale_price / product.price) * 100)"></span>% OFF
+                        </div>
+                    </div>
+                    
+                    <!-- 標籤已移除 -->
+                    
+                    <!-- 庫存狀態和瀏覽量 -->
+                    <div class="mb-4 text-sm flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div x-show="product.stock_quantity > 10" class="flex items-center text-green-600">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                現貨充足
+                            </div>
+                            <div x-show="product.stock_quantity > 0 && product.stock_quantity <= 10" class="flex items-center text-yellow-600">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                                庫存不多
+                            </div>
+                            <div x-show="product.stock_quantity <= 0" class="flex items-center text-red-600">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                </svg>
+                                缺貨中
+                            </div>
+                        </div>
+                        <!-- 瀏覽量 -->
+                        <div class="flex items-center text-gray-400">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            <span x-text="product.view_count || 0"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按鈕 -->
+                    <div class="flex gap-3 mt-auto">
+                        <!-- 查看詳情按鈕 -->
+                        <a :href="'/product/' + product.slug" 
+                           class="flex-1 group relative overflow-hidden bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-4 rounded-xl font-medium text-center transition-all duration-300 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                            <span class="relative z-10 flex items-center justify-center text-sm">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                查看詳情
+                            </span>
+                            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                        </a>
+                        
+                        <!-- 加入購物車按鈕 -->
+                        <button @click="addToCart(product)" 
+                                :disabled="product.stock_quantity <= 0"
+                                class="group relative overflow-hidden bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-3 rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transform hover:scale-105 shadow-lg hover:shadow-xl disabled:cursor-not-allowed disabled:transform-none disabled:shadow-md">
+                            <span class="relative z-10">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 9M7 13h10"></path>
+                                </svg>
+                            </span>
+                            <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+                            
+                            <!-- 添加成功動畫 -->
+                            <div x-show="product.addingToCart" x-transition:enter="transition ease-out duration-300" 
+                                 x-transition:enter-start="opacity-0 scale-75" x-transition:enter-end="opacity-100 scale-100"
+                                 class="absolute inset-0 bg-green-600 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- 空狀態 -->
+    <div x-show="products.length === 0 && !loading" class="text-center py-16">
+        <div class="text-8xl mb-6">🛍️</div>
+        <h3 class="text-2xl font-semibold text-gray-700 mb-4">暫無商品</h3>
+        <p class="text-gray-500 text-lg">目前沒有符合條件的商品，請嘗試其他搜尋條件</p>
+    </div>
+
+    <!-- 載入狀態 -->
+    <div x-show="loading" class="text-center py-16">
+        <div class="inline-flex items-center px-6 py-3 text-lg text-gray-600">
+            <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            載入中...
+        </div>
+    </div>
+
+    <!-- 載入更多 -->
+    <div class="text-center mt-12" x-show="hasMore && !loading">
+        <button @click="loadMore()" 
+                :disabled="loading"
+                class="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+            <svg class="w-5 h-5 mr-2 group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            載入更多商品
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function productsApp() {
+    return {
+        products: [],
+        searchTerm: '',
+        sortBy: 'newest',
+        currentPage: 1,
+        hasMore: true,
+        loading: false,
+        
+        init() {
+            this.loadProducts();
+        },
+        
+        async loadProducts(reset = true) {
+            if (reset) {
+                this.currentPage = 1;
+                this.products = [];
+                this.hasMore = true;
+            }
+            
+            this.loading = true;
+            
+            try {
+                let url = `/api/products?skip=${(this.currentPage - 1) * 12}&limit=12&active=true`;
+                
+                if (this.searchTerm) {
+                    url += `&search=${encodeURIComponent(this.searchTerm)}`;
+                }
+                
+                if (this.sortBy) {
+                    url += `&sort_by=${this.sortBy}`;
+                }
+                
+                const response = await fetch(url);
+                if (response.ok) {
+                    const newProducts = await response.json();
+                    
+                    // 為每個商品添加動畫狀態
+                    newProducts.forEach(product => {
+                        product.addingToCart = false;
+                    });
+                    
+                    if (reset) {
+                        this.products = newProducts;
+                    } else {
+                        this.products = [...this.products, ...newProducts];
+                    }
+                    
+                    this.hasMore = newProducts.length === 12;
+                }
+            } catch (error) {
+                console.error('載入商品失敗:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        loadMore() {
+            this.currentPage++;
+            this.loadProducts(false);
+        },
+        
+        async addToCart(product) {
+            if (product.stock_quantity <= 0) return;
+            
+            // 設置動畫狀態
+            product.addingToCart = true;
+            
+            try {
+                const response = await fetch('/api/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product_id: product.id,
+                        quantity: 1
+                    })
+                });
+                
+                if (response.ok) {
+                    // 更新購物車計數器
+                    if (window.updateCartCount) {
+                        window.updateCartCount();
+                    }
+                    
+                    // 顯示成功訊息
+                    this.showToast(`已將 ${product.name} 加入購物車！`, 'success');
+                } else {
+                    const error = await response.json();
+                    this.showToast(error.detail || '加入購物車失敗', 'error');
+                }
+            } catch (error) {
+                console.error('加入購物車失敗:', error);
+                this.showToast('加入購物車失敗，請稍後再試', 'error');
+            } finally {
+                // 重置動畫狀態
+                setTimeout(() => {
+                    product.addingToCart = false;
+                }, 1500);
+            }
+        },
+        
+        showToast(message, type = 'info') {
+            // 創建通知元素
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
+            }`;
+            toast.textContent = message;
+            
+            // 初始位置在右側外面
+            toast.style.transform = 'translateX(100%)';
+            document.body.appendChild(toast);
+            
+            // 動畫進入
+            setTimeout(() => {
+                toast.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // 3秒後移除
+            setTimeout(() => {
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+    }
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}部落格文章{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="blogApp()">
+    <div class="mb-8">
+        <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">部落格文章</h1>
+        <p class="text-gray-600">探索最新的文章和見解</p>
+    </div>
+
+    <!-- 搜尋和篩選 -->
+    <div class="mb-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+                <input type="text" 
+                       x-model="searchTerm" 
+                       @input.debounce.500ms="loadPosts()" 
+                       placeholder="搜尋文章標題或內容..."
+                       class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+            </div>
+            <!-- 分類篩選已移除 -->
+        </div>
+    </div>
+
+    <!-- 文章列表 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+        <template x-for="post in posts" :key="post.id">
+            <article class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group flex flex-col h-full">
+                <!-- 特色圖片 -->
+                <div class="aspect-video bg-gray-100 relative overflow-hidden" x-show="post.featured_image">
+                    <img :src="post.featured_image || '/static/images/default-blog.jpg'" 
+                         :alt="post.title"
+                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                         
+                    <!-- 分類標籤已移除 -->
+                </div>
+                
+                <!-- 沒有圖片時的佔位 -->
+                <div class="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden flex items-center justify-center" x-show="!post.featured_image">
+                    <div class="text-6xl text-gray-400">📝</div>
+                    
+                    <!-- 分類標籤已移除 -->
+                </div>
+                
+                <!-- 文章內容 -->
+                <div class="p-6 flex flex-col flex-grow">
+                    <div class="flex items-center text-sm text-gray-500 mb-3">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-6 h-6 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                            </div>
+                            <span>管理員</span>
+                        </div>
+                        <span class="ml-auto" x-text="new Date(post.created_at).toLocaleDateString('zh-TW')"></span>
+                    </div>
+                    
+                    <h2 class="text-xl font-bold text-gray-900 mb-3 line-clamp-2 h-12 flex items-start">
+                        <a :href="'/blog/' + post.slug" 
+                           class="hover:text-primary-600 transition-colors"
+                           x-text="post.title">
+                        </a>
+                    </h2>
+                    
+                    <p class="text-gray-600 mb-4 line-clamp-3 flex-grow" x-text="post.excerpt || (post.content?.substring(0, 150) + '...' || '')"></p>
+                    
+                    <!-- 標籤已移除 -->
+                    
+                    <div class="flex justify-between items-center mt-auto">
+                        <a :href="'/blog/' + post.slug" 
+                           class="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium transition-colors duration-200">
+                            閱讀更多
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                            </svg>
+                        </a>
+                        <div class="flex items-center space-x-4 text-sm text-gray-400">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                <span x-text="post.view_count || 0"></span>
+                            </div>
+                            <div class="flex items-center" x-show="post.is_published">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                已發布
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+        </template>
+    </div>
+
+    <!-- 空狀態 -->
+    <div x-show="posts.length === 0 && !loading" class="text-center py-16">
+        <div class="text-8xl mb-6">📝</div>
+        <h3 class="text-2xl font-semibold text-gray-700 mb-4">暫無文章</h3>
+        <p class="text-gray-500 text-lg">目前沒有符合條件的文章，請嘗試其他搜尋條件</p>
+    </div>
+
+    <!-- 載入狀態 -->
+    <div x-show="loading" class="text-center py-16">
+        <div class="inline-flex items-center px-6 py-3 text-lg text-gray-600">
+            <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-primary-600" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            載入中...
+        </div>
+    </div>
+
+    <!-- 載入更多 -->
+    <div class="text-center mt-12" x-show="hasMore && !loading">
+        <button @click="loadMore()" 
+                :disabled="loading"
+                class="inline-flex items-center px-8 py-4 bg-primary-600 text-white rounded-2xl font-semibold hover:bg-primary-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:transform-none">
+            <span x-show="!loading">載入更多文章</span>
+            <span x-show="loading" class="flex items-center">
+                <svg class="animate-spin -ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                載入中...
+            </span>
+            <svg class="w-5 h-5 ml-2" x-show="!loading" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+            </svg>
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function blogApp() {
+    return {
+        posts: [],
+        searchTerm: '',
+        currentPage: 1,
+        hasMore: true,
+        loading: false,
+        
+        init() {
+            this.loadPosts();
+        },
+        
+        async loadPosts(reset = true) {
+            if (reset) {
+                this.currentPage = 1;
+                this.posts = [];
+                this.hasMore = true;
+            }
+            
+            this.loading = true;
+            
+            try {
+                let url = `/api/posts?skip=${(this.currentPage - 1) * 12}&limit=12&published_only=true`;
+                
+                if (this.searchTerm) {
+                    url += `&search=${encodeURIComponent(this.searchTerm)}`;
+                }
+                
+                const response = await fetch(url);
+                if (response.ok) {
+                    const newPosts = await response.json();
+                    
+                    if (reset) {
+                        this.posts = newPosts;
+                    } else {
+                        this.posts = [...this.posts, ...newPosts];
+                    }
+                    
+                    this.hasMore = newPosts.length === 12;
+                }
+            } catch (error) {
+                console.error('載入文章失敗:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        loadMore() {
+            this.currentPage++;
+            this.loadPosts(false);
+        }
+    }
+}
+</script>
+{% endblock %} 

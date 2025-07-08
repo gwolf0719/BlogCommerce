@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block title %}{{ settings.site_name }}{% if settings.site_description %} - {{ settings.site_description }}{% endif %}{% endblock %}
+
+{% block description %}{{ settings.site_description }}{% endblock %}
+
+{% block keywords %}{{ settings.default_meta_keywords or '電商,部落格,購物,文章,商品' }}{% endblock %}
+
+{% block og_title %}{{ settings.site_name }}{% endblock %}
+
+{% block og_description %}{{ settings.site_description }}{% endblock %}
+
+{% block og_type %}website{% endblock %}
+
+{% block og_image %}{{ settings.site_logo }}{% endblock %}
+
+{% block twitter_title %}{{ settings.site_name }}{% endblock %}
+
+{% block twitter_description %}{{ settings.site_description }}{% endblock %}
+
+{% block twitter_image %}{{ settings.site_logo }}{% endblock %}
+
+{% block content %}
+<div x-data="homeApp()" x-init="loadContent()">
+    <!-- Hero Section -->
+    <!-- Banner Section -->
+    <section
+        class="relative bg-cover bg-center"
+        style="background-image: url('../static/assets/banner.png'); height: 400px"
+    >
+        <!-- <div class="absolute inset-0 bg-black bg-opacity-40"></div> -->
+    </section>
+    <section x-show="false" class="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
+        <!-- 背景裝飾 -->
+        <div class="absolute inset-0">
+            <div class="absolute top-0 -left-4 w-72 h-72 bg-primary-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+            <div class="absolute top-0 -right-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+            <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        </div>
+        
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+            <div class="text-center">
+                <!-- 主標題 -->
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+                    <span class="block">歡迎來到</span>
+                    <span class="block bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+                        {{ settings.site_name }}
+                    </span>
+                </h1>
+                
+                <!-- 描述文字 -->
+                <p class="text-xl sm:text-2xl text-primary-100 mb-10 max-w-3xl mx-auto leading-relaxed">
+                    {{ settings.site_description }}
+                </p>
+                
+                <!-- 行動按鈕 -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="/products" class="inline-flex items-center justify-center px-8 py-4 bg-white text-primary-700 rounded-2xl font-semibold hover:bg-gray-50 transition-all duration-300 transform hover:scale-105 shadow-lg">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9a2 2 0 012-2z"></path>
+                        </svg>
+                        探索商品
+                    </a>
+                    <a href="/blog" class="inline-flex items-center justify-center px-8 py-4 bg-transparent text-white border-2 border-white rounded-2xl font-semibold hover:bg-white hover:text-primary-700 transition-all duration-300 transform hover:scale-105">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
+                        </svg>
+                        閱讀部落格
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 向下箭頭 -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </div>
+    </section>
+
+  <!-- Features Section -->
+  <section class="bg-white py-32">
+    <div class="mx-auto max-w-7xl px-8">
+      <div class="grid grid-cols-1 gap-20 md:grid-cols-3">
+        <!-- Feature 1 -->
+        <div class="flex flex-col items-center text-center">
+          <div class="mb-3 h-16 w-16">
+            <img src="../static/assets/home-feature1.svg" alt="共享幸福時光" />
+          </div>
+          <h3 class="mb-4 text-xl font-bold text-[#121212]">共享幸福時光</h3>
+          <p class="text-base leading-relaxed text-[#121212]">我們設計的不只是產品，而是你和毛孩的生活風景。</p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="flex flex-col items-center text-center">
+          <div class="mb-3 h-16 w-16">
+            <img src="../static/assets/home-feature2.svg" alt="" />
+          </div>
+          <h3 class="mb-4 text-xl font-bold text-[#121212]">貼近生活的友善選擇</h3>
+          <p class="text-base leading-relaxed text-[#121212]">減少過度包裝、使用輕柔不傷環境的材質，讓愛從日常開始。</p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="flex flex-col items-center text-center">
+          <div class="mb-3 h-16 w-16">
+            <img src="../static/assets/home-feature3.svg" alt="用心製作每一件小事" />
+          </div>
+          <h3 class="mb-4 text-xl font-bold text-[#121212]">用心製作每一件小事</h3>
+          <p class="text-base leading-relaxed text-[#121212]">從出貨到包裝，傳遞我們對毛孩的愛與細節的堅持。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+    <!-- Featured Products -->
+    <section class="py-16 lg:py-24 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">全站商品</h2>
+                <!-- <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-8">發現我們精心挑選的熱門商品</p> -->
+                <!-- <div class="w-24 h-1 bg-gradient-to-r from-primary-500 to-primary-600 mx-auto rounded-full"></div> -->
+            </div>
+            
+            <!-- Loading State -->
+            <div x-show="productsLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <template x-for="i in 4">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-pulse">
+                        <div class="aspect-square bg-gray-200"></div>
+                        <div class="p-6">
+                            <div class="h-4 bg-gray-200 rounded mb-2"></div>
+                            <div class="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
+                            <div class="h-6 bg-gray-200 rounded w-1/2"></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- Products Grid -->
+            <div x-show="!productsLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <template x-for="product in featuredProducts" :key="product.id">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group overflow-hidden flex flex-col h-full">
+                        <!-- 商品圖片 -->
+                        <div class="aspect-square overflow-hidden bg-gray-100 relative">
+                            <img :src="product.featured_image || '/static/images/default-product.jpg'" 
+                                 :alt="product.name"
+                                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            
+                            <!-- 折扣標籤 -->
+                            <div x-show="product.sale_price && product.sale_price < product.price" 
+                                 class="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                                折扣
+                            </div>
+                            
+                            <!-- 快速加入購物車 -->
+                            <button @click="addToCart(product.id, 1)" 
+                                    class="absolute bottom-4 right-4 w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-primary-700 transform hover:scale-110">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 9M7 13h10"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- 商品資訊 -->
+                        <div class="p-6 flex flex-col flex-grow">
+                            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200 h-12 flex items-center" x-text="product.name"></h3>
+                            <p class="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow h-16 overflow-hidden" x-text="product.short_description"></p>
+                            
+                            <!-- 價格 -->
+                            <div class="flex items-center space-x-2 mb-4">
+                                <span x-show="product.sale_price && product.sale_price < product.price" 
+                                      class="text-xl font-bold text-red-600" 
+                                      x-text="'NT$ ' + (product.sale_price || 0).toLocaleString()"></span>
+                                <span :class="product.sale_price && product.sale_price < product.price ? 'text-sm text-gray-500 line-through' : 'text-xl font-bold text-gray-900'" 
+                                      x-text="'NT$ ' + (product.price || 0).toLocaleString()"></span>
+                            </div>
+                            
+                            <!-- 查看詳情按鈕 -->
+                            <a :href="'/product/' + product.slug" 
+                               class="block w-full bg-gray-900 text-white text-center py-3 rounded-xl font-medium hover:bg-primary-600 transition-colors duration-200">
+                                查看詳情
+                            </a>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- 查看更多按鈕 -->
+            <div class="text-center mt-12">
+                <a href="/products" class="inline-flex items-center px-8 py-4 bg-primary-600 text-white rounded-2xl font-semibold hover:bg-primary-700 transition-all duration-300 transform hover:scale-105">
+                    查看所有商品
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Latest Blog Posts -->
+    <section x-show="false" class="py-16 lg:py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">最新文章</h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-8">閱讀我們的最新內容與專業見解</p>
+                <div class="w-24 h-1 bg-gradient-to-r from-primary-500 to-primary-600 mx-auto rounded-full"></div>
+            </div>
+            
+            <!-- Loading State -->
+            <div x-show="postsLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <template x-for="i in 3">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-pulse">
+                        <div class="aspect-video bg-gray-200"></div>
+                        <div class="p-6">
+                            <div class="h-4 bg-gray-200 rounded mb-2"></div>
+                            <div class="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
+                            <div class="h-20 bg-gray-200 rounded"></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- Posts Grid -->
+            <div x-show="!postsLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <template x-for="post in latestPosts" :key="post.id">
+                    <article class="bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group overflow-hidden flex flex-col h-full">
+                        <!-- 文章圖片 -->
+                        <div class="aspect-video bg-gray-100 relative overflow-hidden" x-show="post.featured_image">
+                            <img :src="post.featured_image || '/static/images/default-blog.jpg'" 
+                                 :alt="post.title"
+                                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                                 
+                            <!-- 分類標籤已移除 -->
+                        </div>
+                        
+                        <!-- 沒有圖片時的佔位 -->
+                        <div class="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden flex items-center justify-center" x-show="!post.featured_image">
+                            <div class="text-6xl text-gray-400">📝</div>
+                            
+                            <!-- 分類標籤已移除 -->
+                        </div>
+                        
+                        <!-- 文章內容 -->
+                        <div class="p-6">
+                            <h3 class="text-xl font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary-600 transition-colors duration-200">
+                                <a :href="'/blog/' + post.slug" 
+                                   class="hover:text-primary-600 transition-colors"
+                                   x-text="post.title">
+                                </a>
+                            </h3>
+                            <p class="text-gray-600 mb-4 line-clamp-3" x-text="post.excerpt"></p>
+                            
+                            <!-- 發佈時間 -->
+                            <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                        </svg>
+                                    </div>
+                                    <span>管理員</span>
+                                </div>
+                                <time x-text="new Date(post.created_at).toLocaleDateString('zh-TW')"></time>
+                            </div>
+                            
+                            <!-- 閱讀更多按鈕 -->
+                            <a :href="'/blog/' + post.slug" 
+                               class="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium transition-colors duration-200">
+                                閱讀更多
+                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                </svg>
+                            </a>
+                        </div>
+                    </article>
+                </template>
+            </div>
+            
+            <!-- 查看更多按鈕 -->
+            <div class="text-center mt-12">
+                <a href="/blog" class="inline-flex items-center px-8 py-4 bg-primary-600 text-white rounded-2xl font-semibold hover:bg-primary-700 transition-all duration-300 transform hover:scale-105">
+                    查看所有文章
+                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter Section -->
+    <section  x-show="false" class="py-16 lg:py-24 bg-gradient-to-br from-primary-600 to-primary-800">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl lg:text-4xl font-bold text-white mb-4">訂閱我們的最新消息</h2>
+            <p class="text-xl text-primary-100 mb-10 max-w-2xl mx-auto">獲得第一手的產品資訊與優惠活動通知</p>
+            
+            <form class="flex flex-col sm:flex-row gap-4 max-w-md mx-auto" @submit.prevent="subscribe()">
+                <input type="email" 
+                       placeholder="輸入您的電子郵件" 
+                       class="flex-1 px-6 py-4 rounded-2xl border-0 focus:ring-2 focus:ring-primary-300 focus:outline-none text-gray-900 placeholder-gray-500"
+                       x-model="email"
+                       required>
+                <button type="submit" 
+                        class="px-8 py-4 bg-white text-primary-700 rounded-2xl font-semibold hover:bg-gray-50 transition-all duration-300 transform hover:scale-105 whitespace-nowrap">
+                    訂閱
+                </button>
+            </form>
+            
+            <p class="text-primary-100 text-sm mt-6">我們承諾保護您的隱私，您可以隨時取消訂閱</p>
+        </div>
+    </section>
+</div>
+
+<script>
+function homeApp() {
+    return {
+        featuredProducts: [],
+        latestPosts: [],
+        productsLoading: true,
+        postsLoading: true,
+        email: '',
+        
+        async loadContent() {
+            await Promise.all([
+                this.loadFeaturedProducts(),
+                this.loadLatestPosts()
+            ]);
+        },
+        
+        async loadFeaturedProducts() {
+            try {
+                const response = await fetch('/api/products?limit=4&featured=true&active=true');
+                if (response.ok) {
+                    this.featuredProducts = await response.json();
+                }
+            } catch (error) {
+                console.error('載入精選商品失敗:', error);
+            } finally {
+                this.productsLoading = false;
+            }
+        },
+        
+        async loadLatestPosts() {
+            console.log('載入最新文章');
+            try {
+                const response = await fetch('/api/posts?limit=3&published_only=true');
+                if (response.ok) {
+                    this.latestPosts = await response.json();
+                }
+            } catch (error) {
+                console.error('載入最新文章失敗:', error);
+            } finally {
+                this.postsLoading = false;
+            }
+        },
+        
+        async addToCart(productId, quantity = 1) {
+            try {
+                const response = await fetch('/api/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        quantity: quantity
+                    })
+                });
+                
+                if (response.ok) {
+                    // 更新購物車計數
+                    window.updateCartCount();
+                    
+                    // 顯示成功訊息
+                    this.showNotification('商品已加入購物車！', 'success');
+                } else {
+                    throw new Error('加入購物車失敗');
+                }
+            } catch (error) {
+                console.error('加入購物車錯誤:', error);
+                this.showNotification('加入購物車失敗，請稍後再試', 'error');
+            }
+        },
+        
+        formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('zh-TW', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        },
+        
+        showNotification(message, type = 'info') {
+            // 創建通知元素
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-lg transition-all duration-300 transform translate-x-full ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'error' ? 'bg-red-500 text-white' : 
+                'bg-primary-600 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // 顯示動畫
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 100);
+            
+            // 自動隱藏
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        },
+        
+        async subscribe() {
+            try {
+                const response = await fetch('/api/newsletter/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: this.email })
+                });
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.detail || '訂閱失敗');
+                }
+                this.email = '';
+                this.showNotification('感謝您的訂閱！', 'success');
+            } catch (error) {
+                console.error('訂閱錯誤:', error);
+                this.showNotification(error.message || '訂閱失敗', 'error');
+            }
+        }
+    }
+}
+</script>
+
+<style>
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+{% endblock %} 
