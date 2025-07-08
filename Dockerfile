@@ -1,16 +1,16 @@
 # Stage 1: Build frontend
 FROM node:20-alpine AS frontend-builder
 
-# 將前端程式碼放在 /usr/src/app/frontend
-WORKDIR /usr/src/app/frontend
+# 將前端程式碼放在 /usr/src/app/admin-src
+WORKDIR /usr/src/app/admin-src
 
 # 複製 package files 並安裝依賴
 # 使用 npm ci 以確保使用 package-lock.json 的精確版本
-COPY frontend/package*.json ./
+COPY admin-src/package*.json ./
 RUN npm ci
 
 # 複製源代碼並構建
-COPY frontend/ .
+COPY admin-src/ .
 # 創建目錄結構以便 vite 能夠輸出到正確的路徑
 RUN mkdir -p ../app/static/admin
 RUN npm run build
