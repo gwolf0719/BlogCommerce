@@ -11,14 +11,12 @@ RUN npm ci
 
 # 複製源代碼並構建
 COPY admin-src/ .
-# 創建目錄結構以便 vite 能夠輸出到正確的路徑
-RUN mkdir -p ../app/static/admin
 RUN npm run build
 
 # --- 除錯步驟 ---
-# 在建置後列出工作目錄的內容，以確認 'dist' 資料夾是否存在
-# 請在建置日誌中尋找 "--- Contents of..." 這行輸出來進行檢查
+# 在建置後列出工作目錄的內容，以確認建置結果
 RUN echo "--- Contents of /usr/src/app/admin-src after build ---" && ls -la
+RUN echo "--- Contents of /usr/src/app/admin (build output) ---" && ls -la ../admin
 
 # Stage 2: Build backend dependencies
 FROM python:3.10-slim AS backend-builder
@@ -57,7 +55,7 @@ ENV PATH=/root/.local/bin:$PATH
 COPY app/ ./app/
 
 # 複製前端構建結果
-COPY --from=frontend-builder /usr/src/app/app/static/admin/ ./app/static/admin/
+COPY --from=frontend-builder /usr/src/app/admin/ ./admin/
 
 # 創建上傳目錄，這個目錄將會被 NFS 掛載點覆蓋
 # 我們仍然在映像檔中創建它，以確保在沒有掛載的情況下路徑依然存在
