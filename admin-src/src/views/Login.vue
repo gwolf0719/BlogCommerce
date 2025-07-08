@@ -1,6 +1,6 @@
 <template>
   <div class="login-container">
-    <a-card title="BlogCommerce 管理員登入" class="login-card">
+    <a-card title="伴獸家 管理員登入" class="login-card">
       <a-form :model="form" @finish="handleLogin" layout="vertical">
         <a-form-item 
           label="使用者名稱" 

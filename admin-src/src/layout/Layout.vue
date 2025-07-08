@@ -3,7 +3,7 @@
     <a-layout-sider v-model:collapsed="collapsed" collapsible>
       <div class="logo">
         <h3 v-if="!collapsed" style="color: white; text-align: center; margin: 16px 0;">
-          BlogCommerce
+          伴獸家
         </h3>
         <h3 v-else style="color: white; text-align: center; margin: 16px 0;">
           BC
