@@ -30,11 +30,11 @@
 <template>
   <div class="admin-page">
     <!-- 1. 頁面標題區 -->
-    <div class="page-header">
+    <div class="header-section">
       <div class="header-content">
         <div class="title-section">
-          <h1 class="page-title">行銷專案管理</h1>
-          <p class="page-description">創建和管理促銷活動與優惠券發放專案</p>
+          <h1>行銷專案管理</h1>
+          <p>創建和管理促銷活動與優惠券發放專案</p>
         </div>
         <div class="action-section">
           <a-space>

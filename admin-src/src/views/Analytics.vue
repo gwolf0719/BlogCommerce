@@ -1,11 +1,11 @@
 <template>
   <div class="admin-page">
     <!-- 1. 頁面標題區 -->
-    <div class="page-header">
+    <div class="header-section">
       <div class="header-content">
         <div class="title-section">
-          <h1 class="page-title">數據分析</h1>
-          <p class="page-description">查看系統數據統計和分析報告</p>
+          <h1>數據分析</h1>
+          <p>查看系統數據統計和分析報告</p>
         </div>
         <div class="action-section">
           <a-button @click="refreshData" :loading="loading">
@@ -58,7 +58,55 @@
       </a-row>
     </div>
 
-    <!-- 3. 主要內容區 -->
+    <!-- 3. 搜尋篩選區 -->
+    <div class="filter-section">
+      <a-card class="filter-card">
+        <a-row :gutter="24">
+          <a-col :span="6">
+            <a-range-picker 
+              v-model:value="dateRange"
+              :placeholder="['開始日期', '結束日期']"
+              @change="handleDateRangeChange"
+              style="width: 100%"
+            />
+          </a-col>
+          <a-col :span="4">
+            <a-select
+              v-model:value="dataType"
+              placeholder="數據類型"
+              @change="handleDataTypeChange"
+              style="width: 100%"
+            >
+              <a-select-option value="all">全部數據</a-select-option>
+              <a-select-option value="users">用戶數據</a-select-option>
+              <a-select-option value="content">內容數據</a-select-option>
+              <a-select-option value="sales">銷售數據</a-select-option>
+            </a-select>
+          </a-col>
+          <a-col :span="4">
+            <a-select
+              v-model:value="timePeriod"
+              placeholder="時間週期"
+              @change="handleTimePeriodChange"
+              style="width: 100%"
+            >
+              <a-select-option value="7">最近7天</a-select-option>
+              <a-select-option value="30">最近30天</a-select-option>
+              <a-select-option value="90">最近90天</a-select-option>
+              <a-select-option value="365">最近一年</a-select-option>
+            </a-select>
+          </a-col>
+          <a-col :span="6">
+            <a-space>
+              <a-button @click="applyFilters" type="primary">應用篩選</a-button>
+              <a-button @click="resetFilters">重置</a-button>
+            </a-space>
+          </a-col>
+        </a-row>
+      </a-card>
+    </div>
+
+    <!-- 4. 主要內容區 -->
     <div class="content-section">
       <!-- 熱門內容 -->
       <a-row :gutter="24" style="margin-bottom: 24px;">
@@ -124,9 +172,41 @@ const stats = reactive({
   total_orders: 0
 })
 
+// 篩選相關的響應式數據
+const dateRange = ref()
+const dataType = ref('all')
+const timePeriod = ref('30')
+
 const popularProducts = ref([])
 const popularPosts = ref([])
 const recentActivities = ref([])
+
+// 篩選處理函數
+const handleDateRangeChange = (dates) => {
+  if (dates && dates.length === 2) {
+    // 自動應用篩選
+    refreshData()
+  }
+}
+
+const handleDataTypeChange = () => {
+  refreshData()
+}
+
+const handleTimePeriodChange = () => {
+  refreshData()
+}
+
+const applyFilters = () => {
+  refreshData()
+}
+
+const resetFilters = () => {
+  dateRange.value = undefined
+  dataType.value = 'all'
+  timePeriod.value = '30'
+  refreshData()
+}
 
 // 表格欄位
 const productColumns = [
@@ -302,7 +382,7 @@ onMounted(() => {
   padding: 20px;
 }
 
-.page-header {
+.header-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -340,6 +420,14 @@ onMounted(() => {
 
 .stats-row .ant-card {
   text-align: center;
+}
+
+.filter-section {
+  margin-bottom: 20px;
+}
+
+.filter-card {
+  padding: 16px;
 }
 
 .content-section {

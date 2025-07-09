@@ -1,12 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from app.database import get_db
 from app.models.product import Product
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import json
 
-router = APIRouter(prefix="/api/cart", tags=["購物車"])
+router = APIRouter(
+    prefix="/api/cart",
+    tags=["購物車"],
+    responses={
+        400: {"description": "請求參數錯誤"},
+        404: {"description": "商品不存在"},
+        500: {"description": "伺服器內部錯誤"}
+    }
+)
 
 
 class CartItem(BaseModel):

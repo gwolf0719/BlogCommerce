@@ -1,11 +1,11 @@
 <template>
   <div class="admin-page">
     <!-- 1. 頁面標題區 -->
-    <div class="page-header">
+    <div class="header-section">
       <div class="header-content">
         <div class="title-section">
-          <h1 class="page-title">系統設定</h1>
-          <p class="page-description">管理系統配置和功能選項</p>
+          <h1>系統設定</h1>
+          <p>管理系統配置和功能選項</p>
         </div>
         <div class="action-section">
           <a-space>

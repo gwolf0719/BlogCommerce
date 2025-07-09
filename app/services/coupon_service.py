@@ -173,9 +173,13 @@ class CouponService:
                    limit: int = 50,
                    active_only: bool = None,
                    coupon_type: CouponType = None,
-                   expired_only: bool = None) -> List[Coupon]:
-        """取得優惠券列表"""
+                   expired_only: bool = None,
+                   campaign_id: Optional[int] = None) -> List[Coupon]:
+        """取得優惠券列表（只返回有關聯行銷專案的優惠券）"""
         query = self.db.query(Coupon)
+        
+        # 強制要求優惠券必須關聯行銷專案（符合業務邏輯）
+        query = query.filter(Coupon.campaign_id.isnot(None))
         
         if active_only is not None:
             query = query.filter(Coupon.is_active == active_only)
@@ -189,6 +193,9 @@ class CouponService:
                 query = query.filter(Coupon.valid_to < now)
             else:
                 query = query.filter(Coupon.valid_to >= now)
+        
+        if campaign_id is not None:
+            query = query.filter(Coupon.campaign_id == campaign_id)
         
         return query.order_by(Coupon.created_at.desc()).offset(skip).limit(limit).all()
     
@@ -385,29 +392,47 @@ class CouponService:
         return query.order_by(CouponDistribution.distributed_at.desc()).offset(skip).limit(limit).all()
     
     def get_coupon_stats(self) -> CouponStats:
-        """取得優惠券統計"""
+        """取得優惠券統計（只統計有關聯行銷專案的優惠券）"""
         now = datetime.now(timezone.utc)
         
-        # 基本統計
-        total_coupons = self.db.query(Coupon).count()
+        # 基本統計（只統計有行銷專案的優惠券）
+        total_coupons = self.db.query(Coupon).filter(Coupon.campaign_id.isnot(None)).count()
         active_coupons = self.db.query(Coupon).filter(
-            and_(Coupon.is_active == True, Coupon.valid_to >= now)
+            and_(
+                Coupon.campaign_id.isnot(None),
+                Coupon.is_active == True, 
+                Coupon.valid_to >= now
+            )
         ).count()
-        expired_coupons = self.db.query(Coupon).filter(Coupon.valid_to < now).count()
+        expired_coupons = self.db.query(Coupon).filter(
+            and_(
+                Coupon.campaign_id.isnot(None),
+                Coupon.valid_to < now
+            )
+        ).count()
         
-        used_coupons = self.db.query(CouponUsage).count()
+        used_coupons = self.db.query(CouponUsage).join(Coupon).filter(
+            Coupon.campaign_id.isnot(None)
+        ).count()
         unused_coupons = total_coupons - used_coupons
         
-        # 總折扣金額
-        total_discount = self.db.query(func.sum(CouponUsage.discount_amount)).scalar() or Decimal('0')
+        # 總折扣金額（只計算有行銷專案的優惠券）
+        total_discount = self.db.query(func.sum(CouponUsage.discount_amount)).join(Coupon).filter(
+            Coupon.campaign_id.isnot(None)
+        ).scalar() or Decimal('0')
         
-        # 按類型統計
+        # 按類型統計（只統計有行銷專案的優惠券）
         by_type = {}
         for coupon_type in CouponType:
-            count = self.db.query(Coupon).filter(Coupon.coupon_type == coupon_type).count()
+            count = self.db.query(Coupon).filter(
+                and_(
+                    Coupon.campaign_id.isnot(None),
+                    Coupon.coupon_type == coupon_type
+                )
+            ).count()
             by_type[coupon_type.value] = count
         
-        # 按月份統計（最近12個月）
+        # 按月份統計（最近12個月，只統計有行銷專案的優惠券）
         by_month = {}
         from dateutil.relativedelta import relativedelta
         for i in range(12):
@@ -416,7 +441,11 @@ class CouponService:
             month_end = month_start + relativedelta(months=1)
             
             count = self.db.query(Coupon).filter(
-                and_(Coupon.created_at >= month_start, Coupon.created_at < month_end)
+                and_(
+                    Coupon.campaign_id.isnot(None),
+                    Coupon.created_at >= month_start, 
+                    Coupon.created_at < month_end
+                )
             ).count()
             
             by_month[month_start.strftime("%Y-%m")] = count

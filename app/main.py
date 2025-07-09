@@ -94,51 +94,73 @@ app = FastAPI(
     openapi_tags=[
         {
             "name": "認證",
-            "description": "用戶認證相關操作，包括登入、註冊、密碼管理等。",
+            "description": "用戶認證相關操作，包括登入、註冊、密碼管理等。"
         },
         {
             "name": "文章",
-            "description": "部落格文章的 CRUD 操作，支援 Markdown 格式。",
+            "description": "部落格文章的 CRUD 操作，支援 Markdown 格式。"
         },
         {
             "name": "商品",
-            "description": "電商商品管理，包括商品資訊、庫存、價格等。",
+            "description": "電商商品管理，包括商品資訊、庫存、價格等。"
         },
         {
             "name": "購物車",
-            "description": "購物車功能，支援商品加入、移除、數量調整等操作。",
+            "description": "購物車功能，支援商品加入、移除、數量調整等操作。"
         },
         {
             "name": "訂單",
-            "description": "訂單管理系統，包括訂單創建、狀態更新、歷史記錄等。",
+            "description": "訂單管理系統，包括訂單創建、狀態更新、歷史記錄等。"
         },
         {
             "name": "收藏",
-            "description": "用戶收藏功能，允許收藏商品並管理收藏清單。",
+            "description": "用戶收藏功能，允許收藏商品並管理收藏清單。"
         },
         {
             "name": "分析統計",
-            "description": "網站分析統計，包括頁面瀏覽、用戶行為、即時數據等。",
+            "description": "網站分析統計，包括頁面瀏覽、用戶行為、即時數據等。"
         },
         {
             "name": "系統設定",
-            "description": "系統配置管理，包括網站設定、功能開關等。",
+            "description": "系統配置管理，包括網站設定、功能開關等。"
         },
         {
-            "name": "錯誤日誌",
-            "description": "系統錯誤日誌記錄與查詢功能。",
+            "name": "優惠券",
+            "description": "優惠券系統，包括創建、分發、使用等功能。"
+        },
+        {
+            "name": "行銷專案",
+            "description": "行銷專案管理，包括專案創建、統計分析等。"
+        },
+        {
+            "name": "金流處理",
+            "description": "金流付款處理，支援多種付款方式。"
+        },
+        {
+            "name": "瀏覽追蹤",
+            "description": "網站瀏覽行為追蹤和統計。"
         },
         {
             "name": "電子報",
-            "description": "電子報系統，包括訂閱管理、內容發送等功能。",
+            "description": "電子報系統，包括訂閱管理、內容發送等功能。"
         },
         {
             "name": "管理員",
-            "description": "管理員專用功能，需要管理員權限。",
+            "description": "管理員專用功能，需要管理員權限。"
         },
         {
             "name": "健康檢查",
-            "description": "系統健康狀態檢查和監控。",
+            "description": "系統健康狀態檢查和監控。"
+        }
+    ],
+    servers=[
+        {
+            "url": "http://localhost:8002",
+            "description": "開發環境伺服器"
+        },
+        {
+            "url": "https://api.blogcommerce.com",
+            "description": "正式環境伺服器"
         }
     ]
 )
@@ -180,58 +202,15 @@ app.include_router(api_router)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
     """處理HTTP異常"""
     log_api_error(f"{request.method} {request.url.path}", exc, {"status_code": exc.status_code})
-    
-    # 同時記錄到錯誤日誌系統
-    try:
-        from app.database import SessionLocal
-        from app.services.error_log_service import ErrorLogService
-        from app.models.error_log import ErrorSeverity
-        
-        db = SessionLocal()
-        try:
-            error_service = ErrorLogService(db)
-            severity = ErrorSeverity.CRITICAL if exc.status_code >= 500 else ErrorSeverity.MEDIUM
-            error_service.log_backend_error(
-                error=exc,
-                request=request,
-                severity=severity,
-                tags=['http_exception', f'status_{exc.status_code}']
-            )
-        finally:
-            db.close()
-    except Exception as e:
-        app_logger.error(f"記錄HTTP異常到錯誤日誌系統失敗: {e}")
-    
     return await http_exception_handler(request, exc)
 
 @app.exception_handler(ValidationError)
 async def validation_exception_handler(request: Request, exc: ValidationError):
     """處理驗證錯誤"""
     log_validation_error("Request", exc.errors(), None)
-    
-    # 同時記錄到錯誤日誌系統
-    try:
-        from app.database import SessionLocal
-        from app.services.error_log_service import ErrorLogService
-        from app.models.error_log import ErrorSeverity
-        
-        db = SessionLocal()
-        try:
-            error_service = ErrorLogService(db)
-            error_service.log_backend_error(
-                error=exc,
-                request=request,
-                severity=ErrorSeverity.MEDIUM,
-                tags=['validation', 'pydantic']
-            )
-        finally:
-            db.close()
-    except Exception as e:
-        app_logger.error(f"記錄驗證錯誤到錯誤日誌系統失敗: {e}")
-    
     return JSONResponse(
         status_code=422,
-        content={"detail": "驗證錯誤", "errors": exc.errors()}
+        content={"detail": exc.errors()}
     )
 
 @app.exception_handler(Exception)
@@ -259,26 +238,6 @@ async def general_exception_handler(request: Request, exc: Exception):
         raise exc
     
     log_api_error(f"{request.method} {request.url.path}", exc)
-    
-    # 簡化錯誤日誌記錄，避免在錯誤處理中再次出錯
-    try:
-        from app.database import SessionLocal
-        from app.services.error_log_service import ErrorLogService
-        from app.models.error_log import ErrorSeverity
-        
-        db = SessionLocal()
-        try:
-            error_service = ErrorLogService(db)
-            error_service.log_backend_error(
-                error=exc,
-                request=request,
-                severity=ErrorSeverity.CRITICAL,
-                tags=['unhandled_exception', 'server_error']
-            )
-        finally:
-            db.close()
-    except Exception as e:
-        app_logger.error(f"記錄一般異常到錯誤日誌系統失敗: {e}")
     
     return JSONResponse(
         status_code=500,
@@ -465,8 +424,10 @@ else:
 async def api_root():
     return {
         "message": "歡迎使用 BlogCommerce API",
-        "docs": "/docs",
-        "redoc": "/redoc"
+        "docs": "/api-docs",
+        "swagger": "/docs",
+        "redoc": "/redoc",
+        "openapi": "/openapi.json"
     }
 
 # 健康檢查

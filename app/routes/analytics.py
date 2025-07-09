@@ -241,12 +241,6 @@ async def track_page_view(
         raise HTTPException(status_code=500, detail=f"記錄頁面瀏覽失敗: {str(e)}")
 
 
-class HeartbeatRequest(BaseModel):
-    session_id: str
-    page_url: str
-    active_time: int
-
-
 @router.post("/heartbeat")
 async def heartbeat(
     data: HeartbeatRequest,
@@ -917,12 +911,12 @@ async def get_detailed_content_stats(
 # 分類統計端點已移除
 
 
-@router.get("/overview")
-async def get_analytics_overview(
+@router.get("/overview-v2")
+async def get_analytics_overview_v2(
     days: int = 30,
     db: Session = Depends(get_db)
 ):
-    """獲取分析概覽數據"""
+    """獲取分析概覽數據 - 版本2"""
     try:
         # 計算時間範圍
         end_date = datetime.utcnow()
@@ -1014,12 +1008,12 @@ async def get_analytics_overview(
         raise HTTPException(status_code=500, detail=f"獲取概覽數據失敗: {str(e)}")
 
 
-@router.get("/device-stats")
-async def get_device_stats(
+@router.get("/device-stats-v2")
+async def get_device_stats_v2(
     days: int = 30,
     db: Session = Depends(get_db)
 ):
-    """獲取設備統計數據"""
+    """獲取設備統計數據 - 版本2"""
     try:
         # 計算時間範圍
         end_date = datetime.utcnow()

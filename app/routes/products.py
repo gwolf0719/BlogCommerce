@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
@@ -8,10 +8,73 @@ from app.services.view_tracking_service import ViewTrackingService
 from app.auth import get_current_admin_user, get_current_user_optional
 from app.models.user import User
 
-router = APIRouter(prefix="/api/products", tags=["商品"])
+router = APIRouter(
+    prefix="/api/products",
+    tags=["商品"],
+    responses={
+        404: {"description": "商品不存在"},
+        400: {"description": "請求參數錯誤"},
+        403: {"description": "權限不足"},
+        500: {"description": "伺服器內部錯誤"}
+    }
+)
 
 
-@router.get("", response_model=List[ProductListResponse])
+@router.get(
+    "",
+    response_model=List[ProductListResponse],
+    summary="取得商品列表",
+    description="""
+    取得商品列表，支援多種篩選和搜尋選項。
+    
+    ## 功能特色
+    - 🔍 支援商品名稱和描述的模糊搜尋
+    - 💰 支援價格範圍篩選
+    - ⭐ 支援篩選推薦商品
+    - 📖 支援分頁查詢
+    - 🎯 支援啟用/停用商品篩選
+    
+    ## 使用方式
+    - 預設只顯示啟用的商品
+    - 可透過 `active_only=false` 查看所有商品
+    - 可透過 `featured_only=true` 只查看推薦商品
+    - 價格篩選支援設定最低價和最高價
+    - 搜尋功能會同時搜尋商品名稱和描述
+    
+    ## 注意事項
+    - 回應結果按商品創建時間倒序排列
+    - 限制每次最多查詢 100 筆商品
+    - 搜尋功能支援部分關鍵字匹配
+    """,
+    responses={
+        200: {
+            "description": "成功取得商品列表",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": 1,
+                            "name": "精選商品",
+                            "short_description": "高品質商品",
+                            "price": 100.0,
+                            "sale_price": 80.0,
+                            "featured_image": "/static/images/product1.jpg",
+                            "stock_quantity": 50,
+                            "is_active": True,
+                            "is_featured": True,
+                            "view_count": 125,
+                            "current_price": 80.0,
+                            "is_on_sale": True,
+                            "slug": "selected-product",
+                            "created_at": "2024-01-01T00:00:00",
+                            "updated_at": "2024-01-01T12:00:00"
+                        }
+                    ]
+                }
+            }
+        }
+    }
+)
 def get_products(
     active_only: bool = Query(True, description="僅顯示啟用的商品"),
     featured_only: bool = Query(False, description="僅顯示推薦商品"),
@@ -22,7 +85,6 @@ def get_products(
     limit: int = Query(20, ge=1, le=100, description="限制項目數"),
     db: Session = Depends(get_db)
 ):
-    """取得商品列表"""
     query = db.query(Product)
     
     if active_only:
@@ -47,14 +109,60 @@ def get_products(
     return products
 
 
-@router.get("/{product_id}", response_model=ProductResponse)
+@router.get(
+    "/{product_id}",
+    response_model=ProductResponse,
+    summary="取得單一商品",
+    description="""
+    透過商品 ID 取得單一商品的詳細資訊。
+    
+    ## 功能特色
+    - 📊 自動記錄商品瀏覽量
+    - 🔍 完整的商品資訊回應
+    - 💰 包含價格計算和特價資訊
+    - 📈 支援用戶行為追蹤
+    
+    ## 注意事項
+    - 會自動記錄商品瀏覽量
+    - 如果用戶已登入，會記錄用戶 ID
+    - 支援 IP 位址和 User-Agent 追蹤
+    """,
+    responses={
+        200: {
+            "description": "成功取得商品資訊",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 1,
+                        "name": "精選商品",
+                        "description": "這是一個高品質的商品",
+                        "short_description": "高品質商品",
+                        "price": 100.0,
+                        "sale_price": 80.0,
+                        "stock_quantity": 50,
+                        "sku": "SKU-001",
+                        "featured_image": "/static/images/product1.jpg",
+                        "is_active": True,
+                        "is_featured": True,
+                        "view_count": 125,
+                        "current_price": 80.0,
+                        "is_on_sale": True,
+                        "slug": "selected-product",
+                        "created_at": "2024-01-01T00:00:00",
+                        "updated_at": "2024-01-01T12:00:00"
+                    }
+                }
+            }
+        },
+        404: {"description": "商品不存在"}
+    }
+)
 def get_product(
     product_id: int, 
     request: Request,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """取得單一商品"""
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="商品不存在")
