@@ -14,7 +14,9 @@ from fastapi.responses import FileResponse
 from app.api import router as api_router
 from app.utils.logger import app_logger, log_api_error, log_validation_error, LoggingMiddleware
 from datetime import datetime
+from typing import Optional
 from app.services.markdown_service import markdown_service
+from starlette.responses import RedirectResponse
 
 # 建立 FastAPI 應用程式
 app = FastAPI(
@@ -318,7 +320,47 @@ async def cart_page(request: Request):
     return render_template("shop/cart.html", request)
 
 @app.get("/checkout")
-async def checkout_page(request: Request):
+async def checkout_page(request: Request, product_id: Optional[int] = None, quantity: Optional[int] = None):
+    """結帳頁面 - 檢查購物車是否為空"""
+    from app.database import get_db
+    from app.models.product import Product
+    from sqlalchemy.orm import Session
+    
+    # 檢查是否為立即購買
+    if product_id and quantity:
+        # 驗證商品是否存在且有效
+        db: Session = next(get_db())
+        try:
+            product = db.query(Product).filter(
+                Product.id == product_id,
+                Product.is_active.is_(True)
+            ).first()
+            
+            if not product:
+                # 商品不存在或已下架，重定向到商品頁面
+                return RedirectResponse(url="/products", status_code=302)
+            
+            if product.stock_quantity < quantity:
+                # 庫存不足，重定向到商品頁面
+                return RedirectResponse(url=f"/product/{product.slug}", status_code=302)
+            
+            # 立即購買 - 臨時將商品加入購物車
+            cart = request.session.get("cart", {})
+            cart[str(product_id)] = quantity
+            request.session["cart"] = cart
+            
+        except Exception as e:
+            app_logger.error(f"立即購買驗證失敗: {e}")
+            return RedirectResponse(url="/products", status_code=302)
+        finally:
+            db.close()
+    
+    # 檢查購物車是否為空
+    cart = request.session.get("cart", {})
+    if not cart:
+        # 購物車為空，重定向到購物車頁面
+        return RedirectResponse(url="/cart", status_code=302)
+    
     return render_template("shop/checkout.html", request)
 
 @app.get("/blog")

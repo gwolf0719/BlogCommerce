@@ -131,4 +131,8 @@ app/static/uploads/
 
 # Test files (可選)
 test_*.py
-*_test.py 
+*_test.py
+
+
+# Test files (可選)
+tests/
