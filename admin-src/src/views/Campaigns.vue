@@ -30,11 +30,11 @@
 <template>
   <div class="admin-page">
     <!-- 1. 頁面標題區 -->
-    <div class="header-section">
+    <div class="page-header">
       <div class="header-content">
         <div class="title-section">
-          <h1>行銷專案管理</h1>
-          <p>創建和管理促銷活動與優惠券發放專案</p>
+          <h1 class="page-title">行銷專案管理</h1>
+          <p class="page-description">創建和管理促銷活動與優惠券發放專案</p>
         </div>
         <div class="action-section">
           <a-space>
@@ -60,6 +60,7 @@
               title="總專案數" 
               :value="stats.total_campaigns" 
               :loading="statsLoading"
+              prefix="📊"
               :value-style="{ color: '#1890ff' }"
             />
           </a-card>
@@ -70,6 +71,7 @@
               title="進行中專案" 
               :value="stats.active_campaigns" 
               :loading="statsLoading"
+              prefix="⚡"
               :value-style="{ color: '#52c41a' }"
             />
           </a-card>
@@ -80,6 +82,7 @@
               title="生成優惠券" 
               :value="stats.total_coupons_generated" 
               :loading="statsLoading"
+              prefix="🎫"
               :value-style="{ color: '#fa8c16' }"
             />
           </a-card>
@@ -89,7 +92,7 @@
             <a-statistic 
               title="總節省金額" 
               :value="stats.total_discount_amount" 
-              prefix="$"
+              prefix="💰$"
               :precision="2"
               :loading="statsLoading"
               :value-style="{ color: '#722ed1' }"
@@ -146,80 +149,90 @@
           }"
           @change="handleTableChange"
           row-key="id"
+          :scroll="{ x: 1200 }"
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'name'">
-              <div>
-                <div class="font-semibold">{{ record.name }}</div>
-                <div class="text-xs text-gray-500">{{ record.coupon_prefix }}</div>
+              <div class="title-cell">
+                <div class="campaign-title">{{ record.name }}</div>
+                <div class="campaign-prefix">{{ record.coupon_prefix }}</div>
               </div>
             </template>
             
             <template v-if="column.key === 'status'">
-              <a-tag :color="getStatusColor(record.status)">
+              <a-tag :color="getStatusColor(record.status)" size="default">
+                <template #icon>
+                  <span>{{ getStatusIcon(record.status) }}</span>
+                </template>
                 {{ getStatusText(record.status) }}
               </a-tag>
             </template>
             
             <template v-if="column.key === 'coupon_info'">
-              <div class="text-sm">
-                <div>類型：{{ getCouponTypeText(record.coupon_type) }}</div>
-                <div>折扣：{{ formatDiscount(record.discount_type, record.discount_value) }}</div>
+              <div class="coupon-info-cell">
+                <div class="coupon-type">{{ getCouponTypeText(record.coupon_type) }}</div>
+                <div class="coupon-discount">{{ formatDiscount(record.discount_type, record.discount_value) }}</div>
               </div>
             </template>
             
             <template v-if="column.key === 'period'">
-              <div class="text-sm">
-                <div>專案：{{ formatDate(record.campaign_start) }} - {{ formatDate(record.campaign_end) }}</div>
-                <div class="text-gray-500">優惠券：{{ formatDate(record.coupon_valid_from) }} - {{ formatDate(record.coupon_valid_to) }}</div>
+              <div class="period-cell">
+                <div class="period-campaign">{{ formatDate(record.campaign_start) }} - {{ formatDate(record.campaign_end) }}</div>
+                <div class="period-coupon">券效期：{{ formatDate(record.coupon_valid_from) }} - {{ formatDate(record.coupon_valid_to) }}</div>
               </div>
             </template>
             
             <template v-if="column.key === 'progress'">
-              <div class="text-sm">
-                <div>已生成：{{ record.generated_count }} / {{ record.total_coupons }}</div>
+              <div class="progress-cell">
+                <div class="progress-numbers">已生成：{{ record.generated_count }} / {{ record.total_coupons }}</div>
                 <a-progress 
                   :percent="(record.generated_count / record.total_coupons) * 100" 
                   :showInfo="false" 
                   size="small"
                 />
-                <div class="mt-1">已分發：{{ record.distributed_count }} | 已使用：{{ record.used_count }}</div>
+                <div class="progress-stats">已分發：{{ record.distributed_count }} | 已使用：{{ record.used_count }}</div>
               </div>
             </template>
             
             <template v-if="column.key === 'actions'">
               <a-space>
                 <a-button type="primary" size="small" @click="editCampaign(record)">
-                  編輯
+                  <EditOutlined /> 編輯
                 </a-button>
                 <a-button size="small" @click="showCouponModal(record)">
+                  <template #icon>🎫</template>
                   優惠券
                 </a-button>
                 <a-button size="small" @click="showStatsModal(record)">
-                  統計
+                  <BarChartOutlined /> 統計
                 </a-button>
                 <a-dropdown>
                   <template #overlay>
                     <a-menu>
                       <a-menu-item @click="showGenerateModal(record)">
+                        <template #icon>🏭</template>
                         生成優惠券
                       </a-menu-item>
                       <a-menu-item @click="showDistributeModal(record)">
+                        <template #icon>📤</template>
                         分發優惠券
                       </a-menu-item>
                       <a-menu-divider />
                       <a-menu-item @click="updateStatus(record, 'active')" :disabled="record.status === 'active'">
+                        <template #icon>▶️</template>
                         啟動專案
                       </a-menu-item>
                       <a-menu-item @click="updateStatus(record, 'paused')" :disabled="record.status === 'paused'">
+                        <template #icon>⏸️</template>
                         暫停專案
                       </a-menu-item>
                       <a-menu-item @click="updateStatus(record, 'completed')" :disabled="record.status === 'completed'">
+                        <template #icon>✅</template>
                         完成專案
                       </a-menu-item>
                       <a-menu-divider />
                       <a-menu-item @click="deleteCampaign(record.id)" danger>
-                        刪除專案
+                        <DeleteOutlined /> 刪除專案
                       </a-menu-item>
                     </a-menu>
                   </template>
@@ -241,6 +254,7 @@
       width="1000px"
       @ok="handleCreateOrUpdate"
       @cancel="resetForm"
+      class="campaign-modal"
     >
       <a-form
         ref="formRef"
@@ -248,159 +262,167 @@
         :rules="formRules"
         layout="vertical"
       >
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="專案名稱" name="name">
-              <a-input v-model:value="campaignForm.name" placeholder="輸入專案名稱" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="優惠碼前綴" name="coupon_prefix">
-              <a-input v-model:value="campaignForm.coupon_prefix" placeholder="例如：SALE2024" />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        
-        <a-form-item label="專案描述" name="description">
-          <a-textarea v-model:value="campaignForm.description" :rows="3" placeholder="輸入專案描述" />
-        </a-form-item>
-        
-        <a-row :gutter="16">
-          <a-col :span="8">
-            <a-form-item label="優惠券類型" name="coupon_type">
-              <a-select v-model:value="campaignForm.coupon_type">
-                <a-select-option value="product_discount">商品折扣</a-select-option>
-                <a-select-option value="order_discount">整筆折扣</a-select-option>
-                <a-select-option value="free_shipping">免運費</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          <a-col :span="8">
-            <a-form-item label="折扣類型" name="discount_type">
-              <a-select v-model:value="campaignForm.discount_type">
-                <a-select-option value="fixed">固定金額</a-select-option>
-                <a-select-option value="percentage">百分比</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-          <a-col :span="8">
-            <a-form-item label="折扣值" name="discount_value">
-              <a-input-number 
-                v-model:value="campaignForm.discount_value" 
-                :min="0"
-                :max="campaignForm.discount_type === 'percentage' ? 100 : undefined"
-                :precision="2"
-                style="width: 100%"
-                :addon-after="campaignForm.discount_type === 'percentage' ? '%' : '$'"
-              />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        
-        <a-row :gutter="16">
-          <a-col :span="8">
-            <a-form-item label="最低消費" name="minimum_amount">
-              <a-input-number 
-                v-model:value="campaignForm.minimum_amount" 
-                :min="0"
-                :precision="2"
-                style="width: 100%"
-                addon-after="$"
-                placeholder="可選"
-              />
-            </a-form-item>
-          </a-col>
-          <a-col :span="8">
-            <a-form-item label="最高折扣" name="maximum_discount">
-              <a-input-number 
-                v-model:value="campaignForm.maximum_discount" 
-                :min="0"
-                :precision="2"
-                style="width: 100%"
-                addon-after="$"
-                placeholder="可選"
-              />
-            </a-form-item>
-          </a-col>
-          <a-col :span="8">
-            <a-form-item label="總優惠券數" name="total_coupons">
-              <a-input-number 
-                v-model:value="campaignForm.total_coupons" 
-                :min="1"
-                style="width: 100%"
-              />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="專案開始時間" name="campaign_start">
-              <a-date-picker 
-                v-model:value="campaignForm.campaign_start" 
-                show-time 
-                format="YYYY-MM-DD HH:mm:ss"
-                style="width: 100%"
-              />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="專案結束時間" name="campaign_end">
-              <a-date-picker 
-                v-model:value="campaignForm.campaign_end" 
-                show-time 
-                format="YYYY-MM-DD HH:mm:ss"
-                style="width: 100%"
-              />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="優惠券有效開始" name="coupon_valid_from">
-              <a-date-picker 
-                v-model:value="campaignForm.coupon_valid_from" 
-                show-time 
-                format="YYYY-MM-DD HH:mm:ss"
-                style="width: 100%"
-              />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="優惠券有效結束" name="coupon_valid_to">
-              <a-date-picker 
-                v-model:value="campaignForm.coupon_valid_to" 
-                show-time 
-                format="YYYY-MM-DD HH:mm:ss"
-                style="width: 100%"
-              />
-            </a-form-item>
-          </a-col>
-        </a-row>
-        
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="初始生成數量" name="initial_coupons">
-              <a-input-number 
-                v-model:value="campaignForm.initial_coupons" 
-                :min="0"
-                style="width: 100%"
-              />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="專案狀態" name="status">
-              <a-select v-model:value="campaignForm.status">
-                <a-select-option value="draft">草稿</a-select-option>
-                <a-select-option value="active">進行中</a-select-option>
-                <a-select-option value="paused">暫停</a-select-option>
-                <a-select-option value="completed">已完成</a-select-option>
-                <a-select-option value="cancelled">已取消</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-        </a-row>
+        <a-card title="基本信息" size="small" class="form-card">
+          <a-row :gutter="16">
+            <a-col :span="12">
+              <a-form-item label="專案名稱" name="name">
+                <a-input v-model:value="campaignForm.name" placeholder="輸入專案名稱" />
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="優惠碼前綴" name="coupon_prefix">
+                <a-input v-model:value="campaignForm.coupon_prefix" placeholder="例如：SALE2024" />
+              </a-form-item>
+            </a-col>
+          </a-row>
+          
+          <a-form-item label="專案描述" name="description">
+            <a-textarea v-model:value="campaignForm.description" :rows="3" placeholder="輸入專案描述" />
+          </a-form-item>
+        </a-card>
+
+        <a-card title="優惠券設定" size="small" class="form-card">
+          <a-row :gutter="16">
+            <a-col :span="8">
+              <a-form-item label="優惠券類型" name="coupon_type">
+                <a-select v-model:value="campaignForm.coupon_type">
+                  <a-select-option value="product_discount">商品折扣</a-select-option>
+                  <a-select-option value="order_discount">整筆折扣</a-select-option>
+                  <a-select-option value="free_shipping">免運費</a-select-option>
+                </a-select>
+              </a-form-item>
+            </a-col>
+            <a-col :span="8">
+              <a-form-item label="折扣類型" name="discount_type">
+                <a-select v-model:value="campaignForm.discount_type">
+                  <a-select-option value="fixed">固定金額</a-select-option>
+                  <a-select-option value="percentage">百分比</a-select-option>
+                </a-select>
+              </a-form-item>
+            </a-col>
+            <a-col :span="8">
+              <a-form-item label="折扣值" name="discount_value">
+                <a-input-number 
+                  v-model:value="campaignForm.discount_value" 
+                  :min="0"
+                  :max="campaignForm.discount_type === 'percentage' ? 100 : undefined"
+                  :precision="2"
+                  style="width: 100%"
+                  :addon-after="campaignForm.discount_type === 'percentage' ? '%' : '$'"
+                />
+              </a-form-item>
+            </a-col>
+          </a-row>
+          
+          <a-row :gutter="16">
+            <a-col :span="8">
+              <a-form-item label="最低消費" name="minimum_amount">
+                <a-input-number 
+                  v-model:value="campaignForm.minimum_amount" 
+                  :min="0"
+                  :precision="2"
+                  style="width: 100%"
+                  addon-after="$"
+                  placeholder="可選"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :span="8">
+              <a-form-item label="最高折扣" name="maximum_discount">
+                <a-input-number 
+                  v-model:value="campaignForm.maximum_discount" 
+                  :min="0"
+                  :precision="2"
+                  style="width: 100%"
+                  addon-after="$"
+                  placeholder="可選"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :span="8">
+              <a-form-item label="總優惠券數" name="total_coupons">
+                <a-input-number 
+                  v-model:value="campaignForm.total_coupons" 
+                  :min="1"
+                  style="width: 100%"
+                />
+              </a-form-item>
+            </a-col>
+          </a-row>
+        </a-card>
+
+        <a-card title="時間設定" size="small" class="form-card">
+          <a-row :gutter="16">
+            <a-col :span="12">
+              <a-form-item label="專案開始時間" name="campaign_start">
+                <a-date-picker 
+                  v-model:value="campaignForm.campaign_start" 
+                  show-time 
+                  format="YYYY-MM-DD HH:mm:ss"
+                  style="width: 100%"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="專案結束時間" name="campaign_end">
+                <a-date-picker 
+                  v-model:value="campaignForm.campaign_end" 
+                  show-time 
+                  format="YYYY-MM-DD HH:mm:ss"
+                  style="width: 100%"
+                />
+              </a-form-item>
+            </a-col>
+          </a-row>
+          
+          <a-row :gutter="16">
+            <a-col :span="12">
+              <a-form-item label="優惠券有效開始" name="coupon_valid_from">
+                <a-date-picker 
+                  v-model:value="campaignForm.coupon_valid_from" 
+                  show-time 
+                  format="YYYY-MM-DD HH:mm:ss"
+                  style="width: 100%"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="優惠券有效結束" name="coupon_valid_to">
+                <a-date-picker 
+                  v-model:value="campaignForm.coupon_valid_to" 
+                  show-time 
+                  format="YYYY-MM-DD HH:mm:ss"
+                  style="width: 100%"
+                />
+              </a-form-item>
+            </a-col>
+          </a-row>
+        </a-card>
+
+        <a-card title="專案設定" size="small" class="form-card">
+          <a-row :gutter="16">
+            <a-col :span="12">
+              <a-form-item label="初始生成數量" name="initial_coupons">
+                <a-input-number 
+                  v-model:value="campaignForm.initial_coupons" 
+                  :min="0"
+                  style="width: 100%"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="專案狀態" name="status">
+                <a-select v-model:value="campaignForm.status">
+                  <a-select-option value="draft">草稿</a-select-option>
+                  <a-select-option value="active">進行中</a-select-option>
+                  <a-select-option value="paused">暫停</a-select-option>
+                  <a-select-option value="completed">已完成</a-select-option>
+                  <a-select-option value="cancelled">已取消</a-select-option>
+                </a-select>
+              </a-form-item>
+            </a-col>
+          </a-row>
+        </a-card>
       </a-form>
     </a-modal>
 
@@ -414,7 +436,9 @@ import { message } from 'ant-design-vue'
 import { 
   PlusOutlined, 
   BarChartOutlined,
-  DownOutlined
+  DownOutlined,
+  EditOutlined,
+  DeleteOutlined
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import dayjs from 'dayjs'
@@ -470,11 +494,11 @@ const campaignForm = reactive({
 // 表格欄位定義
 const columns = [
   { title: '專案名稱', key: 'name', width: 200, fixed: 'left' },
-  { title: '狀態', key: 'status', width: 80 },
+  { title: '狀態', key: 'status', width: 100 },
   { title: '優惠券信息', key: 'coupon_info', width: 150 },
   { title: '時間範圍', key: 'period', width: 200 },
   { title: '進度統計', key: 'progress', width: 200 },
-  { title: '操作', key: 'actions', width: 200, fixed: 'right' }
+  { title: '操作', key: 'actions', width: 250, fixed: 'right' }
 ]
 
 // 表單驗證規則
@@ -523,6 +547,22 @@ const getStatusText = (status) => {
     cancelled: '已取消'
   }
   return texts[status] || status
+}
+
+/**
+ * 獲取專案狀態對應的圖標
+ * @param {string} status - 專案狀態
+ * @returns {string} 對應的 emoji 圖標
+ */
+const getStatusIcon = (status) => {
+  const icons = {
+    draft: '📝',
+    active: '⚡',
+    paused: '⏸️',
+    completed: '✅',
+    cancelled: '❌'
+  }
+  return icons[status] || '📄'
 }
 
 /**
@@ -763,6 +803,27 @@ const deleteCampaign = async (id) => {
   }
 }
 
+// 待實現的 Modal 函數（目前為佔位函數）
+const showStatsModal = (campaign = null) => {
+  console.log('顯示統計 Modal:', campaign)
+  message.info('統計功能開發中...')
+}
+
+const showCouponModal = (campaign) => {
+  console.log('顯示優惠券 Modal:', campaign)
+  message.info('優惠券管理功能開發中...')
+}
+
+const showGenerateModal = (campaign) => {
+  console.log('顯示生成優惠券 Modal:', campaign)
+  message.info('優惠券生成功能開發中...')
+}
+
+const showDistributeModal = (campaign) => {
+  console.log('顯示分發優惠券 Modal:', campaign)
+  message.info('優惠券分發功能開發中...')
+}
+
 // 生命週期
 onMounted(() => {
   loadCampaigns()
@@ -771,7 +832,146 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.ant-table-tbody > tr > td {
+.admin-page {
+  padding: 24px;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #262626;
+}
+
+.page-description {
+  color: #8c8c8c;
+  margin: 0;
+  font-size: 14px;
+}
+
+.stats-section {
+  margin-bottom: 24px;
+}
+
+.stats-row {
+  margin-bottom: 24px;
+}
+
+.filter-section {
+  margin-bottom: 24px;
+}
+
+.content-section {
+  margin-bottom: 24px;
+}
+
+.title-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.campaign-title {
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 4px;
+}
+
+.campaign-prefix {
+  color: #8c8c8c;
+  font-size: 12px;
+}
+
+.coupon-info-cell {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+
+.coupon-type {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.coupon-discount {
+  color: #fa8c16;
+  font-weight: 600;
+}
+
+.period-cell {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+}
+
+.period-campaign {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.period-coupon {
+  color: #8c8c8c;
+}
+
+.progress-cell {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+}
+
+.progress-numbers {
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.progress-stats {
+  margin-top: 4px;
+  color: #8c8c8c;
+}
+
+.form-card {
+  margin-bottom: 20px;
+}
+
+.campaign-modal {
+  width: 1000px;
+}
+
+/* 表格樣式優化 */
+:deep(.ant-table-tbody > tr > td) {
   vertical-align: top;
+  padding: 12px 8px;
+}
+
+:deep(.ant-table-thead > tr > th) {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+/* 統計卡片樣式 */
+:deep(.stats-section .ant-card) {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+}
+
+/* 篩選卡片樣式 */
+.filter-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+}
+
+/* 內容卡片樣式 */
+.content-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
 }
 </style> 

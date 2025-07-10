@@ -39,7 +39,7 @@ from app.schemas.campaign import (
 )
 from app.services.campaign_service import CampaignService
 
-router = APIRouter(prefix="/api/campaigns", tags=["campaigns"])
+router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
 
 @router.get("/stats/overview", response_model=CampaignOverviewStats)
@@ -48,6 +48,8 @@ async def get_campaigns_overview(
     current_user: User = Depends(get_current_user)
 ):
     """獲取行銷專案總覽統計"""
+    import sys
+    print(f"DEBUG: 進入get_campaigns_overview，用戶: {current_user.username if current_user else 'None'}", file=sys.stderr)
     print(f"DEBUG: 進入get_campaigns_overview，用戶: {current_user.username if current_user else 'None'}")
     
     if not current_user.is_admin:
@@ -96,9 +98,22 @@ async def get_campaigns(
             search=search
         )
         print(f"DEBUG: 獲取到 {len(campaigns)} 個專案")
+        if campaigns:
+            print(f"DEBUG: 第一個專案信息: ID={campaigns[0].id}, Name={campaigns[0].name}")
+            print(f"DEBUG: 第一個專案字段: {[attr for attr in dir(campaigns[0]) if not attr.startswith('_') and not callable(getattr(campaigns[0], attr))]}")
         
         # 明確轉換為CampaignResponse
-        campaign_responses = [CampaignResponse.model_validate(campaign) for campaign in campaigns]
+        campaign_responses = []
+        for i, campaign in enumerate(campaigns):
+            try:
+                response = CampaignResponse.model_validate(campaign)
+                campaign_responses.append(response)
+                print(f"DEBUG: 專案 {i+1} 序列化成功")
+            except Exception as e:
+                print(f"DEBUG: 專案 {i+1} 序列化失敗: {e}")
+                print(f"DEBUG: 失敗專案信息: {campaign}")
+                raise
+                
         print(f"DEBUG: 轉換了 {len(campaign_responses)} 個響應對象")
         
         total = CampaignService.get_campaigns_count(
@@ -117,6 +132,7 @@ async def get_campaigns(
             total_pages=(total + limit - 1) // limit
         )
         print(f"DEBUG: 返回結果類型: {type(result)}")
+        print(f"DEBUG: 返回結果內容: items={len(result.items)}, total={result.total}")
         return result
     except Exception as e:
         print(f"DEBUG: get_campaigns異常: {e}")

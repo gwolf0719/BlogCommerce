@@ -1,11 +1,11 @@
 <template>
   <div class="admin-page">
     <!-- 1. 頁面標題區 -->
-    <div class="header-section">
+    <div class="page-header">
       <div class="header-content">
         <div class="title-section">
-          <h1>系統設定</h1>
-          <p>管理系統配置和功能選項</p>
+          <h1 class="page-title">系統設定</h1>
+          <p class="page-description">管理系統配置和功能選項</p>
         </div>
         <div class="action-section">
           <a-space>
@@ -30,31 +30,31 @@
           <a-card>
             <a-menu v-model:selected-keys="selectedKeys" mode="vertical" @click="handleMenuClick">
               <a-menu-item key="general">
-                <template #icon><SettingOutlined /></template>
+                <template #icon>⚙️</template>
                 基本設定
               </a-menu-item>
               <a-menu-item key="features">
-                <template #icon><AppstoreOutlined /></template>
+                <template #icon>🎛️</template>
                 功能開關
               </a-menu-item>
               <a-menu-item key="email">
-                <template #icon><MailOutlined /></template>
+                <template #icon>📧</template>
                 郵件設定
               </a-menu-item>
               <a-menu-item key="analytics">
-                <template #icon><BarChartOutlined /></template>
+                <template #icon>📊</template>
                 數據分析
               </a-menu-item>
               <a-menu-item key="ai">
-                <template #icon><RobotOutlined /></template>
+                <template #icon>🤖</template>
                 AI 設定
               </a-menu-item>
               <a-menu-item key="security">
-                <template #icon><SafetyOutlined /></template>
+                <template #icon>🔐</template>
                 安全設定
               </a-menu-item>
               <a-menu-item key="payment">
-                <template #icon><CreditCardOutlined /></template>
+                <template #icon>💳</template>
                 金流設定
               </a-menu-item>
             </a-menu>
@@ -1232,6 +1232,43 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.admin-page {
+  padding: 24px;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #262626;
+}
+
+.page-description {
+  color: #8c8c8c;
+  margin: 0;
+  font-size: 14px;
+}
+
+.content-section {
+  margin-bottom: 24px;
+}
+
+/* 卡片樣式統一 */
+:deep(.ant-card) {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+}
+
 .ant-menu-vertical {
   border-right: none;
 }
