@@ -85,7 +85,6 @@ class OrderBase(BaseSchema):
 
 class OrderCreate(OrderBase):
     items: List[OrderItemCreate]
-    coupon_code: Optional[str] = None  # 優惠券代碼
     
     @validator('items')
     def items_must_not_be_empty(cls, v):
@@ -104,12 +103,6 @@ class OrderCreate(OrderBase):
         if not v or not v.strip():
             raise ValueError('配送地址不能為空')
         return v.strip()
-    
-    @validator('coupon_code')
-    def validate_coupon_code(cls, v):
-        if v is not None and not v.strip():
-            return None  # 空字串轉為 None
-        return v.strip() if v else None
 
 
 class OrderUpdate(BaseSchema):
@@ -129,7 +122,7 @@ class OrderResponse(OrderBase, BaseResponseSchema):
     user_id: Optional[int] = None
     subtotal: Optional[Decimal] = None
     shipping_fee: Optional[Decimal] = None
-    discount_amount: Optional[Decimal] = None  # 優惠券折扣金額
+    discount_amount: Optional[Decimal] = None  # 折扣金額
     total_amount: Decimal
     status: OrderStatus
     items: List[OrderItemResponse] = []

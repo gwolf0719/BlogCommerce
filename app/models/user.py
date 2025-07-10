@@ -31,9 +31,6 @@ class User(BaseModel):
     orders = relationship("Order", back_populates="user")
     favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
     view_logs = relationship("ViewLog", back_populates="user", cascade="all, delete-orphan")
-    coupon_usage = relationship("CouponUsage", back_populates="user", cascade="all, delete-orphan")
-    received_coupons = relationship("CouponDistribution", foreign_keys="CouponDistribution.user_id", back_populates="user", cascade="all, delete-orphan")
-    distributed_coupons = relationship("CouponDistribution", foreign_keys="CouponDistribution.distributed_by", back_populates="distributor", cascade="all, delete-orphan")
     
     def set_password(self, password: str):
         """設定密碼（加密）"""
