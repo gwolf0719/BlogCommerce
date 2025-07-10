@@ -66,6 +66,72 @@ setup_venv() {
     echo -e "${GREEN}✅ Python 依賴安裝完成${NC}"
 }
 
+# 資料庫遷移檢查和執行
+run_migrations() {
+    echo -e "${BLUE}🗃️  檢查資料庫遷移狀態...${NC}"
+    
+    # 檢查是否有 alembic 目錄和配置
+    if [ ! -f "alembic.ini" ]; then
+        echo -e "${YELLOW}⚠️  Alembic 配置文件不存在，跳過遷移...${NC}"
+        return 0
+    fi
+    
+    if [ ! -d "alembic/versions" ]; then
+        echo -e "${YELLOW}⚠️  Alembic versions 目錄不存在，正在建立...${NC}"
+        mkdir -p alembic/versions
+    fi
+    
+    # 檢查是否有現有的遷移文件
+    local migration_files=$(find alembic/versions -name "*.py" -type f | wc -l)
+    
+    if [ "$migration_files" -eq 0 ]; then
+        echo -e "${YELLOW}⚠️  沒有找到遷移文件，正在建立初始遷移...${NC}"
+        
+        # 建立初始遷移
+        if "$VENV_PY" -m alembic revision --autogenerate -m "Initial migration"; then
+            echo -e "${GREEN}✅ 初始遷移建立成功${NC}"
+        else
+            echo -e "${RED}❌ 初始遷移建立失敗${NC}"
+            return 1
+        fi
+    fi
+    
+    # 檢查資料庫是否需要遷移
+    echo -e "${BLUE}🔄 檢查資料庫遷移狀態...${NC}"
+    
+    # 嘗試獲取當前資料庫版本
+    if "$VENV_PY" -m alembic current &> /dev/null; then
+        local current_rev=$("$VENV_PY" -m alembic current 2>/dev/null | head -1)
+        local head_rev=$("$VENV_PY" -m alembic heads 2>/dev/null | head -1)
+        
+        if [ "$current_rev" != "$head_rev" ]; then
+            echo -e "${YELLOW}⚠️  資料庫需要遷移，正在執行遷移...${NC}"
+            
+            # 執行遷移
+            if "$VENV_PY" -m alembic upgrade head; then
+                echo -e "${GREEN}✅ 資料庫遷移完成${NC}"
+            else
+                echo -e "${RED}❌ 資料庫遷移失敗${NC}"
+                return 1
+            fi
+        else
+            echo -e "${GREEN}✅ 資料庫已是最新版本${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠️  無法獲取資料庫版本，強制執行遷移...${NC}"
+        
+        # 強制執行遷移
+        if "$VENV_PY" -m alembic upgrade head; then
+            echo -e "${GREEN}✅ 資料庫遷移完成${NC}"
+        else
+            echo -e "${RED}❌ 資料庫遷移失敗${NC}"
+            return 1
+        fi
+    fi
+    
+    return 0
+}
+
 # 強制清理端口（增強版）
 force_kill_port() {
     local target_port=$1
@@ -213,6 +279,12 @@ start_backend() {
 main() {
     # 設定虛擬環境
     setup_venv
+    
+    # 執行資料庫遷移
+    if ! run_migrations; then
+        echo -e "${RED}❌ 資料庫遷移失敗，停止啟動程序${NC}"
+        exit 1
+    fi
     
     # 根據模式執行相應的操作
     case $MODE in
