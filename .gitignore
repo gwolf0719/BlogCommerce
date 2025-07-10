@@ -80,6 +80,7 @@ admin-src/dist/
 admin-src/.nuxt/
 admin-src/.output/
 admin-src/.vite/
+admin/
 
 # Static files
 app/static/assets/
