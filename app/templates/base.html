@@ -88,8 +88,162 @@
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     {% block head %}{% endblock %}
+    
+    <style>
+        /* 廣告輪播組件樣式 */
+        .banner-carousel {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .banner-slide {
+            transition: transform 0.5s ease-in-out;
+        }
+        
+        .banner-indicators {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+        
+        .banner-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .banner-indicator.active {
+            background: white;
+            transform: scale(1.2);
+        }
+        
+        .banner-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        
+        .banner-nav:hover {
+            background: rgba(0, 0, 0, 0.7);
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .banner-nav.prev {
+            left: 1rem;
+        }
+        
+        .banner-nav.next {
+            right: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .banner-nav {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .banner-nav.prev {
+                left: 0.5rem;
+            }
+            
+            .banner-nav.next {
+                right: 0.5rem;
+            }
+        }
+    </style>
 </head>
 <body x-data="authApp()" x-init="initAuth()" class="bg-gray-50 text-gray-900 antialiased">
+    
+    <!-- 廣告輪播組件 Macro -->
+    {% macro banner_carousel(position, css_class='') %}
+        <div class="banner-carousel-container {{ css_class }}" x-data="bannerCarousel('{{ position }}')" x-init="init()">
+            <div x-show="banners.length > 0" class="banner-carousel">
+                <!-- 輪播內容 -->
+                <div class="relative w-full overflow-hidden">
+                    <div class="flex transition-transform duration-500 ease-in-out" 
+                         :style="'transform: translateX(-' + (currentIndex * 100) + '%)'">
+                        <template x-for="(banner, index) in banners" :key="banner.id">
+                            <div class="banner-slide w-full flex-shrink-0 relative">
+                                <!-- 桌面版圖片 -->
+                                <div class="hidden md:block relative">
+                                    <img :src="banner.desktop_image" 
+                                         :alt="banner.alt_text || banner.title"
+                                         class="w-full h-64 lg:h-80 object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                                </div>
+                                
+                                <!-- 手機版圖片 -->
+                                <div class="block md:hidden relative">
+                                    <img :src="banner.mobile_image" 
+                                         :alt="banner.alt_text || banner.title"
+                                         class="w-full h-48 object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                                </div>
+                                
+                                <!-- 廣告內容 -->
+                                <div class="absolute bottom-0 left-0 right-0 p-4 lg:p-6 text-white">
+                                    <h3 class="text-lg lg:text-2xl font-bold mb-2 line-clamp-2" x-text="banner.title"></h3>
+                                    <p class="text-sm lg:text-base opacity-90 mb-4 line-clamp-3" x-text="banner.description" x-show="banner.description"></p>
+                                    <a :href="banner.link_url" 
+                                       @click="trackClick(banner.id)"
+                                       class="inline-flex items-center bg-white text-gray-900 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors duration-200 transform hover:scale-105">
+                                        了解更多
+                                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- 導航按鈕 -->
+                <button x-show="banners.length > 1" @click="prevSlide()" class="banner-nav prev">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                
+                <button x-show="banners.length > 1" @click="nextSlide()" class="banner-nav next">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
+                
+                <!-- 指示器 -->
+                <div x-show="banners.length > 1" class="banner-indicators">
+                    <template x-for="(banner, index) in banners" :key="'indicator-' + banner.id">
+                        <div class="banner-indicator" 
+                             :class="{ 'active': index === currentIndex }"
+                             @click="goToSlide(index)">
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    {% endmacro %}
     <!-- 導航列 -->
     <nav class="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -606,6 +760,108 @@
                 }
                 
                 return response;
+            }
+        };
+        
+        // 廣告輪播功能
+        window.bannerCarousel = function(position) {
+            return {
+                banners: [],
+                currentIndex: 0,
+                loading: false,
+                autoPlayInterval: null,
+                
+                async init() {
+                    await this.loadBanners();
+                    this.startAutoPlay();
+                },
+                
+                async loadBanners() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch(`/api/banners/active/${position}`);
+                        if (response.ok) {
+                            const banners = await response.json();
+                            this.banners = banners.map(banner => ({
+                                ...banner,
+                                desktop_image: this.getImageUrl(banner.desktop_image),
+                                mobile_image: this.getImageUrl(banner.mobile_image)
+                            }));
+                        }
+                    } catch (error) {
+                        console.error('載入廣告失敗:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                getImageUrl(imagePath) {
+                    if (!imagePath) return '';
+                    
+                    // 如果已經是完整的 URL，直接返回
+                    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+                        return imagePath;
+                    }
+                    
+                    // 如果是相對路徑，加上 baseURL
+                    const baseURL = window.location.origin;
+                    return `${baseURL}${imagePath}`;
+                },
+                
+                nextSlide() {
+                    this.currentIndex = (this.currentIndex + 1) % this.banners.length;
+                    this.resetAutoPlay();
+                },
+                
+                prevSlide() {
+                    this.currentIndex = this.currentIndex === 0 ? this.banners.length - 1 : this.currentIndex - 1;
+                    this.resetAutoPlay();
+                },
+                
+                goToSlide(index) {
+                    this.currentIndex = index;
+                    this.resetAutoPlay();
+                },
+                
+                startAutoPlay() {
+                    if (this.banners.length > 1) {
+                        this.autoPlayInterval = setInterval(() => {
+                            this.nextSlide();
+                        }, 5000); // 每5秒切換一次
+                    }
+                },
+                
+                resetAutoPlay() {
+                    if (this.autoPlayInterval) {
+                        clearInterval(this.autoPlayInterval);
+                        this.startAutoPlay();
+                    }
+                },
+                
+                stopAutoPlay() {
+                    if (this.autoPlayInterval) {
+                        clearInterval(this.autoPlayInterval);
+                        this.autoPlayInterval = null;
+                    }
+                },
+                
+                async trackClick(bannerId) {
+                    try {
+                        await fetch(`/api/banners/${bannerId}/click`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                    } catch (error) {
+                        console.error('追蹤廣告點擊失敗:', error);
+                    }
+                },
+                
+                // 組件銷毀時清理定時器
+                destroy() {
+                    this.stopAutoPlay();
+                }
             }
         };
     </script>

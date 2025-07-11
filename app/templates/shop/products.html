@@ -4,6 +4,11 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="productsApp()">
+    <!-- 商品列表廣告輪播 -->
+    <div class="mb-8">
+        {{ banner_carousel('PRODUCT_LIST', 'mb-8') }}
+    </div>
+    
     <div class="mb-8">
         <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">商品列表</h1>
         <p class="text-gray-600">探索我們精選的優質商品</p>

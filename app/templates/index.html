@@ -22,6 +22,13 @@
 
 {% block content %}
 <div x-data="homeApp()" x-init="loadContent()">
+    <!-- 首頁廣告輪播 -->
+    <section class="py-8 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {{ banner_carousel('HOME', 'mb-8') }}
+        </div>
+    </section>
+    
     <!-- Hero Section -->
     <section class="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
         <!-- 背景裝飾 -->
