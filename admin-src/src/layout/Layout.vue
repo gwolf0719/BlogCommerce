@@ -41,6 +41,11 @@
           <span>廣告管理</span>
         </a-menu-item>
         
+        <a-menu-item key="shipping-tiers" @click="$router.push('/shipping-tiers')">
+          <car-outlined />
+          <span>運費級距</span>
+        </a-menu-item>
+        
         <a-menu-item key="analytics" @click="$router.push('/analytics')">
           <bar-chart-outlined />
           <span>數據分析</span>
@@ -103,7 +108,8 @@ import {
   LogoutOutlined,
   DownOutlined,
   TagOutlined,
-  PictureOutlined
+  PictureOutlined,
+  CarOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -123,6 +129,7 @@ const pageTitle = {
   orders: '訂單管理',
   users: '會員管理',
   banners: '廣告管理',
+  'shipping-tiers': '運費級距',
   analytics: '數據分析',
   settings: '系統設定'
 }

@@ -10,6 +10,7 @@ from .analytics import PageView, DailyStats, PopularContent, UserSession
 from .favorite import Favorite
 from .view_log import ViewLog
 from .banner import Banner, BannerPosition
+from .shipping_tier import ShippingTier
 
 __all__ = [
     "BaseModel",
@@ -22,5 +23,6 @@ __all__ = [
     "PageView", "DailyStats", "PopularContent", "UserSession",
     "Favorite",
     "ViewLog",
-    "Banner", "BannerPosition"
+    "Banner", "BannerPosition",
+    "ShippingTier"
 ] 

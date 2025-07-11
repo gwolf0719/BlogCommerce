@@ -8,6 +8,7 @@ import Users from '../views/Users.vue'
 import Analytics from '../views/Analytics.vue'
 import Settings from '../views/Settings.vue'
 import Banners from '../views/Banners.vue'
+import ShippingTiers from '../views/ShippingTiers.vue'
 
 
 const routes = [
@@ -50,6 +51,11 @@ const routes = [
         path: '/banners',
         name: 'Banners',
         component: Banners
+      },
+      {
+        path: '/shipping-tiers',
+        name: 'ShippingTiers',
+        component: ShippingTiers
       },
       {
         path: '/analytics',
