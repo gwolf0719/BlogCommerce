@@ -1,0 +1,15 @@
+{% extends "layouts/base_minimal.html" %}
+
+{% block title %}Intro Page{% endblock %}
+
+{% block content %}
+<div class="w-screen flex justify-center items-center bg-white">
+    <!-- 
+        使用 Tailwind CSS 的響應式功能來切換圖片。
+        'md:hidden' -> 在中等螢幕尺寸（768px）及以上時隱藏 (手機版)
+        'hidden md:block' -> 預設隱藏，只在中等螢幕尺寸及以上時顯示 (電腦版)
+    -->
+    <img src="{{ url_for('static', path='assets/intro-m.png') }}" alt="Mobile Intro" class="max-w-full max-h-full object-contain md:hidden">
+    <img src="{{ url_for('static', path='assets/intro-pc.png') }}" alt="Desktop Intro" class="max-w-full max-h-full object-contain hidden md:block">
+</div>
+{% endblock %}

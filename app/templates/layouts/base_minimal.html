@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BlogCommerce{% endblock %}</title>
+    
+    <meta name="description" content="{% block description %}{% endblock %}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ settings.site_favicon or '/static/images/favicon.svg' }}">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind CSS Configuration
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#f5f0ee', 100: '#e3d4cd', 200: '#d1b7ac', 300: '#b68c7b', 400: '#a46f5a', 500: '#946451', 600: '#835948', 700: '#734e3f', 800: '#624336', 900: '#52372d' },
+                        gray: { 50: '#f9fafb', 100: '#f3f4f6', 200: '#e5e7eb', 300: '#d1d5db', 400: '#9ca3af', 500: '#6b7280', 600: '#4b5563', 700: '#374151', 800: '#1f2937', 900: '#111827' },
+                        accent: { 50: '#fef7ee', 100: '#fdedd3', 200: '#fcd9a5', 300: '#fabe6d', 400: '#f79833', 500: '#f47a0a', 600: '#e55e05', 700: '#be4508', 800: '#973710', 900: '#7a2e10' }
+                    },
+                    fontFamily: { sans: ['Inter', 'Noto Sans TC', 'Arial', 'sans-serif'] },
+                    spacing: { '18': '4.5rem', '88': '22rem' },
+                    borderRadius: { 'xl': '0.75rem', '2xl': '1rem', '3xl': '1.5rem' },
+                    backgroundImage: { 'primary-gradient': 'linear-gradient(135deg, #f5f0ee 0%, #e3d4cd 100%)', 'primary-button': 'linear-gradient(135deg, #946451 0%, #835948 100%)', 'primary-button-hover': 'linear-gradient(135deg, #835948 0%, #734e3f 100%)', 'primary-logo': 'linear-gradient(135deg, #a46f5a 0%, #835948 100%)' },
+                    boxShadow: { 'primary': '0 4px 14px 0 rgba(131, 89, 72, 0.1)', 'primary-lg': '0 10px 25px -3px rgba(131, 89, 72, 0.1), 0 4px 6px -2px rgba(131, 89, 72, 0.05)', 'primary-xl': '0 20px 25px -5px rgba(131, 89, 72, 0.1), 0 10px 10px -5px rgba(131, 89, 72, 0.04)' }
+                }
+            }
+        }
+    </script>
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+    {% block content %}{% endblock %}
+    {% block scripts %}{% endblock %}
+</body>
+</html>

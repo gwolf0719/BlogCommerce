@@ -358,6 +358,10 @@ async def orders_page(request: Request):
 async def favorites_page(request: Request):
     return render_template("shop/favorites.html", request)
 
+@app.get("/intro")
+async def intro_page(request: Request):
+    return render_template("intro/index.html", request)
+
 # Footer 頁面路由
 @app.get("/about")
 async def about_page(request: Request):
