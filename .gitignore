@@ -141,3 +141,5 @@ tests/
 alembic/versions/
 alembic/__pycache__/
 todo.md
+admin/
+alembic/
