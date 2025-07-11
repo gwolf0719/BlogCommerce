@@ -82,7 +82,7 @@ admin-src/.output/
 admin-src/.vite/
 
 # Static files
-app/static/assets/
+# app/static/assets/
 app/static/public/
 app/static/images/*
 !app/static/images/logo.svg
