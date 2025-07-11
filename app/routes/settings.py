@@ -347,19 +347,11 @@ async def get_payment_settings(db: Session = Depends(get_db)):
     ecpay_enabled = manager.get_setting("payment_ecpay_enabled", default=False)
     paypal_enabled = manager.get_setting("payment_paypal_enabled", default=False)
     
-    # 獲取運費設定
-    shipping_fee = manager.get_setting("shipping_fee", default=60)
-    free_shipping_threshold = manager.get_setting("free_shipping_threshold", default=1000)
-    
     return {
         "transfer": {"enabled": transfer_enabled},
         "linepay": {"enabled": linepay_enabled},
         "ecpay": {"enabled": ecpay_enabled},
-        "paypal": {"enabled": paypal_enabled},
-        "shipping": {
-            "fee": shipping_fee,
-            "free_threshold": free_shipping_threshold
-        }
+        "paypal": {"enabled": paypal_enabled}
     }
 
 @router.get("/payment_transfer")

@@ -364,9 +364,7 @@ async def contact_page(request: Request):
 async def help_page(request: Request):
     return render_template("pages/help.html", request)
 
-@app.get("/shipping")
-async def shipping_page(request: Request):
-    return render_template("pages/shipping.html", request)
+
 
 @app.get("/returns")
 async def returns_page(request: Request):

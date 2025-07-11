@@ -989,8 +989,7 @@ async def update_admin_settings(
                 key.endswith('_enabled') or 
                 key in ['blog_enabled', 'shop_enabled', 'user_registration'] or
                 key in ['site_name', 'site_tagline', 'site_description', 'site_logo', 'site_favicon',
-                       'default_currency', 'default_currency_symbol', 'free_shipping_threshold', 
-                       'default_shipping_fee', 'default_meta_title', 'default_meta_description',
+                       'default_currency', 'default_currency_symbol', 'default_meta_title', 'default_meta_description',
                        'default_meta_keywords', 'google_analytics_id', 'google_tag_manager_id']
             )
             

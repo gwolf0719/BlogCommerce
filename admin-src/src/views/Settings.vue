@@ -367,78 +367,6 @@
 
           <!-- 金流設定 -->
           <div v-if="activeTab === 'payment'" class="payment-settings">
-            <!-- 運費設定區塊 -->
-            <a-card class="shipping-settings-card" title="運費設定">
-              <template #extra>
-                <a-tag color="orange">
-                  <CarOutlined />
-                  運費配置
-                </a-tag>
-              </template>
-              
-              <a-form layout="vertical">
-                <a-row :gutter="24">
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <MoneyCollectOutlined />
-                          運費金額 (NT$)
-                        </span>
-                      </template>
-                      <a-input-number 
-                        v-model:value="shippingSettings.fee" 
-                        :min="0"
-                        :precision="0"
-                        style="width: 100%"
-                        placeholder="運費金額"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <GiftOutlined />
-                          免運門檻 (NT$)
-                        </span>
-                      </template>
-                      <a-input-number 
-                        v-model:value="shippingSettings.freeThreshold" 
-                        :min="0"
-                        :precision="0"
-                        style="width: 100%"
-                        placeholder="免運門檻"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <SettingOutlined />
-                          操作
-                        </span>
-                      </template>
-                      <a-button type="primary" @click="saveShippingSettings" :loading="savingShipping" size="large">
-                        儲存運費設定
-                      </a-button>
-                    </a-form-item>
-                  </a-col>
-                </a-row>
-                
-                <a-alert
-                  message="運費設定說明"
-                  description="設定基本運費金額和免運門檻。當消費者購買金額達到免運門檻時，將自動享受免運費優惠。"
-                  type="info"
-                  show-icon
-                  style="margin-top: 16px;"
-                />
-              </a-form>
-            </a-card>
-
             <!-- 金流方式選擇區塊 -->
             <a-card class="payment-methods-card" title="金流方式設定">
               <template #extra>
@@ -899,13 +827,6 @@ const payment = reactive({
 })
 const savingPayment = ref(false)
 
-// 運費設定
-const shippingSettings = reactive({
-  fee: 60,
-  freeThreshold: 1000
-})
-const savingShipping = ref(false)
-
 // 金流方式配置
 const paymentMethods = [
   {
@@ -1159,75 +1080,10 @@ const savePaymentSettings = async () => {
   }
 }
 
-// 運費設定相關方法
-const loadShippingSettings = async () => {
-  try {
-    const feeResponse = await fetch('/api/settings/shipping_fee', {
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
-    })
-    const thresholdResponse = await fetch('/api/settings/free_shipping_threshold', {
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
-    })
-
-    if (feeResponse.ok) {
-      const feeData = await feeResponse.json()
-      shippingSettings.fee = feeData.value || 60
-    }
-
-    if (thresholdResponse.ok) {
-      const thresholdData = await thresholdResponse.json()
-      shippingSettings.freeThreshold = thresholdData.value || 1000
-    }
-  } catch (error) {
-    message.error('載入運費設定失敗')
-  }
-}
-
-const saveShippingSettings = async () => {
-  savingShipping.value = true
-  try {
-    // 同時更新運費和免運門檻設定
-    const reqs = [
-      fetch('/api/settings/shipping_fee', {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${authStore.token}` 
-        },
-        body: JSON.stringify({ 
-          value: shippingSettings.fee, 
-          category: 'shipping', 
-          data_type: 'integer' 
-        })
-      }),
-      fetch('/api/settings/free_shipping_threshold', {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${authStore.token}` 
-        },
-        body: JSON.stringify({ 
-          value: shippingSettings.freeThreshold, 
-          category: 'shipping', 
-          data_type: 'integer' 
-        })
-      })
-    ]
-
-    await Promise.all(reqs)
-    message.success('運費設定已儲存')
-  } catch (error) {
-    message.error('儲存運費設定失敗')
-  } finally {
-    savingShipping.value = false
-  }
-}
-
 // 初始化
 onMounted(() => {
   loadSettings()
   loadPaymentSettings()
-  loadShippingSettings()
 })
 </script>
 
