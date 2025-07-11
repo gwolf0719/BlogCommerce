@@ -80,6 +80,7 @@ admin-src/dist/
 admin-src/.nuxt/
 admin-src/.output/
 admin-src/.vite/
+admin/
 
 # Static files
 app/static/assets/
@@ -133,6 +134,10 @@ app/static/uploads/
 test_*.py
 *_test.py
 
-
 # Test files (可選)
 tests/
+
+# Alembic migrations (自動生成的遷移文件)
+alembic/versions/
+alembic/__pycache__/
+todo.md

@@ -159,9 +159,7 @@ class ErrorHandler {
    * 處理網路錯誤
    */
   handleNetworkError(type, method, url, status, responseText = '') {
-    // 避免記錄錯誤日誌 API 本身的錯誤，防止無限循環
-    if (url?.includes('/api/error-logs/')) return
-    
+    // 僅記錄到控制台，不發送到後端
     const error = {
       error_type: 'NetworkError',
       error_message: `${type} 請求失敗: ${method} ${url} (${status})`,
@@ -179,7 +177,7 @@ class ErrorHandler {
       }
     }
     
-    this.logError(error)
+    console.warn('網路錯誤:', error)
   }
 
   /**
@@ -198,57 +196,23 @@ class ErrorHandler {
       ...additionalData
     }
     
-    this.logError(error)
+    console.warn('手動記錄錯誤:', error)
   }
 
   /**
-   * 記錄錯誤到後端
+   * 記錄錯誤到控制台
    */
   async logError(errorData) {
-    // 如果離線，將錯誤加入佇列
-    if (!this.isOnline) {
-      this.errorQueue.push(errorData)
-      return
-    }
-
-    try {
-      await api.post('/api/error-logs/log/frontend', {
-        error_type: errorData.error_type,
-        error_message: errorData.error_message,
-        stack_trace: errorData.stack_trace,
-        url: errorData.url,
-        browser_info: errorData.browser_info,
-        device_info: errorData.device_info,
-        severity: errorData.severity,
-        tags: errorData.tags
-      })
-      
-      console.log('錯誤已記錄到伺服器:', errorData.error_type)
-    } catch (error) {
-      // 記錄錯誤失敗，加入佇列稍後重試
-      this.errorQueue.push(errorData)
-      console.warn('錯誤記錄失敗，已加入佇列:', error)
-    }
+    // 僅記錄到控制台，不發送到後端
+    console.warn('應用程式錯誤:', errorData)
   }
 
   /**
-   * 清空錯誤佇列
+   * 清空錯誤佇列（已停用）
    */
   async flushErrorQueue() {
-    if (this.errorQueue.length === 0) return
-    
-    const errors = [...this.errorQueue]
-    this.errorQueue = []
-    
-    for (const error of errors) {
-      try {
-        await this.logError(error)
-        await new Promise(resolve => setTimeout(resolve, 100)) // 避免過於頻繁的請求
-      } catch (e) {
-        console.warn('清空錯誤佇列失敗:', e)
-        break
-      }
-    }
+    // 錯誤佇列功能已停用，不再需要實作
+    console.log('錯誤佇列功能已停用')
   }
 
   /**

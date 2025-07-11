@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
+import api from '../utils/axios'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -11,7 +11,7 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async login(credentials) {
       try {
-        const response = await axios.post('/api/auth/login', credentials)
+        const response = await api.post('/api/auth/login', credentials)
         const { access_token, user } = response.data
         
         // 檢查是否為管理員
@@ -24,9 +24,6 @@ export const useAuthStore = defineStore('auth', {
         this.isAuthenticated = true
         
         localStorage.setItem('admin_token', access_token)
-        
-        // 設置 axios 預設 header
-        axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
         
         return response.data
       } catch (error) {
@@ -44,9 +41,7 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
-        const response = await axios.get('/api/auth/me', {
-          headers: { Authorization: `Bearer ${this.token}` }
-        })
+        const response = await api.get('/api/auth/me')
         
         const user = response.data
         if (user.role !== 'admin') {
@@ -56,7 +51,6 @@ export const useAuthStore = defineStore('auth', {
         
         this.user = user
         this.isAuthenticated = true
-        axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
         return true
       } catch (error) {
         this.logout()
@@ -69,7 +63,6 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
       this.isAuthenticated = false
       localStorage.removeItem('admin_token')
-      delete axios.defaults.headers.common['Authorization']
     }
   }
 }) 

@@ -79,7 +79,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'change'])
 
 const authStore = useAuthStore()
 const uploading = ref(false)
@@ -90,11 +90,16 @@ const imageUrl = ref(props.modelValue)
 // 監聽 modelValue 變化
 watch(() => props.modelValue, (newValue) => {
   imageUrl.value = newValue
-})
+  // 同時更新手動輸入的 URL 欄位，以便用戶看到完整的 URL
+  if (newValue && !manualUrl.value) {
+    manualUrl.value = newValue
+  }
+}, { immediate: true })
 
 // 監聽 imageUrl 變化，向父組件發射更新
 watch(imageUrl, (newValue) => {
   emit('update:modelValue', newValue)
+  emit('change', newValue)
 })
 
 // 上傳前檢查
@@ -131,7 +136,28 @@ const handleUpload = async ({ file, onProgress, onSuccess, onError }) => {
     })
 
     if (!response.ok) {
-      throw new Error('上傳失敗')
+      // 嘗試解析API錯誤響應
+      let errorMessage = '上傳失敗'
+      
+      try {
+        const errorData = await response.json()
+        
+        // 處理 FastAPI 驗證錯誤格式
+        if (errorData.detail && Array.isArray(errorData.detail)) {
+          const errors = errorData.detail.map(err => err.msg || err.message || '未知錯誤')
+          errorMessage = errors.join(', ')
+        } else if (errorData.detail && typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail
+        } else if (errorData.message) {
+          errorMessage = errorData.message
+        } else if (errorData.msg) {
+          errorMessage = errorData.msg
+        }
+      } catch (parseError) {
+        console.error('解析錯誤響應失敗:', parseError)
+      }
+      
+      throw new Error(errorMessage)
     }
 
     const data = await response.json()

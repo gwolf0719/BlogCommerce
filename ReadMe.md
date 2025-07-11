@@ -1611,7 +1611,7 @@ python reset_admin_password.py
 # 查看系統日誌
 tail -f logs/app.log
 
-# 查看錯誤日誌（透過管理後台 /admin/error-logs）
+# 錯誤日誌功能已移除
 ```
 
 ### 備份與恢復
@@ -2529,7 +2529,7 @@ curl "http://localhost:8002/api/views/stats/post/1"
 - [x] **訂單管理** - Orders 頁面 ✅
 - [x] **文章管理** - Posts 頁面 ✅
 - [x] **分析統計** - Analytics 頁面 ✅
-- [x] **錯誤日誌** - ErrorLogs 頁面 ✅
+- [x] **錯誤日誌** - ErrorLogs 頁面 ❌（已移除）
 - [x] **系統設定** - Settings 頁面 ✅
 
 ---
@@ -2557,12 +2557,8 @@ curl "http://localhost:8002/api/views/stats/post/1"
 - [x] **批量更新設定** - `POST /api/settings/bulk-update` ✅
 - [x] **功能設定** - `/api/settings/features` ✅
 
-### ✅ 錯誤日誌 API
-- [x] **錯誤日誌列表** - `/api/error-logs/` ✅
-- [x] **創建錯誤日誌** - `POST /api/error-logs/` ✅
-- [x] **錯誤日誌詳情** - `/api/error-logs/{id}` ✅
-- [x] **刪除錯誤日誌** - `DELETE /api/error-logs/{id}` ✅
-- [x] **錯誤統計** - `/api/error-logs/stats` ✅
+### ❌ 錯誤日誌 API（已移除）
+- [x] **錯誤日誌功能已完全移除** - 不再提供錯誤日誌 API ✅
 
 ### ✅ 電子報系統 API
 - [x] **電子報列表** - `/api/newsletter/` ✅ **已新增**

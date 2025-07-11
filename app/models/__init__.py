@@ -9,8 +9,7 @@ from .newsletter import NewsletterSubscriber, NewsletterCampaign
 from .analytics import PageView, DailyStats, PopularContent, UserSession
 from .favorite import Favorite
 from .view_log import ViewLog
-from .coupon import Coupon, CouponUsage, CouponDistribution, CouponType, DiscountType
-from .campaign import MarketingCampaign, CampaignStatus
+from .banner import Banner, BannerPosition
 
 __all__ = [
     "BaseModel",
@@ -23,6 +22,5 @@ __all__ = [
     "PageView", "DailyStats", "PopularContent", "UserSession",
     "Favorite",
     "ViewLog",
-    "Coupon", "CouponUsage", "CouponDistribution", "CouponType", "DiscountType",
-    "MarketingCampaign", "CampaignStatus"
+    "Banner", "BannerPosition"
 ] 
