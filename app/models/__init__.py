@@ -9,6 +9,7 @@ from .newsletter import NewsletterSubscriber, NewsletterCampaign
 from .analytics import PageView, DailyStats, PopularContent, UserSession
 from .favorite import Favorite
 from .view_log import ViewLog
+from .banner import Banner, BannerPosition
 
 __all__ = [
     "BaseModel",
@@ -20,5 +21,6 @@ __all__ = [
     "NewsletterSubscriber", "NewsletterCampaign",
     "PageView", "DailyStats", "PopularContent", "UserSession",
     "Favorite",
-    "ViewLog"
+    "ViewLog",
+    "Banner", "BannerPosition"
 ] 

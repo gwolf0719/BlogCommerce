@@ -36,6 +36,11 @@
           <span>會員管理</span>
         </a-menu-item>
         
+        <a-menu-item key="banners" @click="$router.push('/banners')">
+          <picture-outlined />
+          <span>廣告管理</span>
+        </a-menu-item>
+        
         <a-menu-item key="analytics" @click="$router.push('/analytics')">
           <bar-chart-outlined />
           <span>數據分析</span>
@@ -97,7 +102,8 @@ import {
   SettingOutlined,
   LogoutOutlined,
   DownOutlined,
-  TagOutlined
+  TagOutlined,
+  PictureOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -116,6 +122,7 @@ const pageTitle = {
   products: '商品管理',
   orders: '訂單管理',
   users: '會員管理',
+  banners: '廣告管理',
   analytics: '數據分析',
   settings: '系統設定'
 }

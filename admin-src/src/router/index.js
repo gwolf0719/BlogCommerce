@@ -7,6 +7,7 @@ import Orders from '../views/Orders.vue'
 import Users from '../views/Users.vue'
 import Analytics from '../views/Analytics.vue'
 import Settings from '../views/Settings.vue'
+import Banners from '../views/Banners.vue'
 
 
 const routes = [
@@ -44,6 +45,11 @@ const routes = [
         path: '/users',
         name: 'Users',
         component: Users
+      },
+      {
+        path: '/banners',
+        name: 'Banners',
+        component: Banners
       },
       {
         path: '/analytics',
