@@ -12,7 +12,12 @@ from app.middleware import get_feature_settings, get_public_settings
 from pathlib import Path
 from fastapi.responses import FileResponse
 from app.api import router as api_router
-from app.utils.logger import app_logger, log_api_error, log_validation_error, LoggingMiddleware
+from app.utils.logger import (
+    app_logger,
+    log_api_error,
+    log_validation_error,
+    LoggingMiddleware,
+)
 from datetime import datetime
 from app.services.markdown_service import markdown_service
 
@@ -137,8 +142,8 @@ app = FastAPI(
         {
             "name": "健康檢查",
             "description": "系統健康狀態檢查和監控。",
-        }
-    ]
+        },
+    ],
 )
 
 # 日誌中間件
@@ -162,6 +167,7 @@ app.mount("/static", StaticFiles(directory="app/static", html=True), name="stati
 # 模板設定
 templates = Jinja2Templates(directory="app/templates")
 
+
 # 輔助函數：生成帶有動態設定的模板回應
 def render_template(template_name: str, request: Request, **kwargs):
     """渲染模板並自動載入動態設定"""
@@ -170,49 +176,58 @@ def render_template(template_name: str, request: Request, **kwargs):
     context.update(kwargs)
     return templates.TemplateResponse(template_name, context)
 
+
 # 包含 API 路由
 app.include_router(api_router)
+
 
 # 全局異常處理器
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
     """處理HTTP異常"""
-    log_api_error(f"{request.method} {request.url.path}", exc, {"status_code": exc.status_code})
-    
+    log_api_error(
+        f"{request.method} {request.url.path}", exc, {"status_code": exc.status_code}
+    )
+
     # 同時記錄到錯誤日誌系統
     try:
         from app.database import SessionLocal
         from app.services.error_log_service import ErrorLogService
         from app.models.error_log import ErrorSeverity
-        
+
         db = SessionLocal()
         try:
             error_service = ErrorLogService(db)
-            severity = ErrorSeverity.CRITICAL if exc.status_code >= 500 else ErrorSeverity.MEDIUM
+            severity = (
+                ErrorSeverity.CRITICAL
+                if exc.status_code >= 500
+                else ErrorSeverity.MEDIUM
+            )
             error_service.log_backend_error(
                 error=exc,
                 request=request,
                 severity=severity,
-                tags=['http_exception', f'status_{exc.status_code}']
+                tags=["http_exception", f"status_{exc.status_code}"],
             )
         finally:
             db.close()
     except Exception as e:
         app_logger.error(f"記錄HTTP異常到錯誤日誌系統失敗: {e}")
-    
+
     return await http_exception_handler(request, exc)
+
 
 @app.exception_handler(ValidationError)
 async def validation_exception_handler(request: Request, exc: ValidationError):
     """處理驗證錯誤"""
     log_validation_error("Request", exc.errors(), None)
-    
+
     # 同時記錄到錯誤日誌系統
     try:
         from app.database import SessionLocal
         from app.services.error_log_service import ErrorLogService
         from app.models.error_log import ErrorSeverity
-        
+
         db = SessionLocal()
         try:
             error_service = ErrorLogService(db)
@@ -220,50 +235,59 @@ async def validation_exception_handler(request: Request, exc: ValidationError):
                 error=exc,
                 request=request,
                 severity=ErrorSeverity.MEDIUM,
-                tags=['validation', 'pydantic']
+                tags=["validation", "pydantic"],
             )
         finally:
             db.close()
     except Exception as e:
         app_logger.error(f"記錄驗證錯誤到錯誤日誌系統失敗: {e}")
-    
+
     return JSONResponse(
-        status_code=422,
-        content={"detail": "驗證錯誤", "errors": exc.errors()}
+        status_code=422, content={"detail": "驗證錯誤", "errors": exc.errors()}
     )
+
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """處理一般異常 - 詳細診斷版本"""
-    
+
     # 詳細記錄異常信息
     error_detail = {
         "exception_type": str(type(exc)),
         "exception_message": str(exc),
         "request_path": request.url.path,
-        "request_method": request.method
+        "request_method": request.method,
     }
-    
+
     app_logger.error(f"捕獲異常: {error_detail}")
-    
+
     # 對於特定類型的異常，重新拋出
-    if any(keyword in str(type(exc)) for keyword in ['pydantic', 'ValidationError', 'serialization', 'JSONDecodeError', 'UnicodeDecodeError']):
+    if any(
+        keyword in str(type(exc))
+        for keyword in [
+            "pydantic",
+            "ValidationError",
+            "serialization",
+            "JSONDecodeError",
+            "UnicodeDecodeError",
+        ]
+    ):
         app_logger.error(f"重新拋出異常: {type(exc)}")
         raise exc
-    
+
     # 對於JSON序列化錯誤，也重新拋出
-    if 'json' in str(exc).lower() or 'serialize' in str(exc).lower():
+    if "json" in str(exc).lower() or "serialize" in str(exc).lower():
         app_logger.error(f"JSON相關異常，重新拋出: {exc}")
         raise exc
-    
+
     log_api_error(f"{request.method} {request.url.path}", exc)
-    
+
     # 簡化錯誤日誌記錄，避免在錯誤處理中再次出錯
     try:
         from app.database import SessionLocal
         from app.services.error_log_service import ErrorLogService
         from app.models.error_log import ErrorSeverity
-        
+
         db = SessionLocal()
         try:
             error_service = ErrorLogService(db)
@@ -271,17 +295,15 @@ async def general_exception_handler(request: Request, exc: Exception):
                 error=exc,
                 request=request,
                 severity=ErrorSeverity.CRITICAL,
-                tags=['unhandled_exception', 'server_error']
+                tags=["unhandled_exception", "server_error"],
             )
         finally:
             db.close()
     except Exception as e:
         app_logger.error(f"記錄一般異常到錯誤日誌系統失敗: {e}")
-    
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "內部服務器錯誤"}
-    )
+
+    return JSONResponse(status_code=500, content={"detail": "內部服務器錯誤"})
+
 
 # 啟動事件
 @app.on_event("startup")
@@ -290,40 +312,51 @@ async def startup_event():
     app_logger.info("應用程式正在啟動...")
     init_db()
     app_logger.info("資料庫初始化完成")
-    app_logger.info(f"應用程式已啟動，運行在 {settings.debug and 'DEBUG' or 'PRODUCTION'} 模式")
+    app_logger.info(
+        f"應用程式已啟動，運行在 {settings.debug and 'DEBUG' or 'PRODUCTION'} 模式"
+    )
+
 
 # 前端路由
 @app.get("/")
 async def index(request: Request):
     return render_template("index.html", request)
 
+
 @app.get("/login")
 async def login_page(request: Request):
     return render_template("auth/login.html", request)
+
 
 @app.get("/register")
 async def register_page(request: Request):
     return render_template("auth/register.html", request)
 
+
 @app.get("/products")
 async def products_page(request: Request):
     return render_template("shop/products.html", request)
+
 
 @app.get("/product/{slug}")
 async def product_detail_page(request: Request, slug: str):
     return render_template("shop/product_detail.html", request, slug=slug)
 
+
 @app.get("/cart")
 async def cart_page(request: Request):
     return render_template("shop/cart.html", request)
+
 
 @app.get("/checkout")
 async def checkout_page(request: Request):
     return render_template("shop/checkout.html", request)
 
+
 @app.get("/blog")
 async def blog_page(request: Request):
     return render_template("blog/posts.html", request)
+
 
 @app.get("/blog/{slug}")
 async def post_detail_page(request: Request, slug: str):
@@ -331,61 +364,74 @@ async def post_detail_page(request: Request, slug: str):
     from app.database import get_db
     from app.models.post import Post
     from sqlalchemy.orm import Session
-    
+
     # 獲取數據庫會話
     db: Session = next(get_db())
     post = None
-    
+
     try:
         # 載入已發布的文章
-        post = db.query(Post).filter(Post.slug == slug, Post.is_published == True).first()
+        post = (
+            db.query(Post).filter(Post.slug == slug, Post.is_published == True).first()
+        )
     except Exception as e:
         app_logger.error(f"載入文章失敗: {e}")
     finally:
         db.close()
-    
+
     return render_template("blog/post_detail.html", request, slug=slug, post=post)
+
 
 @app.get("/profile")
 async def profile_page(request: Request):
     return render_template("auth/profile.html", request)
 
+
 @app.get("/orders")
 async def orders_page(request: Request):
     return render_template("shop/orders.html", request)
+
 
 @app.get("/favorites")
 async def favorites_page(request: Request):
     return render_template("shop/favorites.html", request)
 
-@app.get("/intro")
+
+@app.get("/edm/hoya")
 async def intro_page(request: Request):
     return render_template("intro/index.html", request)
+
 
 # Footer 頁面路由
 @app.get("/about")
 async def about_page(request: Request):
     return render_template("pages/about.html", request)
 
+
 @app.get("/contact")
 async def contact_page(request: Request):
     return render_template("pages/contact.html", request)
+
 
 @app.get("/help")
 async def help_page(request: Request):
     return render_template("pages/help.html", request)
 
+
 @app.get("/shipping")
 async def shipping_page(request: Request):
     return render_template("pages/shipping.html", request)
+
 
 @app.get("/returns")
 async def returns_page(request: Request):
     return render_template("pages/returns.html", request)
 
+
 @app.get("/privacy")
 async def privacy_page(request: Request):
     return render_template("pages/privacy.html", request)
+
 
 @app.get("/terms")
 async def terms_page(request: Request):
@@ -397,13 +443,15 @@ admin_spa_path = Path("admin")
 
 if admin_spa_path.exists() and (admin_spa_path / "index.html").exists():
     # Mount assets directory for static files
-    app.mount("/assets", StaticFiles(directory=admin_spa_path / "assets"), name="assets")
-    
+    app.mount(
+        "/assets", StaticFiles(directory=admin_spa_path / "assets"), name="assets"
+    )
+
     @app.get("/admin", include_in_schema=False)
     async def admin_spa_root(request: Request):
         """Serve the admin SPA root"""
         return FileResponse(admin_spa_path / "index.html")
-    
+
     @app.get("/admin/{path:path}", include_in_schema=False)
     async def admin_spa_catch_all(request: Request, path: str):
         """
@@ -411,7 +459,9 @@ if admin_spa_path.exists() and (admin_spa_path / "index.html").exists():
         This is necessary for single-page applications (SPAs) where routing is handled client-side.
         """
         return FileResponse(admin_spa_path / "index.html")
+
 else:
+
     @app.get("/admin", include_in_schema=False)
     @app.get("/admin/{path:path}", include_in_schema=False)
     async def admin_spa_placeholder(path: str = ""):
@@ -420,16 +470,15 @@ else:
             content={"message": "Admin panel not built. Please run the build script."},
         )
 
+
 # 標籤和分類路由已移除
+
 
 # API 根路徑
 @app.get("/api")
 async def api_root():
-    return {
-        "message": "歡迎使用 BlogCommerce API",
-        "docs": "/docs",
-        "redoc": "/redoc"
-    }
+    return {"message": "歡迎使用 BlogCommerce API", "docs": "/docs", "redoc": "/redoc"}
+
 
 # 健康檢查
 @app.get("/health", tags=["健康檢查"])
@@ -438,8 +487,9 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0"
+        "version": "1.0.0",
     }
+
 
 # 增強版 ReDoc 文檔
 @app.get("/api-docs", include_in_schema=False)
@@ -447,16 +497,14 @@ async def enhanced_redoc():
     """提供增強版的 ReDoc API 文檔，包含測試功能"""
     return FileResponse("app/static/enhanced-redoc.html")
 
+
 # 404 處理
 @app.get("/{path:path}", include_in_schema=False)
 async def catch_all(path: str, request: Request):
     """捕捉所有其他路由，返回前端頁面"""
 
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8001,
-        reload=settings.debug
-    ) 
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8001, reload=settings.debug)
