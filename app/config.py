@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     youtube_url: Optional[str] = None
 
     # SEO 設定
-    default_meta_title: str = "BlogCommerce - 部落格與電商整合平台"
+    default_meta_title: str = "伴獸家 - 打造幸福日常"
     default_meta_description: str = (
         "結合部落格與電商功能的現代化平台，提供優質的購物和閱讀體驗"
     )

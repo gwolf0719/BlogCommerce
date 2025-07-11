@@ -1,14 +1,9 @@
 {% extends "layouts/base_minimal.html" %}
 
-{% block title %}Intro Page{% endblock %}
+{% block title %}伴獸家 - 虎爺祈福雞腿正式開賣{% endblock %}
 
 {% block content %}
 <div class="min-h-screen w-screen flex justify-center items-center bg-gradient-to-b from-white to-[#FFF9F0]">
-    <!-- 
-        使用 Tailwind CSS 的響應式功能來切換圖片。
-        'md:hidden' -> 在中等螢幕尺寸（768px）及以上時隱藏 (手機版)
-        'hidden md:block' -> 預設隱藏，只在中等螢幕尺寸及以上時顯示 (電腦版)
-    -->
     <div class="md:hidden flex flex-col items-center w-full">
       <img src="{{ url_for('static', path='assets/intro-m.png') }}" alt="Mobile Intro" class="w-full">
 
@@ -19,19 +14,19 @@
 
       <!-- 手機版商城導購按鈕 -->
       <div class="flex flex-col gap-4 w-full items-center my-4">
-        <a href="https://shopee.tw/%E8%99%8E%E5%8A%9B%E9%AE%AE%E5%AB%A9%E9%9B%9E%E8%85%BF%F0%9F%90%AF%E8%99%8E%E7%88%BA%E5%8A%A0%E6%8C%81%EF%BD%9C%E7%8B%97%E7%8B%97%E8%B2%93%E5%92%AA%E9%83%BD%E6%84%9B%E5%90%83%EF%BD%9C%E7%A5%88%E7%A6%8F%E5%8A%A0%E6%8C%81%EF%BD%9C%E5%AE%89%E5%BF%83%E7%84%A1%E6%B7%BB%E5%8A%A0-i.71943198.40157755846?sp_atk=3abf831c-39f7-4e71-8db8-f6bea68b50d1&xptdk=3abf831c-39f7-4e71-8db8-f6bea68b50d1" class="bg-[#FFB800] text-white px-6 py-3 rounded-full text-lg font-bold hover:bg-[#F97316] shadow-lg transition duration-300 flex gap-2 items-center w-11/12 justify-center">
+        <a href="https://shopee.tw/%E8%99%8E%E5%8A%9B%E9%AE%AE%E5%AB%A9%E9%9B%9E%E8%85%BF%F0%9F%90%AF%E8%99%8E%E7%88%BA%E5%8A%A0%E6%8C%81%EF%BD%9C%E7%8B%97%E7%8B%97%E8%B2%93%E5%92%AA%E9%83%BD%E6%84%9B%E5%90%83%EF%BD%9C%E7%A5%88%E7%A6%8F%E5%8A%A0%E6%8C%81%EF%BD%9C%E5%AE%89%E5%BF%83%E7%84%A1%E6%B7%BB%E5%8A%A0-i.71943198.40157755846?sp_atk=3abf831c-39f7-4e71-8db8-f6bea68b50d1&xptdk=3abf831c-39f7-4e71-8db8-f6bea68b50d1" target="_blank" class="bg-[#FFB800] text-white px-6 py-3 rounded-full text-lg font-bold hover:bg-[#F97316] shadow-lg transition duration-300 flex gap-2 items-center w-11/12 justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="inline align-middle w-5 h-5" viewBox="0 0 40 40" fill="none">
             <path d="M18.3334 14.9998H21.6667V9.99984H26.6667V6.6665H21.6667V1.6665H18.3334V6.6665H13.3334V9.99984H18.3334M11.6667 29.9998C9.83335 29.9998 8.33335 31.4998 8.33335 33.3332C8.33335 35.1665 9.83335 36.6665 11.6667 36.6665C13.5 36.6665 15 35.1665 15 33.3332C15 31.4998 13.5 29.9998 11.6667 29.9998ZM28.3334 29.9998C26.5 29.9998 25 31.4998 25 33.3332C25 35.1665 26.5 36.6665 28.3334 36.6665C30.1667 36.6665 31.6667 35.1665 31.6667 33.3332C31.6667 31.4998 30.1667 29.9998 28.3334 29.9998ZM12 24.6665V24.4998L13.5 21.6665H25.8334C27 21.6665 28.1667 20.9998 28.6667 19.9998L35.1667 8.33317L32.3334 6.6665L25.8334 18.3332H14.1667L7.16669 3.33317H1.66669V6.6665H5.00002L11 19.3332L8.66669 23.3332C8.50002 23.8332 8.33335 24.3332 8.33335 24.9998C8.33335 26.8332 9.83335 28.3332 11.6667 28.3332H31.6667V24.9998H12.3334C12.1667 24.9998 12 24.8332 12 24.6665Z" fill="white"/>
           </svg>
           <span class="align-middle">蝦皮商場</span>
         </a>
-        <a href="https://famistore.famiport.com.tw/famistore/users/4539314/malls/686f2abaf0fad9d6a585f682" class="bg-[#0891B2] text-white px-6 py-3 rounded-full text-lg font-bold hover:bg-[#0ea5e9] shadow-lg transition duration-300 flex gap-2 items-center w-11/12 justify-center">
+        <a href="https://famistore.famiport.com.tw/famistore/users/4539314/malls/686f2abaf0fad9d6a585f682" target="_blank" class="bg-[#0891B2] text-white px-6 py-3 rounded-full text-lg font-bold hover:bg-[#0ea5e9] shadow-lg transition duration-300 flex gap-2 items-center w-11/12 justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="inline align-middle w-5 h-5" viewBox="0 0 41 40" fill="none">
             <path d="M20.5 29.9998H10.5V23.3332H20.5M35.5 23.3332V19.9998L33.8333 11.6665H7.16667L5.5 19.9998V23.3332H7.16667V33.3332H23.8333V23.3332H30.5V33.3332H33.8333V23.3332M33.8333 6.6665H7.16667V9.99984H33.8333V6.6665Z" fill="white"/>
           </svg>
           <span class="align-middle">全家好賣+</span>
         </a>
-        <a href="https://myship.7-11.com.tw/general/detail/GM2507101245127" class="bg-[#16A34A] text-white px-6 py-3 rounded-full text-lg font-bold hover:bg-[#22c55e] shadow-lg transition duration-300 flex gap-2 items-center w-11/12 justify-center">
+        <a href="https://myship.7-11.com.tw/general/detail/GM2507101245127" target="_blank" class="bg-[#16A34A] text-white px-6 py-3 rounded-full text-lg font-bold hover:bg-[#22c55e] shadow-lg transition duration-300 flex gap-2 items-center w-11/12 justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="inline align-middle w-5 h-5" viewBox="0 0 40 40" fill="none">
             <path d="M20 21.6665C17.7899 21.6665 15.6702 20.7885 14.1074 19.2257C12.5446 17.6629 11.6667 15.5433 11.6667 13.3332H15C15 14.6593 15.5268 15.931 16.4645 16.8687C17.4021 17.8064 18.6739 18.3332 20 18.3332C21.3261 18.3332 22.5979 17.8064 23.5355 16.8687C24.4732 15.931 25 14.6593 25 13.3332H28.3333C28.3333 15.5433 27.4554 17.6629 25.8926 19.2257C24.3298 20.7885 22.2101 21.6665 20 21.6665ZM20 4.99984C21.3261 4.99984 22.5979 5.52662 23.5355 6.4643C24.4732 7.40199 25 8.67375 25 9.99984H15C15 8.67375 15.5268 7.40199 16.4645 6.4643C17.4021 5.52662 18.6739 4.99984 20 4.99984ZM31.6667 9.99984H28.3333C28.3333 8.90549 28.1178 7.82185 27.699 6.81081C27.2802 5.79976 26.6664 4.8811 25.8926 4.10728C25.1187 3.33346 24.2001 2.71963 23.189 2.30084C22.178 1.88205 21.0943 1.6665 20 1.6665C17.7899 1.6665 15.6702 2.54448 14.1074 4.10728C12.5446 5.67008 11.6667 7.7897 11.6667 9.99984H8.33333C6.48333 9.99984 5 11.4832 5 13.3332V33.3332C5 34.2172 5.35119 35.0651 5.97631 35.6902C6.60143 36.3153 7.44928 36.6665 8.33333 36.6665H31.6667C32.5507 36.6665 33.3986 36.3153 34.0237 35.6902C34.6488 35.0651 35 34.2172 35 33.3332V13.3332C35 12.4491 34.6488 11.6013 34.0237 10.9761C33.3986 10.351 32.5507 9.99984 31.6667 9.99984Z" fill="white"/>
           </svg>
@@ -49,19 +44,19 @@
           <img src="{{ url_for('static', path='assets/intro-pc-text-1.png') }}" alt="虎爺祈福雞腿正式開賣" class="w-10/12 ">
           <img src="{{ url_for('static', path='assets/intro-pc-text-2.png') }}" alt="三大通路同步開賣中，馬上入手，讓毛孩享受來自虎爺的守護吧！" class="w-10/12 ">
           <div class="space-x-8 flex justify-center items-center">
-              <a href="https://shopee.tw/%E8%99%8E%E5%8A%9B%E9%AE%AE%E5%AB%A9%E9%9B%9E%E8%85%BF%F0%9F%90%AF%E8%99%8E%E7%88%BA%E5%8A%A0%E6%8C%81%EF%BD%9C%E7%8B%97%E7%8B%97%E8%B2%93%E5%92%AA%E9%83%BD%E6%84%9B%E5%90%83%EF%BD%9C%E7%A5%88%E7%A6%8F%E5%8A%A0%E6%8C%81%EF%BD%9C%E5%AE%89%E5%BF%83%E7%84%A1%E6%B7%BB%E5%8A%A0-i.71943198.40157755846?sp_atk=3abf831c-39f7-4e71-8db8-f6bea68b50d1&xptdk=3abf831c-39f7-4e71-8db8-f6bea68b50d1" class="bg-[#FFB800] text-white px-8 py-4 rounded-full text-xl font-bold hover:bg-[#F97316] shadow-lg transition duration-300 flex gap-2 items-center transform hover:scale-105">
+              <a href="https://shopee.tw/%E8%99%8E%E5%8A%9B%E9%AE%AE%E5%AB%A9%E9%9B%9E%E8%85%BF%F0%9F%90%AF%E8%99%8E%E7%88%BA%E5%8A%A0%E6%8C%81%EF%BD%9C%E7%8B%97%E7%8B%97%E8%B2%93%E5%92%AA%E9%83%BD%E6%84%9B%E5%90%83%EF%BD%9C%E7%A5%88%E7%A6%8F%E5%8A%A0%E6%8C%81%EF%BD%9C%E5%AE%89%E5%BF%83%E7%84%A1%E6%B7%BB%E5%8A%A0-i.71943198.40157755846?sp_atk=3abf831c-39f7-4e71-8db8-f6bea68b50d1&xptdk=3abf831c-39f7-4e71-8db8-f6bea68b50d1" target="_blank" class="bg-[#FFB800] text-white px-8 py-4 rounded-full text-xl font-bold hover:bg-[#F97316] shadow-lg transition duration-300 flex gap-2 items-center transform hover:scale-105">
                 <svg xmlns="http://www.w3.org/2000/svg" class="inline align-middle w-6 h-6" viewBox="0 0 40 40" fill="none">
                   <path d="M18.3334 14.9998H21.6667V9.99984H26.6667V6.6665H21.6667V1.6665H18.3334V6.6665H13.3334V9.99984H18.3334M11.6667 29.9998C9.83335 29.9998 8.33335 31.4998 8.33335 33.3332C8.33335 35.1665 9.83335 36.6665 11.6667 36.6665C13.5 36.6665 15 35.1665 15 33.3332C15 31.4998 13.5 29.9998 11.6667 29.9998ZM28.3334 29.9998C26.5 29.9998 25 31.4998 25 33.3332C25 35.1665 26.5 36.6665 28.3334 36.6665C30.1667 36.6665 31.6667 35.1665 31.6667 33.3332C31.6667 31.4998 30.1667 29.9998 28.3334 29.9998ZM12 24.6665V24.4998L13.5 21.6665H25.8334C27 21.6665 28.1667 20.9998 28.6667 19.9998L35.1667 8.33317L32.3334 6.6665L25.8334 18.3332H14.1667L7.16669 3.33317H1.66669V6.6665H5.00002L11 19.3332L8.66669 23.3332C8.50002 23.8332 8.33335 24.3332 8.33335 24.9998C8.33335 26.8332 9.83335 28.3332 11.6667 28.3332H31.6667V24.9998H12.3334C12.1667 24.9998 12 24.8332 12 24.6665Z" fill="white"/>
                 </svg>
                 <span class="align-middle">蝦皮商場</span>
               </a>
-              <a href="https://famistore.famiport.com.tw/famistore/users/4539314/malls/686f2abaf0fad9d6a585f682" class="bg-[#0891B2] text-white px-8 py-4 rounded-full text-xl font-bold hover:bg-[#0ea5e9] shadow-lg transition duration-300 transform hover:scale-105">
+              <a href="https://famistore.famiport.com.tw/famistore/users/4539314/malls/686f2abaf0fad9d6a585f682" class="bg-[#0891B2] text-white px-8 py-4 rounded-full text-xl font-bold hover:bg-[#0ea5e9] shadow-lg transition duration-300 transform hover:scale-105" target="_blank">
                 <svg xmlns="http://www.w3.org/2000/svg" class="inline align-middle w-6 h-6" viewBox="0 0 41 40" fill="none">
                   <path d="M20.5 29.9998H10.5V23.3332H20.5M35.5 23.3332V19.9998L33.8333 11.6665H7.16667L5.5 19.9998V23.3332H7.16667V33.3332H23.8333V23.3332H30.5V33.3332H33.8333V23.3332M33.8333 6.6665H7.16667V9.99984H33.8333V6.6665Z" fill="white"/>
                 </svg>
                 <span class="align-middle">全家好賣+</span>
               </a>
-              <a href="https://myship.7-11.com.tw/general/detail/GM2507101245127" class="bg-[#16A34A] text-white px-8 py-4 rounded-full text-xl font-bold hover:bg-[#22c55e] shadow-lg transition duration-300 transform hover:scale-105">
+              <a href="https://myship.7-11.com.tw/general/detail/GM2507101245127" class="bg-[#16A34A] text-white px-8 py-4 rounded-full text-xl font-bold hover:bg-[#22c55e] shadow-lg transition duration-300 transform hover:scale-105" target="_blank">
                 <svg xmlns="http://www.w3.org/2000/svg" class="inline align-middle w-6 h-6" viewBox="0 0 40 40" fill="none">
                   <path d="M20 21.6665C17.7899 21.6665 15.6702 20.7885 14.1074 19.2257C12.5446 17.6629 11.6667 15.5433 11.6667 13.3332H15C15 14.6593 15.5268 15.931 16.4645 16.8687C17.4021 17.8064 18.6739 18.3332 20 18.3332C21.3261 18.3332 22.5979 17.8064 23.5355 16.8687C24.4732 15.931 25 14.6593 25 13.3332H28.3333C28.3333 15.5433 27.4554 17.6629 25.8926 19.2257C24.3298 20.7885 22.2101 21.6665 20 21.6665ZM20 4.99984C21.3261 4.99984 22.5979 5.52662 23.5355 6.4643C24.4732 7.40199 25 8.67375 25 9.99984H15C15 8.67375 15.5268 7.40199 16.4645 6.4643C17.4021 5.52662 18.6739 4.99984 20 4.99984ZM31.6667 9.99984H28.3333C28.3333 8.90549 28.1178 7.82185 27.699 6.81081C27.2802 5.79976 26.6664 4.8811 25.8926 4.10728C25.1187 3.33346 24.2001 2.71963 23.189 2.30084C22.178 1.88205 21.0943 1.6665 20 1.6665C17.7899 1.6665 15.6702 2.54448 14.1074 4.10728C12.5446 5.67008 11.6667 7.7897 11.6667 9.99984H8.33333C6.48333 9.99984 5 11.4832 5 13.3332V33.3332C5 34.2172 5.35119 35.0651 5.97631 35.6902C6.60143 36.3153 7.44928 36.6665 8.33333 36.6665H31.6667C32.5507 36.6665 33.3986 36.3153 34.0237 35.6902C34.6488 35.0651 35 34.2172 35 33.3332V13.3332C35 12.4491 34.6488 11.6013 34.0237 10.9761C33.3986 10.351 32.5507 9.99984 31.6667 9.99984Z" fill="white"/>
                 </svg>
