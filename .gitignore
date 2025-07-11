@@ -136,3 +136,5 @@ test_*.py
 
 # Test files (可選)
 tests/
+admin/
+alembic/
