@@ -45,11 +45,17 @@
                         </div>
                         <div class="flex justify-between items-center">
                             <span>運費</span>
-                            <div id="shipping-amount" class="text-right">
-                                <span id="original-shipping" class="text-gray-900">NT$0</span>
-                                <span id="free-shipping" class="text-green-600 font-medium hidden">免運費</span>
-                            </div>
+                            <span id="shipping-amount">
+                                <span id="shipping-loading" class="text-gray-500" style="display: none;">計算中...</span>
+                                <span id="shipping-fee" style="display: none;">NT$0</span>
+                                <span id="shipping-free" class="text-green-600" style="display: none;">免費</span>
+                                <span id="shipping-none" class="text-gray-500">--</span>
+                            </span>
                         </div>
+                        <div id="shipping-info" class="text-xs text-gray-500" style="display: none;">
+                            <!-- 運費說明 -->
+                        </div>
+
                         <div class="flex justify-between items-center text-lg font-semibold border-t pt-2">
                             <span>總計</span>
                             <span id="total-amount">$0</span>
@@ -202,6 +208,8 @@ let cartItems = [];
 let currentOrderId = null;
 let appliedCoupon = null;
 let couponDiscount = 0;
+let shippingFee = 0;
+let shippingData = null;
 
 // 初始化頁面
 document.addEventListener('DOMContentLoaded', function() {
@@ -220,6 +228,7 @@ async function loadCart() {
             const data = await response.json();
             cartItems = data.items || [];
             displayOrderItems();
+            await calculateShipping();
             calculateTotal();
         } else {
             alert('無法載入購物車資料');
@@ -255,21 +264,80 @@ function displayOrderItems() {
     `).join('');
 }
 
+// 計算運費
+async function calculateShipping() {
+    const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    
+    if (subtotal <= 0) {
+        resetShippingDisplay();
+        return;
+    }
+    
+    // 顯示載入狀態
+    document.getElementById('shipping-loading').style.display = 'inline';
+    document.getElementById('shipping-fee').style.display = 'none';
+    document.getElementById('shipping-free').style.display = 'none';
+    document.getElementById('shipping-none').style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/shipping-tiers/calculate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                order_amount: subtotal - couponDiscount
+            })
+        });
+        
+        if (response.ok) {
+            shippingData = await response.json();
+            shippingFee = shippingData.free_shipping ? 0 : parseFloat(shippingData.shipping_fee || 0);
+            
+            // 更新運費顯示
+            document.getElementById('shipping-loading').style.display = 'none';
+            
+            if (shippingData.free_shipping) {
+                document.getElementById('shipping-free').style.display = 'inline';
+                document.getElementById('shipping-fee').style.display = 'none';
+            } else {
+                document.getElementById('shipping-fee').textContent = `NT$${shippingFee.toLocaleString()}`;
+                document.getElementById('shipping-fee').style.display = 'inline';
+                document.getElementById('shipping-free').style.display = 'none';
+            }
+            
+            // 顯示運費說明
+            const shippingInfo = document.getElementById('shipping-info');
+            shippingInfo.textContent = shippingData.message || '';
+            shippingInfo.style.display = 'block';
+            
+        } else {
+            console.error('運費計算失敗');
+            resetShippingDisplay();
+        }
+    } catch (error) {
+        console.error('運費計算失敗:', error);
+        resetShippingDisplay();
+    }
+}
+
+// 重設運費顯示
+function resetShippingDisplay() {
+    shippingFee = 0;
+    shippingData = null;
+    
+    document.getElementById('shipping-loading').style.display = 'none';
+    document.getElementById('shipping-fee').style.display = 'none';
+    document.getElementById('shipping-free').style.display = 'none';
+    document.getElementById('shipping-none').style.display = 'inline';
+    document.getElementById('shipping-info').style.display = 'none';
+}
+
 // 計算總金額
 function calculateTotal() {
     const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     
-    // 使用動態運費設定
-    const shippingFee = window.shippingFee || 60;
-    const freeShippingThreshold = window.freeShippingThreshold || 1000;
-    
-    // 檢查免運條件
-    const reachedFreeThreshold = subtotal >= freeShippingThreshold;
-    const hasFreeShippingCoupon = appliedCoupon && appliedCoupon.free_shipping;
-    const isFreeShipping = reachedFreeThreshold || hasFreeShippingCoupon;
-    
-    const shipping = isFreeShipping ? 0 : shippingFee;
-    const total = subtotal - couponDiscount + shipping;
+    const total = subtotal - couponDiscount + shippingFee;
     
     // 更新顯示
     document.getElementById('subtotal-amount').textContent = `NT$${subtotal.toLocaleString()}`;
@@ -353,6 +421,9 @@ async function applyCoupon() {
             couponDiscount = result.discount_amount;
             
             showCouponMessage(`優惠碼已套用！折扣：NT$${couponDiscount.toLocaleString()}`, 'success');
+            
+            // 重新計算運費（因為優惠後金額可能影響運費級距）
+            await calculateShipping();
             calculateTotal();
             
             // 更新按鈕為移除狀態
@@ -373,12 +444,15 @@ async function applyCoupon() {
 }
 
 // 移除優惠碼
-function removeCoupon() {
+async function removeCoupon() {
     appliedCoupon = null;
     couponDiscount = 0;
     
     document.getElementById('coupon-code').value = '';
     showCouponMessage('優惠碼已移除', 'info');
+    
+    // 重新計算運費（因為移除優惠後金額可能影響運費級距）
+    await calculateShipping();
     calculateTotal();
     
     // 重設按鈕
