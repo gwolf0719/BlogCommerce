@@ -341,7 +341,6 @@ function calculateTotal() {
     
     // 更新顯示
     document.getElementById('subtotal-amount').textContent = `NT$${subtotal.toLocaleString()}`;
-    updateShippingDisplay(shippingFee, isFreeShipping, reachedFreeThreshold, hasFreeShippingCoupon);
     document.getElementById('total-amount').textContent = `NT$${total.toLocaleString()}`;
     
     // 顯示/隱藏優惠折扣
@@ -350,34 +349,6 @@ function calculateTotal() {
         document.getElementById('discount-amount').textContent = `-NT$${couponDiscount.toLocaleString()}`;
     } else {
         document.getElementById('coupon-discount').classList.add('hidden');
-    }
-}
-
-// 更新運費顯示
-function updateShippingDisplay(originalFee, isFreeShipping, reachedFreeThreshold, hasFreeShippingCoupon) {
-    const originalShippingElement = document.getElementById('original-shipping');
-    const freeShippingElement = document.getElementById('free-shipping');
-    
-    // 先顯示原運費
-    originalShippingElement.textContent = `NT$${originalFee.toLocaleString()}`;
-    
-    if (isFreeShipping) {
-        // 免運條件：劃掉原運費，顯示免運費
-        originalShippingElement.classList.add('line-through', 'text-gray-400');
-        freeShippingElement.classList.remove('hidden');
-        
-        // 根據免運原因顯示不同訊息
-        if (hasFreeShippingCoupon) {
-            freeShippingElement.innerHTML = '🎫 優惠券免運';
-        } else if (reachedFreeThreshold) {
-            freeShippingElement.innerHTML = '🚚 滿額免運';
-        } else {
-            freeShippingElement.innerHTML = '免運費';
-        }
-    } else {
-        // 需要運費：正常顯示
-        originalShippingElement.classList.remove('line-through', 'text-gray-400');
-        freeShippingElement.classList.add('hidden');
     }
 }
 
@@ -530,11 +501,7 @@ async function checkPaymentMethods() {
                 document.getElementById('paypal-option').style.display = 'none';
             }
             
-            // 更新運費設定
-            if (settings.shipping) {
-                window.shippingFee = settings.shipping.fee;
-                window.freeShippingThreshold = settings.shipping.free_threshold;
-            }
+
             
             // 檢查是否至少有一個付款方式啟用
             const enabledMethods = Object.keys(settings).filter(key => 

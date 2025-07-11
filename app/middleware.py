@@ -27,8 +27,6 @@ def get_public_settings() -> dict:
             "site_favicon": config_settings.site_favicon,
             "default_currency": config_settings.default_currency,
             "default_currency_symbol": config_settings.default_currency_symbol,
-            "free_shipping_threshold": config_settings.free_shipping_threshold,
-            "default_shipping_fee": config_settings.default_shipping_fee,
             
             # 功能設定
             "blog_enabled": True,
@@ -66,8 +64,6 @@ def get_public_settings() -> dict:
             "site_favicon": config_settings.site_favicon,
             "default_currency": config_settings.default_currency,
             "default_currency_symbol": config_settings.default_currency_symbol,
-            "free_shipping_threshold": config_settings.free_shipping_threshold,
-            "default_shipping_fee": config_settings.default_shipping_fee,
             "blog_enabled": True,
             "shop_enabled": True,
             "comment_enabled": True,

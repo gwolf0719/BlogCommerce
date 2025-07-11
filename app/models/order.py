@@ -47,7 +47,6 @@ class Order(BaseModel):
     
     # 訂單金額
     subtotal = Column(Numeric(10, 2), nullable=False)
-    shipping_fee = Column(Numeric(10, 2), default=0)
     discount_amount = Column(Numeric(10, 2), default=0)  # 折扣金額
     total_amount = Column(Numeric(10, 2), nullable=False)
     

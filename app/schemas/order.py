@@ -121,7 +121,6 @@ class OrderResponse(OrderBase, BaseResponseSchema):
     order_number: Optional[str] = None
     user_id: Optional[int] = None
     subtotal: Optional[Decimal] = None
-    shipping_fee: Optional[Decimal] = None
     discount_amount: Optional[Decimal] = None  # 折扣金額
     total_amount: Decimal
     status: OrderStatus

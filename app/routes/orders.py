@@ -127,14 +127,11 @@ def create_order(
         # 扣除庫存
         product.stock_quantity -= item.quantity
     
-    # 計算運費（這裡可以根據業務規則調整）
-    shipping_fee = Decimal("60.00") if subtotal < Decimal("1000.00") else Decimal("0.00")
-    
     # 計算折扣金額（暫時設為 0，未來可以添加其他折扣機制）
     discount_amount = Decimal("0.00")
     
     # 計算最終總金額
-    total_amount = subtotal + shipping_fee - discount_amount
+    total_amount = subtotal - discount_amount
     
     # 建立訂單
     db_order = Order(
@@ -145,7 +142,6 @@ def create_order(
         customer_phone=order.customer_phone,
         shipping_address=order.shipping_address,
         subtotal=subtotal,
-        shipping_fee=shipping_fee,
         discount_amount=discount_amount,
         total_amount=total_amount,
         status=OrderStatus.PENDING,
@@ -516,9 +512,8 @@ def create_order_simple(
             customer_phone=order.customer_phone,
             shipping_address=order.shipping_address,
             subtotal=Decimal("1000.00"),  # 簡化為固定值
-            shipping_fee=Decimal("60.00"),
             discount_amount=Decimal("0.00"),
-            total_amount=Decimal("1060.00"),
+            total_amount=Decimal("1000.00"),
             status=OrderStatus.PENDING,
             notes=order.notes
         )

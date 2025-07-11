@@ -65,8 +65,6 @@ class SeoSettings(BaseModel):
 class EcommerceSettings(BaseModel):
     currency: str = Field("TWD", description="預設貨幣")
     currency_symbol: str = Field("NT$", description="貨幣符號")
-    free_shipping_threshold: float = Field(1000.0, description="免運費門檻")
-    default_shipping_fee: float = Field(60.0, description="預設運費")
     tax_rate: float = Field(0.05, description="稅率")
     payment_methods: List[str] = Field(["credit_card", "bank_transfer"], description="支付方式")
 

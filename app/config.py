@@ -50,8 +50,6 @@ class Settings(BaseSettings):
     # 電商設定
     default_currency: str = "TWD"
     default_currency_symbol: str = "NT$"
-    free_shipping_threshold: float = 1000.0
-    default_shipping_fee: float = 60.0
     tax_rate: float = 0.05
     
     # 社群媒體連結
