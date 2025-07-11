@@ -58,8 +58,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                             </svg>
                         </div>
-                        <h3 class="font-semibold text-gray-800 mb-2">滿千免運</h3>
-                        <p class="text-sm text-gray-600">購物滿 NT$1,000 即享免運費優惠</p>
+                        <h3 class="font-semibold text-gray-800 mb-2">會員專享</h3>
+                        <p class="text-sm text-gray-600">會員享有獨家優惠和折扣</p>
                     </div>
                     
                     <div class="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
@@ -178,19 +178,11 @@
                         <span class="text-gray-700">小計</span>
                         <span class="font-medium" x-text="'NT$' + cart.subtotal.toLocaleString()"></span>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-700">運費</span>
-                        <span class="font-medium" x-text="shippingFee > 0 ? 'NT$' + shippingFee.toLocaleString() : '免運費'"></span>
-                    </div>
                     <hr class="border-gray-200">
                     <div class="flex justify-between items-center font-bold text-lg text-gray-900">
                         <span>總計</span>
-                        <span class="text-xl text-red-600" x-text="'NT$' + (cart.total + shippingFee).toLocaleString()"></span>
+                        <span class="text-xl text-red-600" x-text="'NT$' + cart.total.toLocaleString()"></span>
                     </div>
-                </div>
-                
-                <div class="text-sm text-gray-600 mb-4" x-show="shippingFee > 0">
-                    滿 NT$1,000 享免運費
                 </div>
                 
                 <button @click="goToCheckout()" 
@@ -232,10 +224,6 @@ function cartApp() {
             total: 0
         },
         loading: false,
-        
-        get shippingFee() {
-            return this.cart.total < 1000 ? 60 : 0;
-        },
         
         init() {
             this.loadCart();
