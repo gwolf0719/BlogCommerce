@@ -65,6 +65,9 @@ class Order(BaseModel):
     # 關聯
     user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    promo_usage = relationship("PromoUsage", back_populates="order", uselist=False)
+    # 向後相容的別名
+    discount_usage = relationship("PromoUsage", back_populates="order", uselist=False, viewonly=True)
     
     def __repr__(self):
         return f"<Order {self.order_number}>"

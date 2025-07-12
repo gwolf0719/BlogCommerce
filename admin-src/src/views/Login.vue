@@ -31,6 +31,7 @@ import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useAuthStore } from '../stores/auth'
+import { handleApiError } from '../utils/errorHandler'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -48,7 +49,12 @@ const handleLogin = async (values) => {
     message.success('登入成功')
     router.push('/')
   } catch (error) {
-    message.error(error.message || '登入失敗')
+    // 使用統一的錯誤處理
+    if (error.response) {
+      await handleApiError(error.response, '登入失敗')
+    } else {
+      message.error(error.message || '登入失敗')
+    }
   } finally {
     loading.value = false
   }

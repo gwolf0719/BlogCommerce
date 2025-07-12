@@ -83,6 +83,7 @@ def calculate_cart(cart_items: List[CartItem], db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=OrderResponse)
+@router.post("", response_model=OrderResponse)  # 添加不帶尾隨斜線的路由別名
 def create_order(
     order: OrderCreate,
     db: Session = Depends(get_db),
@@ -166,7 +167,7 @@ def create_order(
     payment_data = None
     if order.payment_method:
         try:
-            with PaymentService() as payment_service:
+            with PaymentService(db) as payment_service:
                 payment_data = payment_service.create_payment_order(
                     payment_method=order.payment_method,
                     order_id=db_order.order_number,
@@ -195,6 +196,7 @@ def create_order(
 
 
 @router.get("/", response_model=List[OrderListResponse])
+@router.get("", response_model=List[OrderListResponse])  # 添加不帶尾隨斜線的路由別名
 def get_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, le=1000),

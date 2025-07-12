@@ -7,6 +7,8 @@ from app.models.user import User
 from app.models.post import Post
 from app.models.product import Product
 from app.models.order import Order
+from app.models.discount_code import PromoCode
+from app.models.discount_usage import PromoUsage
 # 分類和標籤已移除
 from app.models.newsletter import NewsletterSubscriber
 from app.schemas.user import UserResponse, UserUpdate
@@ -434,6 +436,9 @@ async def get_admin_stats(
     """取得管理員儀表板統計資訊"""
     from sqlalchemy import func
     from app.models.analytics import PageView
+    from app.models.discount_code import DiscountCode
+    from app.models.discount_usage import DiscountUsage
+    from datetime import datetime, timedelta
     
     try:
         # 基本統計
@@ -460,6 +465,41 @@ async def get_admin_stats(
             Post.is_published == True
         ).scalar() or 0
         
+        # 折扣碼統計
+        total_discount_codes = db.query(func.count(DiscountCode.id)).scalar() or 0
+        active_discount_codes = db.query(func.count(DiscountCode.id)).filter(
+            DiscountCode.is_active == True
+        ).scalar() or 0
+        total_discount_usage = db.query(func.sum(PromoCode.used_count)).scalar() or 0
+        total_discount_amount = db.query(func.sum(PromoUsage.promo_amount)).scalar() or 0
+        
+        # 今日推薦碼使用次數
+        today = datetime.now().date()
+        today_discount_usage = db.query(func.count(PromoUsage.id)).filter(
+            func.date(PromoUsage.used_at) == today
+        ).scalar() or 0
+        
+        # 銷售統計
+        total_sales = db.query(func.sum(Order.total_amount)).filter(
+            Order.status.in_(["confirmed", "shipped", "delivered"])
+        ).scalar() or 0
+        
+        # 今日訂單和銷售額
+        today_orders = db.query(func.count(Order.id)).filter(
+            func.date(Order.created_at) == today
+        ).scalar() or 0
+        
+        today_revenue = db.query(func.sum(Order.total_amount)).filter(
+            func.date(Order.created_at) == today,
+            Order.status.in_(["confirmed", "shipped", "delivered"])
+        ).scalar() or 0
+        
+        # 活躍會話數（過去15分鐘）
+        from app.models.analytics import UserSession
+        active_sessions = db.query(func.count(UserSession.id)).filter(
+            UserSession.last_activity >= datetime.now() - timedelta(minutes=15)
+        ).scalar() or 0
+        
         stats = {
             "total_users": total_users,
             "total_posts": total_posts,
@@ -468,7 +508,17 @@ async def get_admin_stats(
             "active_products": active_products,
             "total_orders": total_orders,
             "pending_orders": pending_orders,
-            "total_page_views": total_page_views
+            "total_page_views": total_page_views,
+            "total_sales": float(total_sales or 0),
+            "today_orders": today_orders,
+            "today_revenue": float(today_revenue or 0),
+            "active_sessions": active_sessions,
+            "total_discount_codes": total_discount_codes,
+            "active_discount_codes": active_discount_codes,
+            "total_discount_usage": total_discount_usage,
+            "total_discount_amount": float(total_discount_amount or 0),
+            "today_discount_usage": today_discount_usage,
+            "calculated_at": datetime.now().isoformat()
         }
         
         return stats

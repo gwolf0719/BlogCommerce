@@ -1,25 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
+from datetime import datetime
+from pydantic import BaseModel, Field
+
 from app.database import get_db
 from app.models.product import Product
-from pydantic import BaseModel, Field
-import json
+from app.models.discount_code import PromoCode, PromoType
 
-router = APIRouter(
-    prefix="/api/cart",
-    tags=["購物車"],
-    responses={
-        400: {"description": "請求參數錯誤"},
-        404: {"description": "商品不存在"},
-        500: {"description": "伺服器內部錯誤"}
-    }
-)
+router = APIRouter(prefix="/api/cart", tags=["購物車"])
 
 
 class CartItem(BaseModel):
     product_id: int
     quantity: int
+
+
+class PromoCodeRequest(BaseModel):
+    promo_code: str = Field(..., description="推薦碼")
 
 
 class CartItemResponse(BaseModel):
@@ -34,48 +32,63 @@ class CartResponse(BaseModel):
     total_items: int
     subtotal: float
     total: float
+    applied_promo: Dict[str, Any] | None = None
+    discount_amount: float = 0
 
 
 @router.get("/", response_model=CartResponse)
+@router.get("", response_model=CartResponse)  # 添加不帶尾隨斜線的路由別名
 def get_cart(request: Request, db: Session = Depends(get_db)):
     """取得購物車內容"""
-    # 從 session 或 cookie 取得購物車資料
-    cart_data = request.session.get("cart", {})
+    cart = request.session.get("cart", {})
     
     items = []
-    subtotal = 0
     total_items = 0
+    subtotal = 0
     
-    for product_id_str, quantity in cart_data.items():
+    for product_id_str, quantity in cart.items():
         product_id = int(product_id_str)
         product = db.query(Product).filter(Product.id == product_id).first()
         
         if product and product.is_active:
-            item_subtotal = float(product.current_price) * quantity
-            subtotal += item_subtotal
-            total_items += quantity
+            product_data = {
+                "id": product.id,
+                "name": product.name,
+                "price": float(product.current_price),
+                "current_price": float(product.current_price),
+                "featured_image": product.featured_image,
+                "stock_quantity": product.stock_quantity,
+                "is_active": product.is_active
+            }
             
-            items.append(CartItemResponse(
-                product_id=product_id,
-                quantity=quantity,
-                product={
-                    "id": product.id,
-                    "name": product.name,
-                    "price": float(product.price),
-                    "current_price": float(product.current_price),
-                    "is_on_sale": product.is_on_sale,
-                    "featured_image": product.featured_image,
-                    "slug": product.slug,
-                    "stock_quantity": product.stock_quantity
-                },
-                subtotal=item_subtotal
-            ))
+            item_subtotal = float(product.current_price) * quantity
+            
+            items.append({
+                "product_id": product_id,
+                "quantity": quantity,
+                "product": product_data,
+                "subtotal": item_subtotal
+            })
+            
+            total_items += quantity
+            subtotal += item_subtotal
+    
+    # 取得套用的推薦碼資訊
+    applied_promo = request.session.get("applied_promo")
+    discount_amount = 0
+    
+    if applied_promo:
+        discount_amount = applied_promo.get("discount_amount", 0)
+    
+    final_total = max(0, subtotal - discount_amount)
     
     return CartResponse(
         items=items,
         total_items=total_items,
         subtotal=subtotal,
-        total=subtotal  # 可以在這裡加入運費計算
+        total=final_total,
+        applied_promo=applied_promo,
+        discount_amount=discount_amount
     )
 
 
@@ -171,4 +184,91 @@ def remove_from_cart(product_id: int, request: Request):
 def clear_cart(request: Request):
     """清空購物車"""
     request.session["cart"] = {}
-    return {"message": "購物車已清空"} 
+    return {"message": "購物車已清空"}
+
+
+@router.post("/apply-promo")
+def apply_promo_code(
+    promo_request: PromoCodeRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """套用推薦碼"""
+    # 檢查推薦碼是否存在且有效
+    promo_code = db.query(PromoCode).filter(
+        PromoCode.code == promo_request.promo_code.upper(),
+        PromoCode.is_active == True
+    ).first()
+    
+    if not promo_code:
+        raise HTTPException(status_code=400, detail="推薦碼不存在或已停用")
+    
+    # 檢查是否在有效期間內
+    now = datetime.now()
+    if promo_code.end_date and promo_code.end_date < now:
+        raise HTTPException(status_code=400, detail="推薦碼已過期")
+    
+    # 檢查使用次數限制
+    if promo_code.usage_limit and promo_code.used_count >= promo_code.usage_limit:
+        raise HTTPException(status_code=400, detail="推薦碼已達使用次數上限")
+    
+    # 檢查最低消費金額
+    cart = request.session.get("cart", {})
+    subtotal = 0
+    
+    for product_id_str, quantity in cart.items():
+        product_id = int(product_id_str)
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if product and product.is_active:
+            subtotal += float(product.current_price) * quantity
+    
+    if promo_code.min_order_amount and subtotal < float(promo_code.min_order_amount):
+        raise HTTPException(
+            status_code=400, 
+            detail=f"購買金額需達到 NT${promo_code.min_order_amount} 才能使用此推薦碼"
+        )
+    
+    # 計算推薦金額
+    discount_amount = 0
+    if promo_code.promo_type == PromoType.PERCENTAGE:
+        discount_amount = subtotal * (float(promo_code.promo_value) / 100)
+        # 將百分比推薦四捨五入到整數
+        discount_amount = round(discount_amount)
+    elif promo_code.promo_type == PromoType.AMOUNT:
+        discount_amount = float(promo_code.promo_value)
+    elif promo_code.promo_type == PromoType.FREE_SHIPPING:
+        discount_amount = 0  # 免運費推薦待實現
+    
+    # 確保推薦金額不超過購物車總額
+    discount_amount = min(discount_amount, subtotal)
+    
+    # 儲存推薦碼到 session
+    request.session["applied_promo"] = {
+        "id": promo_code.id,
+        "code": promo_code.code,
+        "name": promo_code.name,
+        "promo_type": promo_code.promo_type.value,
+        "promo_value": float(promo_code.promo_value),
+        "discount_amount": discount_amount
+    }
+    
+    return {
+        "message": "推薦碼套用成功",
+        "promo_code": {
+            "id": promo_code.id,
+            "code": promo_code.code,
+            "name": promo_code.name,
+            "promo_type": promo_code.promo_type.value,
+            "promo_value": float(promo_code.promo_value)
+        },
+        "discount_amount": discount_amount
+    }
+
+
+@router.delete("/remove-promo")
+def remove_promo_code(request: Request):
+    """移除推薦碼"""
+    if "applied_promo" in request.session:
+        del request.session["applied_promo"]
+    
+    return {"message": "推薦碼已移除"} 
