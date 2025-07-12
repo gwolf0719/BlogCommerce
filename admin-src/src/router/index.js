@@ -9,6 +9,7 @@ import Analytics from '../views/Analytics.vue'
 import Settings from '../views/Settings.vue'
 import Banners from '../views/Banners.vue'
 import ShippingTiers from '../views/ShippingTiers.vue'
+import PromoCodes from '../views/PromoCodes.vue'
 
 
 const routes = [
@@ -56,6 +57,11 @@ const routes = [
         path: '/shipping-tiers',
         name: 'ShippingTiers',
         component: ShippingTiers
+      },
+      {
+        path: '/promo-codes',
+        name: 'PromoCodes',
+        component: PromoCodes
       },
       {
         path: '/analytics',

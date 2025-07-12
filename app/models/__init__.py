@@ -11,6 +11,8 @@ from .favorite import Favorite
 from .view_log import ViewLog
 from .banner import Banner, BannerPosition
 from .shipping_tier import ShippingTier
+from .discount_code import PromoCode, PromoType, DiscountCode, DiscountType
+from .discount_usage import PromoUsage, DiscountUsage
 
 __all__ = [
     "BaseModel",
@@ -24,5 +26,7 @@ __all__ = [
     "Favorite",
     "ViewLog",
     "Banner", "BannerPosition",
-    "ShippingTier"
+    "ShippingTier",
+    "PromoCode", "PromoType", "PromoUsage",
+    "DiscountCode", "DiscountType", "DiscountUsage"  # 向後相容的別名
 ] 

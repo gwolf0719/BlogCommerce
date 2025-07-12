@@ -31,6 +31,9 @@ class User(BaseModel):
     orders = relationship("Order", back_populates="user")
     favorites = relationship("Favorite", back_populates="user", cascade="all, delete-orphan")
     view_logs = relationship("ViewLog", back_populates="user", cascade="all, delete-orphan")
+    promo_usages = relationship("PromoUsage", back_populates="user")
+    # 向後相容的別名
+    discount_usages = relationship("PromoUsage", back_populates="user", viewonly=True)
     
     def set_password(self, password: str):
         """設定密碼（加密）"""

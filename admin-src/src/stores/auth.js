@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import api from '../utils/axios'
+import { handleApiError } from '../utils/errorHandler'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -28,10 +29,12 @@ export const useAuthStore = defineStore('auth', {
         return response.data
       } catch (error) {
         this.logout()
-        if (error.response?.data?.detail) {
-          throw new Error(error.response.data.detail)
+        // 使用統一的錯誤處理
+        if (error.response) {
+          await handleApiError(error.response, '登入失敗')
+        } else {
+          throw error
         }
-        throw error
       }
     },
 
@@ -54,6 +57,8 @@ export const useAuthStore = defineStore('auth', {
         return true
       } catch (error) {
         this.logout()
+        // 檢查認證時不顯示錯誤訊息，避免干擾用戶體驗
+        console.warn('認證檢查失敗:', error)
         return false
       }
     },

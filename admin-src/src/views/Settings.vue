@@ -756,6 +756,7 @@ import {
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '../stores/auth'
 import UploadImage from '../components/UploadImage.vue'
+import api from '../utils/axios'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -868,17 +869,8 @@ const handleMenuClick = ({ key }) => {
 const loadSettings = async () => {
   loading.value = true
   try {
-    const response = await fetch('/api/admin/settings', {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error('載入設定失敗')
-    }
-
-    const data = await response.json()
+    const response = await api.get('/api/admin/settings')
+    const data = response.data
     
     // 更新設定值
     Object.keys(settings).forEach(key => {
@@ -898,19 +890,7 @@ const loadSettings = async () => {
 const saveAllSettings = async () => {
   saving.value = true
   try {
-    const response = await fetch('/api/admin/settings', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify(settings)
-    })
-
-    if (!response.ok) {
-      throw new Error('儲存設定失敗')
-    }
-
+    await api.put('/api/admin/settings', settings)
     message.success('設定已儲存')
 
   } catch (error) {
@@ -927,22 +907,11 @@ const refreshSettings = () => {
 const testEmail = async () => {
   testingEmail.value = true
   try {
-    const response = await fetch('/api/admin/test-email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify({
-        to: settings.admin_email,
-        subject: '郵件設定測試',
-        content: '這是一封測試郵件，如果您收到這封郵件，表示郵件設定正確。'
-      })
+    await api.post('/api/admin/test-email', {
+      to: settings.admin_email,
+      subject: '郵件設定測試',
+      content: '這是一封測試郵件，如果您收到這封郵件，表示郵件設定正確。'
     })
-
-    if (!response.ok) {
-      throw new Error('發送測試郵件失敗')
-    }
 
     message.success('測試郵件已發送，請檢查您的信箱')
 
@@ -986,37 +955,33 @@ const loadPaymentSettings = async () => {
   loading.value = true
   try {
     // 使用統一的金流設定端點
-    const response = await fetch('/api/settings/payment/settings', {
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
-    })
+    const response = await api.get('/api/settings/payment/settings')
     
-    if (response.ok) {
-      const settings = await response.json()
-      payment.enabledMethods = []
-      
-      // 檢查轉帳設定
-      if (settings.transfer && settings.transfer.enabled) {
-        payment.enabledMethods.push('transfer')
-        payment.transfer = { bank: '台灣銀行', account: '123-456-789', name: 'BlogCommerce' }
-      }
-      
-      // 檢查 LinePay 設定
-      if (settings.linepay && settings.linepay.enabled) {
-        payment.enabledMethods.push('linepay')
-        payment.linepay = { channel_id: '', channel_secret: '', store_name: '' }
-      }
-      
-      // 檢查綠界設定
-      if (settings.ecpay && settings.ecpay.enabled) {
-        payment.enabledMethods.push('ecpay')
-        payment.ecpay = { merchant_id: '', api_url: '', hash_key: '', hash_iv: '' }
-      }
-      
-      // 檢查 PayPal 設定
-      if (settings.paypal && settings.paypal.enabled) {
-        payment.enabledMethods.push('paypal')
-        payment.paypal = { client_id: '', client_secret: '', environment: 'sandbox' }
-      }
+    const settings = response.data
+    payment.enabledMethods = []
+    
+    // 檢查轉帳設定
+    if (settings.transfer && settings.transfer.enabled) {
+      payment.enabledMethods.push('transfer')
+      payment.transfer = { bank: '台灣銀行', account: '123-456-789', name: 'BlogCommerce' }
+    }
+    
+    // 檢查 LinePay 設定
+    if (settings.linepay && settings.linepay.enabled) {
+      payment.enabledMethods.push('linepay')
+      payment.linepay = { channel_id: '', channel_secret: '', store_name: '' }
+    }
+    
+    // 檢查綠界設定
+    if (settings.ecpay && settings.ecpay.enabled) {
+      payment.enabledMethods.push('ecpay')
+      payment.ecpay = { merchant_id: '', api_url: '', hash_key: '', hash_iv: '' }
+    }
+    
+    // 檢查 PayPal 設定
+    if (settings.paypal && settings.paypal.enabled) {
+      payment.enabledMethods.push('paypal')
+      payment.paypal = { client_id: '', client_secret: '', environment: 'sandbox' }
     }
     
   } catch (error) {
@@ -1032,41 +997,25 @@ const savePaymentSettings = async () => {
   try {
     // 使用正確的API端點更新金流啟用狀態
     const reqs = [
-      fetch('/api/settings/payment_transfer_enabled', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ 
-          value: payment.enabledMethods.includes('transfer') ? 'true' : 'false', 
-          category: 'payment', 
-          data_type: 'boolean' 
-        })
+      api.put('/api/settings/payment_transfer_enabled', { 
+        value: payment.enabledMethods.includes('transfer') ? 'true' : 'false', 
+        category: 'payment', 
+        data_type: 'boolean' 
       }),
-      fetch('/api/settings/payment_linepay_enabled', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ 
-          value: payment.enabledMethods.includes('linepay') ? 'true' : 'false', 
-          category: 'payment', 
-          data_type: 'boolean' 
-        })
+      api.put('/api/settings/payment_linepay_enabled', { 
+        value: payment.enabledMethods.includes('linepay') ? 'true' : 'false', 
+        category: 'payment', 
+        data_type: 'boolean' 
       }),
-      fetch('/api/settings/payment_ecpay_enabled', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ 
-          value: payment.enabledMethods.includes('ecpay') ? 'true' : 'false', 
-          category: 'payment', 
-          data_type: 'boolean' 
-        })
+      api.put('/api/settings/payment_ecpay_enabled', { 
+        value: payment.enabledMethods.includes('ecpay') ? 'true' : 'false', 
+        category: 'payment', 
+        data_type: 'boolean' 
       }),
-      fetch('/api/settings/payment_paypal_enabled', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ 
-          value: payment.enabledMethods.includes('paypal') ? 'true' : 'false', 
-          category: 'payment', 
-          data_type: 'boolean' 
-        })
+      api.put('/api/settings/payment_paypal_enabled', { 
+        value: payment.enabledMethods.includes('paypal') ? 'true' : 'false', 
+        category: 'payment', 
+        data_type: 'boolean' 
       })
     ]
     

@@ -46,6 +46,11 @@
           <span>運費級距</span>
         </a-menu-item>
         
+        <a-menu-item key="promo-codes" @click="$router.push('/promo-codes')">
+          <gift-outlined />
+          <span>推薦碼管理</span>
+        </a-menu-item>
+        
         <a-menu-item key="analytics" @click="$router.push('/analytics')">
           <bar-chart-outlined />
           <span>數據分析</span>
@@ -109,7 +114,8 @@ import {
   DownOutlined,
   TagOutlined,
   PictureOutlined,
-  CarOutlined
+  CarOutlined,
+  GiftOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -130,6 +136,7 @@ const pageTitle = {
   users: '會員管理',
   banners: '廣告管理',
   'shipping-tiers': '運費級距',
+  'promo-codes': '推薦碼管理',
   analytics: '數據分析',
   settings: '系統設定'
 }

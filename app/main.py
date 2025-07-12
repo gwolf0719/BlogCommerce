@@ -143,6 +143,10 @@ app = FastAPI(
         {
             "name": "健康檢查",
             "description": "系統健康狀態檢查和監控。"
+        },
+        {
+            "name": "折扣碼管理",
+            "description": "折扣碼系統，包括建立、管理、驗證和使用統計等功能。"
         }
     ],
     servers=[

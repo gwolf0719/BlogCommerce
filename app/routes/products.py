@@ -206,6 +206,7 @@ def get_product_by_slug(
 
 
 @router.post("/", response_model=ProductResponse)
+@router.post("", response_model=ProductResponse)  # 添加不帶尾隨斜線的路由別名
 def create_product(
     product: ProductCreate,
     db: Session = Depends(get_db),

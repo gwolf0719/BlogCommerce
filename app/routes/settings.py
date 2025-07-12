@@ -46,22 +46,22 @@ class SettingsManager:
             str_value = json.dumps(value)
             data_type = "json"
         else:
-            str_value = str(value) if value is not None else None
+            str_value = str(value) if value is not None else ""
         
         if setting:
             setting.value = str_value
-            if description:
-                setting.description = description
-            setting.data_type = data_type
-            setting.is_public = is_public
+            setting.description = str(description) if description is not None else ""
+            setting.data_type = str(data_type) if data_type is not None else "string"
+            setting.category = str(category) if category is not None else "general"
+            setting.is_public = bool(is_public)
         else:
             setting = SystemSettings(
-                key=key,
+                key=str(key),
                 value=str_value,
-                description=description,
-                category=category,
-                data_type=data_type,
-                is_public=is_public
+                description=str(description) if description is not None else "",
+                category=str(category) if category is not None else "general",
+                data_type=str(data_type) if data_type is not None else "string",
+                is_public=bool(is_public)
             )
             self.db.add(setting)
         
@@ -86,6 +86,7 @@ class SettingsManager:
 
 # API 路由
 @router.get("/", response_model=List[SystemSettingResponse])
+@router.get("", response_model=List[SystemSettingResponse])  # 添加不帶尾隨斜線的路由別名
 async def get_all_settings(
     category: Optional[str] = None,
     db: Session = Depends(get_db),
@@ -121,6 +122,7 @@ async def get_setting(
 
 
 @router.post("/", response_model=SystemSettingResponse)
+@router.post("", response_model=SystemSettingResponse)  # 添加不帶尾隨斜線的路由別名
 async def create_setting(
     setting_data: SystemSettingCreate,
     db: Session = Depends(get_db),
@@ -140,6 +142,152 @@ async def create_setting(
     db.refresh(setting)
     return SystemSettingResponse.from_orm(setting)
 
+
+# 支付相關的特定路由必須在通用路由之前定義
+
+@router.put("/payment_transfer_enabled")
+async def set_payment_transfer_enabled(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """
+    啟用/停用銀行轉帳金流
+    
+    - **value**: 啟用狀態 ('true'/'false' 或 boolean)
+    - **category**: 設定分類 (可選)
+    - **data_type**: 資料類型 (可選)
+    """
+    manager = SettingsManager(db)
+    value = data.get("value", "false")
+    
+    # 轉換為布林值
+    if isinstance(value, str):
+        enabled = value.lower() == "true"
+    else:
+        enabled = bool(value)
+    
+    manager.set_setting(
+        key="payment_transfer_enabled",
+        value=enabled,
+        description="啟用/停用銀行轉帳金流",
+        category="payment",
+        data_type="boolean",
+        is_public=True
+    )
+    
+    return {
+        "message": "銀行轉帳金流啟用狀態已更新",
+        "payment_transfer_enabled": enabled
+    }
+
+@router.put("/payment_linepay_enabled")
+async def set_payment_linepay_enabled(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """
+    啟用/停用 LinePay 金流
+    
+    - **value**: 啟用狀態 ('true'/'false' 或 boolean)
+    - **category**: 設定分類 (可選)
+    - **data_type**: 資料類型 (可選)
+    """
+    manager = SettingsManager(db)
+    value = data.get("value", "false")
+    
+    # 轉換為布林值
+    if isinstance(value, str):
+        enabled = value.lower() == "true"
+    else:
+        enabled = bool(value)
+    
+    manager.set_setting(
+        key="payment_linepay_enabled",
+        value=enabled,
+        description="啟用/停用 LinePay 金流",
+        category="payment",
+        data_type="boolean",
+        is_public=True
+    )
+    
+    return {
+        "message": "LinePay 金流啟用狀態已更新",
+        "payment_linepay_enabled": enabled
+    }
+
+@router.put("/payment_ecpay_enabled")
+async def set_payment_ecpay_enabled(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """
+    啟用/停用綠界金流
+    
+    - **value**: 啟用狀態 ('true'/'false' 或 boolean)
+    - **category**: 設定分類 (可選)
+    - **data_type**: 資料類型 (可選)
+    """
+    manager = SettingsManager(db)
+    value = data.get("value", "false")
+    
+    # 轉換為布林值
+    if isinstance(value, str):
+        enabled = value.lower() == "true"
+    else:
+        enabled = bool(value)
+    
+    manager.set_setting(
+        key="payment_ecpay_enabled",
+        value=enabled,
+        description="啟用/停用綠界金流",
+        category="payment",
+        data_type="boolean",
+        is_public=True
+    )
+    
+    return {
+        "message": "綠界金流啟用狀態已更新",
+        "payment_ecpay_enabled": enabled
+    }
+
+@router.put("/payment_paypal_enabled")
+async def set_payment_paypal_enabled(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_admin_user)
+):
+    """
+    啟用/停用 PayPal 金流
+    
+    - **value**: 啟用狀態 ('true'/'false' 或 boolean)
+    - **category**: 設定分類 (可選)
+    - **data_type**: 資料類型 (可選)
+    """
+    manager = SettingsManager(db)
+    value = data.get("value", "false")
+    
+    # 轉換為布林值
+    if isinstance(value, str):
+        enabled = value.lower() == "true"
+    else:
+        enabled = bool(value)
+    
+    manager.set_setting(
+        key="payment_paypal_enabled",
+        value=enabled,
+        description="啟用/停用 PayPal 金流",
+        category="payment",
+        data_type="boolean",
+        is_public=True
+    )
+    
+    return {
+        "message": "PayPal 金流啟用狀態已更新",
+        "payment_paypal_enabled": enabled
+    }
 
 @router.put("/{key}", response_model=SystemSettingResponse)
 async def update_setting(

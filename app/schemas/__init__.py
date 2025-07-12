@@ -9,6 +9,19 @@ from .shipping_tier import (
     ShippingTierListResponse, ShippingTierStatusToggle, ShippingTierStats,
     ShippingCalculationRequest, ShippingCalculationResponse
 )
+from .discount_code import (
+    PromoCodeCreate, PromoCodeUpdate, PromoCodeResponse, 
+    PromoCodeListResponse, PromoCodeValidateRequest, 
+    PromoCodeValidateResponse, PromoCodeUsageResponse,
+    PromoCodeUsageListResponse, PromoCodeStatsResponse,
+    PromoTypeEnum,
+    # 向後相容的別名
+    DiscountCodeCreate, DiscountCodeUpdate, DiscountCodeResponse, 
+    DiscountCodeListResponse, DiscountCodeValidateRequest, 
+    DiscountCodeValidateResponse, DiscountCodeUsageResponse,
+    DiscountCodeUsageListResponse, DiscountCodeStatsResponse,
+    DiscountTypeEnum
+)
 
 __all__ = [
     # Order schemas
@@ -22,4 +35,18 @@ __all__ = [
     "ShippingTierCreate", "ShippingTierUpdate", "ShippingTierResponse", 
     "ShippingTierListResponse", "ShippingTierStatusToggle", "ShippingTierStats",
     "ShippingCalculationRequest", "ShippingCalculationResponse",
+    
+    # Promo Code schemas
+    "PromoCodeCreate", "PromoCodeUpdate", "PromoCodeResponse", 
+    "PromoCodeListResponse", "PromoCodeValidateRequest", 
+    "PromoCodeValidateResponse", "PromoCodeUsageResponse",
+    "PromoCodeUsageListResponse", "PromoCodeStatsResponse",
+    "PromoTypeEnum",
+    
+    # Discount Code schemas (向後相容的別名)
+    "DiscountCodeCreate", "DiscountCodeUpdate", "DiscountCodeResponse", 
+    "DiscountCodeListResponse", "DiscountCodeValidateRequest", 
+    "DiscountCodeValidateResponse", "DiscountCodeUsageResponse",
+    "DiscountCodeUsageListResponse", "DiscountCodeStatsResponse",
+    "DiscountTypeEnum",
 ] 
