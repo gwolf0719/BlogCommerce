@@ -58,8 +58,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                             </svg>
                         </div>
-                        <h3 class="font-semibold text-gray-800 mb-2">滿千免運</h3>
-                        <p class="text-sm text-gray-600">購物滿 NT$1,000 即享免運費優惠</p>
+                        <h3 class="font-semibold text-gray-800 mb-2">會員專享</h3>
+                        <p class="text-sm text-gray-600">會員享有獨家優惠和折扣</p>
                     </div>
                     
                     <div class="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-100">
@@ -272,10 +272,6 @@
                     </div>
                 </div>
                 
-                <div class="text-sm text-gray-600 mb-4" x-show="shippingFee > 0">
-                    滿 NT$1,000 享免運費
-                </div>
-                
                 <button @click="goToCheckout()" 
                         class="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center space-x-2"
                         :disabled="cart.items.length === 0 || loading">
@@ -315,17 +311,19 @@ function cartApp() {
             total: 0
         },
         loading: false,
+        shippingCalculation: {
+            loading: false,
+            data: null
+        },
         promoCode: '',
         promoLoading: false,
         promoMessage: '',
         promoSuccess: false,
         appliedPromo: null,
         discountAmount: 0,
-        
         get finalTotal() {
             return Math.max(0, this.cart.subtotal - this.discountAmount);
         },
-        
         init() {
             this.loadCart();
             this.checkUrlParams();

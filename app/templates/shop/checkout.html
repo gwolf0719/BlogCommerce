@@ -507,11 +507,7 @@ async function checkPaymentMethods() {
                 document.getElementById('paypal-option').style.display = 'none';
             }
             
-            // 更新運費設定
-            if (settings.shipping) {
-                window.shippingFee = settings.shipping.fee;
-                window.freeShippingThreshold = settings.shipping.free_threshold;
-            }
+
             
             // 檢查是否至少有一個付款方式啟用
             const enabledMethods = Object.keys(settings).filter(key => 
