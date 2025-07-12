@@ -322,6 +322,7 @@
     </section>
 </div>
 
+<script src="/static/js/errorHandler.js"></script>
 <script>
 function homeApp() {
     return {
@@ -435,15 +436,16 @@ function homeApp() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: this.email })
                 });
-                if (!response.ok) {
-                    const data = await response.json();
-                    throw new Error(data.detail || '訂閱失敗');
+                
+                if (response.ok) {
+                    this.email = '';
+                    window.ErrorHandler.showNotification('感謝您的訂閱！', 'success');
+                } else {
+                    await window.ErrorHandler.handleApiError(response, '訂閱失敗');
                 }
-                this.email = '';
-                this.showNotification('感謝您的訂閱！', 'success');
             } catch (error) {
                 console.error('訂閱錯誤:', error);
-                this.showNotification(error.message || '訂閱失敗', 'error');
+                window.ErrorHandler.showNotification(error.message || '訂閱失敗', 'error');
             }
         }
     }

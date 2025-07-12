@@ -15,14 +15,14 @@
                     <!-- 購物車商品將在這裡顯示 -->
                 </div>
                 
-                <!-- 優惠碼輸入 -->
+                <!-- 推薦碼輸入 -->
                 <div class="border-t pt-4 mt-4">
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">優惠碼</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">推薦碼</label>
                         <div class="flex space-x-2">
                             <input type="text" 
                                    id="coupon-code" 
-                                   placeholder="請輸入優惠碼"
+                                   placeholder="請輸入推薦碼"
                                    class="flex-1 px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
                             <button type="button" 
                                     id="apply-coupon-btn"
@@ -40,22 +40,14 @@
                             <span id="subtotal-amount">$0</span>
                         </div>
                         <div id="coupon-discount" class="flex justify-between items-center text-green-600 hidden">
-                            <span>優惠折扣</span>
+                            <span>推薦碼折扣</span>
                             <span id="discount-amount">-$0</span>
                         </div>
-                        <div class="flex justify-between items-center">
+                        <div id="shipping-fee-row" class="flex justify-between items-center">
                             <span>運費</span>
-                            <span id="shipping-amount">
-                                <span id="shipping-loading" class="text-gray-500" style="display: none;">計算中...</span>
-                                <span id="shipping-fee" style="display: none;">NT$0</span>
-                                <span id="shipping-free" class="text-green-600" style="display: none;">免費</span>
-                                <span id="shipping-none" class="text-gray-500">--</span>
-                            </span>
+                            <span id="shipping-amount">計算中...</span>
                         </div>
-                        <div id="shipping-info" class="text-xs text-gray-500" style="display: none;">
-                            <!-- 運費說明 -->
-                        </div>
-
+                        <div id="free-shipping-notice" class="text-sm text-green-600 hidden"></div>
                         <div class="flex justify-between items-center text-lg font-semibold border-t pt-2">
                             <span>總計</span>
                             <span id="total-amount">$0</span>
@@ -67,6 +59,9 @@
             <!-- 結帳表單 -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 class="text-xl font-semibold mb-4">結帳資訊</h2>
+                
+                <!-- 個人資料提示區域 -->
+                <div id="profile-info"></div>
                 
                 <form id="checkout-form" class="space-y-4">
                     <!-- 收件人資訊 -->
@@ -209,7 +204,6 @@ let currentOrderId = null;
 let appliedCoupon = null;
 let couponDiscount = 0;
 let shippingFee = 0;
-let shippingData = null;
 
 // 初始化頁面
 document.addEventListener('DOMContentLoaded', function() {
@@ -227,6 +221,23 @@ async function loadCart() {
         if (response.ok) {
             const data = await response.json();
             cartItems = data.items || [];
+            
+            // 載入已套用的推薦碼
+            if (data.applied_promo) {
+                appliedCoupon = data.applied_promo;
+                couponDiscount = data.discount_amount || 0;
+                
+                // 更新推薦碼輸入框
+                document.getElementById('coupon-code').value = appliedCoupon.code;
+                
+                // 顯示推薦碼已套用的狀態
+                const applyBtn = document.getElementById('apply-coupon-btn');
+                applyBtn.textContent = '移除';
+                applyBtn.onclick = removeCoupon;
+                
+                showCouponMessage(`推薦碼已套用：${appliedCoupon.name}`, 'success');
+            }
+            
             displayOrderItems();
             await calculateShipping();
             calculateTotal();
@@ -258,7 +269,7 @@ function displayOrderItems() {
                 <p class="text-gray-600">數量: ${item.quantity}</p>
             </div>
             <div class="text-right">
-                <p class="font-medium">$${(item.product.price * item.quantity).toFixed(2)}</p>
+                <p class="font-medium">NT$${(item.product.price * item.quantity).toLocaleString()}</p>
             </div>
         </div>
     `).join('');
@@ -266,20 +277,13 @@ function displayOrderItems() {
 
 // 計算運費
 async function calculateShipping() {
-    const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    
-    if (subtotal <= 0) {
-        resetShippingDisplay();
-        return;
-    }
-    
-    // 顯示載入狀態
-    document.getElementById('shipping-loading').style.display = 'inline';
-    document.getElementById('shipping-fee').style.display = 'none';
-    document.getElementById('shipping-free').style.display = 'none';
-    document.getElementById('shipping-none').style.display = 'none';
-    
     try {
+        const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+        if (subtotal === 0) {
+            shippingFee = 0;
+            document.getElementById('shipping-amount').textContent = 'NT$0';
+            return;
+        }
         const response = await fetch('/api/shipping-tiers/calculate', {
             method: 'POST',
             headers: {
@@ -289,140 +293,92 @@ async function calculateShipping() {
                 order_amount: subtotal - couponDiscount
             })
         });
-        
         if (response.ok) {
-            shippingData = await response.json();
-            shippingFee = shippingData.free_shipping ? 0 : parseFloat(shippingData.shipping_fee || 0);
-            
-            // 更新運費顯示
-            document.getElementById('shipping-loading').style.display = 'none';
-            
-            if (shippingData.free_shipping) {
-                document.getElementById('shipping-free').style.display = 'inline';
-                document.getElementById('shipping-fee').style.display = 'none';
+            const data = await response.json();
+            shippingFee = parseFloat(data.shipping_fee);
+            document.getElementById('shipping-amount').textContent = 
+                data.free_shipping ? '免運費' : `NT$${shippingFee.toLocaleString()}`;
+            // 顯示免運費提示
+            const noticeDiv = document.getElementById('free-shipping-notice');
+            if (data.amount_needed_for_free_shipping && parseFloat(data.amount_needed_for_free_shipping) > 0) {
+                noticeDiv.textContent = `再購買 NT$${parseFloat(data.amount_needed_for_free_shipping).toLocaleString()} 即可享免運費`;
+                noticeDiv.classList.remove('hidden');
+            } else if (data.free_shipping) {
+                noticeDiv.textContent = '🎉 恭喜您享有免運費優惠！';
+                noticeDiv.classList.remove('hidden');
             } else {
-                document.getElementById('shipping-fee').textContent = `NT$${shippingFee.toLocaleString()}`;
-                document.getElementById('shipping-fee').style.display = 'inline';
-                document.getElementById('shipping-free').style.display = 'none';
+                noticeDiv.classList.add('hidden');
             }
-            
-            // 顯示運費說明
-            const shippingInfo = document.getElementById('shipping-info');
-            shippingInfo.textContent = shippingData.message || '';
-            shippingInfo.style.display = 'block';
-            
         } else {
-            console.error('運費計算失敗');
-            resetShippingDisplay();
+            console.error('無法計算運費');
+            document.getElementById('shipping-amount').textContent = 'NT$0';
+            shippingFee = 0;
         }
     } catch (error) {
-        console.error('運費計算失敗:', error);
-        resetShippingDisplay();
+        console.error('計算運費失敗:', error);
+        document.getElementById('shipping-amount').textContent = 'NT$0';
+        shippingFee = 0;
     }
-}
-
-// 重設運費顯示
-function resetShippingDisplay() {
-    shippingFee = 0;
-    shippingData = null;
-    
-    document.getElementById('shipping-loading').style.display = 'none';
-    document.getElementById('shipping-fee').style.display = 'none';
-    document.getElementById('shipping-free').style.display = 'none';
-    document.getElementById('shipping-none').style.display = 'inline';
-    document.getElementById('shipping-info').style.display = 'none';
 }
 
 // 計算總金額
 function calculateTotal() {
     const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    
     const total = subtotal - couponDiscount + shippingFee;
-    
     // 更新顯示
     document.getElementById('subtotal-amount').textContent = `NT$${subtotal.toLocaleString()}`;
-    updateShippingDisplay(shippingFee, isFreeShipping, reachedFreeThreshold, hasFreeShippingCoupon);
-    document.getElementById('total-amount').textContent = `NT$${total.toLocaleString()}`;
-    
-    // 顯示/隱藏優惠折扣
+    document.getElementById('total-amount').textContent = `NT$${Math.max(0, total).toLocaleString()}`;
+    // 顯示/隱藏推薦碼折扣
     if (couponDiscount > 0) {
         document.getElementById('coupon-discount').classList.remove('hidden');
-        document.getElementById('discount-amount').textContent = `-NT$${couponDiscount.toLocaleString()}`;
+        // 將折扣金額四捨五入到整數
+        const roundedDiscount = Math.round(couponDiscount);
+        document.getElementById('discount-amount').textContent = `-NT$${roundedDiscount.toLocaleString()}`;
     } else {
         document.getElementById('coupon-discount').classList.add('hidden');
+        document.getElementById('discount-amount').textContent = '-NT$0';
     }
 }
 
-// 更新運費顯示
-function updateShippingDisplay(originalFee, isFreeShipping, reachedFreeThreshold, hasFreeShippingCoupon) {
-    const originalShippingElement = document.getElementById('original-shipping');
-    const freeShippingElement = document.getElementById('free-shipping');
-    
-    // 先顯示原運費
-    originalShippingElement.textContent = `NT$${originalFee.toLocaleString()}`;
-    
-    if (isFreeShipping) {
-        // 免運條件：劃掉原運費，顯示免運費
-        originalShippingElement.classList.add('line-through', 'text-gray-400');
-        freeShippingElement.classList.remove('hidden');
-        
-        // 根據免運原因顯示不同訊息
-        if (hasFreeShippingCoupon) {
-            freeShippingElement.innerHTML = '🎫 優惠券免運';
-        } else if (reachedFreeThreshold) {
-            freeShippingElement.innerHTML = '🚚 滿額免運';
-        } else {
-            freeShippingElement.innerHTML = '免運費';
-        }
-    } else {
-        // 需要運費：正常顯示
-        originalShippingElement.classList.remove('line-through', 'text-gray-400');
-        freeShippingElement.classList.add('hidden');
-    }
-}
-
-// 套用優惠碼
+// 套用推薦碼
 async function applyCoupon() {
     const couponCode = document.getElementById('coupon-code').value.trim();
     const messageDiv = document.getElementById('coupon-message');
     const applyBtn = document.getElementById('apply-coupon-btn');
     
     if (!couponCode) {
-        showCouponMessage('請輸入優惠碼', 'error');
+        showCouponMessage('請輸入推薦碼', 'error');
         return;
     }
     
-    // 如果已有套用的優惠碼，先清除
+    // 如果已有套用的推薦碼，先清除
     if (appliedCoupon) {
-        removeCoupon();
+        await removeCouponFromSession();
     }
     
     applyBtn.disabled = true;
     applyBtn.textContent = '驗證中...';
     
     try {
-        const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-        
-        const response = await fetch('/api/coupons/validate', {
+        const response = await fetch('/api/cart/apply-promo', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                code: couponCode,
-                amount: subtotal
+                promo_code: couponCode
             })
         });
         
         const result = await response.json();
         
-        if (response.ok && result.is_valid) {
-            appliedCoupon = result;
+        if (response.ok) {
+            appliedCoupon = result.promo_code;
             couponDiscount = result.discount_amount;
             
-            showCouponMessage(`優惠碼已套用！折扣：NT$${couponDiscount.toLocaleString()}`, 'success');
+            showCouponMessage(`推薦碼已套用：${appliedCoupon.name}`, 'success');
             
-            // 重新計算運費（因為優惠後金額可能影響運費級距）
+            // 重新計算運費（可能因為折扣影響免運門檻）
             await calculateShipping();
             calculateTotal();
             
@@ -430,11 +386,11 @@ async function applyCoupon() {
             applyBtn.textContent = '移除';
             applyBtn.onclick = removeCoupon;
         } else {
-            showCouponMessage(result.message || '優惠碼無效', 'error');
+            showCouponMessage(result.detail || '推薦碼無效', 'error');
         }
     } catch (error) {
-        console.error('驗證優惠碼失敗:', error);
-        showCouponMessage('驗證優惠碼失敗，請稍後再試', 'error');
+        console.error('套用推薦碼失敗:', error);
+        showCouponMessage('套用推薦碼失敗，請稍後再試', 'error');
     } finally {
         applyBtn.disabled = false;
         if (applyBtn.textContent === '驗證中...') {
@@ -443,22 +399,43 @@ async function applyCoupon() {
     }
 }
 
-// 移除優惠碼
+// 從session移除推薦碼
+async function removeCouponFromSession() {
+    try {
+        await fetch('/api/cart/remove-promo', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+    } catch (error) {
+        console.error('移除推薦碼失敗:', error);
+    }
+}
+
+// 移除推薦碼
 async function removeCoupon() {
-    appliedCoupon = null;
-    couponDiscount = 0;
-    
-    document.getElementById('coupon-code').value = '';
-    showCouponMessage('優惠碼已移除', 'info');
-    
-    // 重新計算運費（因為移除優惠後金額可能影響運費級距）
-    await calculateShipping();
-    calculateTotal();
-    
-    // 重設按鈕
-    const applyBtn = document.getElementById('apply-coupon-btn');
-    applyBtn.textContent = '套用';
-    applyBtn.onclick = applyCoupon;
+    try {
+        await removeCouponFromSession();
+        
+        appliedCoupon = null;
+        couponDiscount = 0;
+        
+        document.getElementById('coupon-code').value = '';
+        showCouponMessage('推薦碼已移除', 'info');
+        
+        // 重新計算運費和總額
+        await calculateShipping();
+        calculateTotal();
+        
+        // 重設按鈕
+        const applyBtn = document.getElementById('apply-coupon-btn');
+        applyBtn.textContent = '套用';
+        applyBtn.onclick = applyCoupon;
+    } catch (error) {
+        console.error('移除推薦碼失敗:', error);
+        showCouponMessage('移除推薦碼失敗', 'error');
+    }
 }
 
 // 顯示優惠碼訊息
@@ -565,7 +542,6 @@ function setupForm() {
 async function loadUserProfile() {
     const token = localStorage.getItem('access_token');
     if (!token) {
-        // 用戶未登入，不需要載入資料
         console.log('用戶未登入，跳過載入個人資料');
         return;
     }
@@ -589,6 +565,13 @@ async function loadUserProfile() {
                 const customerEmailField = document.getElementsByName('customer_email')[0];
                 const shippingAddressField = document.getElementsByName('shipping_address')[0];
                 
+                // 電子郵件一定要填入
+                if (customerEmailField && user.email) {
+                    customerEmailField.value = user.email;
+                    console.log('填入信箱:', user.email);
+                }
+                
+                // 其他欄位如果有資料才填入
                 if (customerNameField && user.full_name) {
                     customerNameField.value = user.full_name;
                     console.log('填入姓名:', user.full_name);
@@ -597,13 +580,40 @@ async function loadUserProfile() {
                     customerPhoneField.value = user.phone;
                     console.log('填入電話:', user.phone);
                 }
-                if (customerEmailField && user.email) {
-                    customerEmailField.value = user.email;
-                    console.log('填入信箱:', user.email);
-                }
                 if (shippingAddressField && user.address) {
                     shippingAddressField.value = user.address;
                     console.log('填入地址:', user.address);
+                }
+                
+                // 檢查是否有缺少的個人資料
+                const missingFields = [];
+                if (!user.full_name) missingFields.push('姓名');
+                if (!user.phone) missingFields.push('電話');
+                if (!user.address) missingFields.push('地址');
+                
+                if (missingFields.length > 0) {
+                    // 顯示提示訊息
+                    const infoDiv = document.getElementById('profile-info');
+                    if (infoDiv) {
+                        infoDiv.innerHTML = `
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <div class="flex items-start">
+                                    <svg class="w-5 h-5 text-blue-400 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <div>
+                                        <h4 class="text-sm font-medium text-blue-800">個人資料不完整</h4>
+                                        <p class="text-sm text-blue-700 mt-1">您的個人資料中缺少：${missingFields.join('、')}。</p>
+                                        <p class="text-sm text-blue-700 mt-1">
+                                            <a href="/profile" class="font-medium underline hover:text-blue-800">
+                                                前往個人資料頁面完善資料
+                                            </a>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
                 }
             }, 100); // 短暫延遲確保 DOM 完全載入
         } else {
@@ -680,11 +690,24 @@ async function handleSubmit(e) {
             await handleLinePayPayment(orderResult.id);
         } else if (paymentMethod === 'ecpay') {
             await handleEcpayPayment(orderResult.id);
+        } else if (paymentMethod === 'paypal') {
+            await handlePaypalPayment(orderResult.id);
+        } else {
+            // 如果沒有指定付款方式或是其他情況，顯示訂單成功訊息
+            hidePaymentModal();
+            alert(`訂單建立成功！\n訂單編號：${orderResult.order_number}\n\n您可以在訂單管理頁面查看詳細資訊。`);
+            
+            // 清空購物車
+            await clearCart();
+            
+            // 跳轉到訂單列表頁面
+            window.location.href = '/orders';
         }
         
     } catch (error) {
         hidePaymentModal();
-        alert(error.message || '處理失敗');
+        console.error('提交訂單錯誤:', error);
+        alert(error.message || '訂單處理失敗，請稍後再試');
     }
 }
 
@@ -783,6 +806,37 @@ async function handleEcpayPayment(orderId) {
             form.submit();
         } else {
             throw new Error(result.message || '綠界付款建立失敗');
+        }
+        
+    } catch (error) {
+        hidePaymentModal();
+        throw error;
+    }
+}
+
+// 處理 PayPal 付款
+async function handlePaypalPayment(orderId) {
+    try {
+        updatePaymentStatus('連接 PayPal...');
+        
+        const response = await fetch(`/api/payment/paypal/create/${orderId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('無法建立 PayPal 付款');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 重導向到 PayPal 付款頁面
+            window.location.href = result.approval_url;
+        } else {
+            throw new Error(result.message || 'PayPal 付款建立失敗');
         }
         
     } catch (error) {
