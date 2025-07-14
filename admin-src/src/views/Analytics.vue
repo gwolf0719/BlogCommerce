@@ -444,24 +444,11 @@ const refreshData = async () => {
   try {
     // 載入統計數據
     const quickStatsResponse = await axios.get('/api/admin/quick-stats')
-    Object.assign(stats, quickStatsResponse.data)
-
-    // 載入熱門商品
     const productsResponse = await axios.get('/api/analytics/popular-products')
-    popularProducts.value = productsResponse.data
-
-    // 載入熱門文章
     const postsResponse = await axios.get('/api/analytics/popular-posts')
-    popularPosts.value = postsResponse.data
-
-    // 載入最近活動
     const activitiesResponse = await axios.get('/api/admin/recent-activity')
-    recentActivities.value = activitiesResponse.data
-
-    // 載入折扣碼統計
-    await loadDiscountCodeStats()
-    // 載入折扣碼排名
-    await loadDiscountCodeRanking()
+    const discountStatsResponse = await axios.get('/api/discount-codes/stats/overview')
+    const discountCodesResponse = await axios.get('/api/discount-codes')
 
     message.success('數據載入成功')
   } catch (error) {

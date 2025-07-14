@@ -19,16 +19,8 @@ from app.auth import get_current_admin_user, get_current_user_optional
 from app.models.user import User
 
 
-router = APIRouter(
-    prefix="/api/promo-codes",
-    tags=["推薦碼管理"],
-    responses={
-        404: {"description": "推薦碼不存在"},
-        400: {"description": "請求參數錯誤"},
-        403: {"description": "權限不足"},
-        500: {"description": "伺服器內部錯誤"}
-    }
-)
+router = APIRouter(prefix="/discount-codes", tags=["折扣碼管理"])
+
 
 
 @router.get(

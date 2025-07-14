@@ -366,17 +366,22 @@ const loadPromoCodes = async () => {
     if (statusFilter.value) params.append('status', statusFilter.value)
     if (typeFilter.value) params.append('type', typeFilter.value)
 
-    const response = await fetch(`/api/promo-codes?${params}`, {
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    const promoCodesResponse = await fetch(`/api/discount-codes?${params}`, {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
     })
 
-    if (response.ok) {
-      const data = await response.json()
-      promoCodes.value = data.items || data || []
-      pagination.total = data.total || promoCodes.value.length
+    if (!promoCodesResponse.ok) {
+      throw new Error('獲取推薦碼列表失敗')
     }
+
+    const data = await promoCodesResponse.json()
+    promoCodes.value = data.items || data
+    pagination.total = data.total || data.length
+
   } catch (error) {
-    message.error('載入推薦碼失敗')
+    message.error(error.message || '載入推薦碼失敗')
   } finally {
     loading.value = false
   }
@@ -385,156 +390,126 @@ const loadPromoCodes = async () => {
 const loadStats = async () => {
   statsLoading.value = true
   try {
-    const response = await fetch('/api/promo-codes/stats', {
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    const statsResponse = await fetch('/api/discount-codes/stats/overview', {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
     })
 
-    if (response.ok) {
-      const data = await response.json()
-      stats.value = data
+    if (!statsResponse.ok) {
+      throw new Error('獲取統計數據失敗')
     }
+
+    const data = await statsResponse.json()
+    Object.assign(stats.value, data)
   } catch (error) {
-    message.error('載入統計資料失敗')
+    message.error(error.message || '載入統計數據失敗')
   } finally {
     statsLoading.value = false
   }
 }
 
-const showCreateModal = () => {
-  editingId.value = null
-  modalTitle.value = '新增推薦碼'
-  resetForm()
-  modalVisible.value = true
-}
-
 const showEditModal = (record) => {
   editingId.value = record.id
   modalTitle.value = '編輯推薦碼'
-  
-  // 填充表單資料
   Object.assign(form, {
     code: record.code,
     name: record.name,
     source: record.source,
     promo_type: record.promo_type,
     promo_value: record.promo_value,
-    period: [dayjs(record.start_date), dayjs(record.end_date)],
+    period: record.start_date && record.end_date ? [dayjs(record.start_date), dayjs(record.end_date)] : null,
     usage_limit: record.usage_limit,
     min_order_amount: record.min_order_amount,
     is_active: record.is_active,
     description: record.description
   })
-  
   modalVisible.value = true
-}
-
-const handleModalOk = async () => {
-  try {
-    await formRef.value.validateFields()
-    modalLoading.value = true
-    
-    const payload = {
-      code: form.code,
-      name: form.name,
-      source: form.source,
-      promo_type: form.promo_type,
-      promo_value: form.promo_value,
-      start_date: form.period[0].format('YYYY-MM-DD HH:mm:ss'),
-      end_date: form.period[1].format('YYYY-MM-DD HH:mm:ss'),
-      usage_limit: form.usage_limit,
-      min_order_amount: form.min_order_amount,
-      is_active: form.is_active,
-      description: form.description
-    }
-    
-    const url = editingId.value 
-      ? `/api/promo-codes/${editingId.value}`
-      : '/api/promo-codes'
-    
-    const method = editingId.value ? 'PUT' : 'POST'
-    
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-    
-    if (response.ok) {
-      message.success(editingId.value ? '更新成功' : '新增成功')
-      modalVisible.value = false
-      loadPromoCodes()
-      loadStats()
-    } else {
-      const error = await response.json()
-      message.error(error.detail || '操作失敗')
-    }
-  } catch (error) {
-    message.error('表單驗證失敗')
-  } finally {
-    modalLoading.value = false
-  }
-}
-
-const handleModalCancel = () => {
-  modalVisible.value = false
-  resetForm()
-}
-
-const resetForm = () => {
-  Object.assign(form, {
-    code: '',
-    name: '',
-    source: '',
-    promo_type: '',
-    promo_value: null,
-    period: null,
-    usage_limit: null,
-    min_order_amount: null,
-    is_active: true,
-    description: ''
-  })
-}
-
-const deletePromoCode = async (id) => {
-  try {
-    const response = await fetch(`/api/promo-codes/${id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
-    })
-    
-    if (response.ok) {
-      message.success('刪除成功')
-      loadPromoCodes()
-      loadStats()
-    } else {
-      const error = await response.json()
-      message.error(error.detail || '刪除失敗')
-    }
-  } catch (error) {
-    message.error('刪除失敗')
-  }
 }
 
 const showUsageModal = async (record) => {
   usageModalVisible.value = true
   usageLoading.value = true
-  
   try {
-    const response = await fetch(`/api/promo-codes/${record.id}/usage`, {
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    const usageResponse = await fetch(`/api/discount-codes/${record.id}/usage`, {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
     })
-    
-    if (response.ok) {
-      const data = await response.json()
-      usageRecords.value = data
+
+    if (!usageResponse.ok) {
+      throw new Error('載入使用記錄失敗')
     }
+
+    const data = await usageResponse.json()
+    usageRecords.value = data.items || data
+    usagePagination.total = data.total || data.length
   } catch (error) {
-    message.error('載入使用記錄失敗')
+    message.error(error.message || '載入使用記錄失敗')
   } finally {
     usageLoading.value = false
+  }
+}
+
+const handleModalOk = async () => {
+  try {
+    await formRef.value.validate()
+    modalLoading.value = true
+
+    const submitData = {
+      ...form,
+      start_date: form.period ? form.period[0].format('YYYY-MM-DD HH:mm:ss') : null,
+      end_date: form.period ? form.period[1].format('YYYY-MM-DD HH:mm:ss') : null
+    }
+    delete submitData.period
+
+    const url = editingId.value ? `/api/discount-codes/${editingId.value}` : '/api/discount-codes'
+    const method = editingId.value ? 'PUT' : 'POST'
+
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify(submitData)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || '操作失敗')
+    }
+
+    message.success(editingId.value ? '推薦碼更新成功' : '推薦碼新增成功')
+    modalVisible.value = false
+    loadPromoCodes()
+    loadStats()
+  } catch (error) {
+    message.error(error.message || '操作失敗')
+  } finally {
+    modalLoading.value = false
+  }
+}
+
+const deletePromoCode = async (id) => {
+  try {
+    const response = await fetch(`/api/discount-codes/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || '刪除失敗')
+    }
+
+    message.success('推薦碼已刪除')
+    loadPromoCodes()
+    loadStats()
+  } catch (error) {
+    message.error(error.message || '刪除失敗')
   }
 }
 

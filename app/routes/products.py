@@ -8,21 +8,13 @@ from app.services.view_tracking_service import ViewTrackingService
 from app.auth import get_current_admin_user, get_current_user_optional
 from app.models.user import User
 
-router = APIRouter(
-    prefix="/api/products",
-    tags=["商品"],
-    responses={
-        404: {"description": "商品不存在"},
-        400: {"description": "請求參數錯誤"},
-        403: {"description": "權限不足"},
-        500: {"description": "伺服器內部錯誤"}
-    }
-)
+router = APIRouter(prefix="/products", tags=["商品"])
+
 
 
 @router.get(
     "",
-    response_model=List[ProductListResponse],
+    response_model=List[ProductResponse],
     summary="取得商品列表",
     description="""
     取得商品列表，支援多種篩選和搜尋選項。
@@ -300,7 +292,7 @@ def delete_product(
     return {"message": "商品已刪除"}
 
 
-@router.get("/{product_id}/related", response_model=List[ProductListResponse])
+@router.get("/{product_id}/related", response_model=List[ProductResponse])
 def get_related_products(
     product_id: int,
     limit: int = Query(4, ge=1, le=20, description="限制項目數"),

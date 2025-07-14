@@ -8,7 +8,7 @@ from app.database import get_db
 from app.models.product import Product
 from app.models.discount_code import PromoCode, PromoType
 
-router = APIRouter(prefix="/api/cart", tags=["購物車"])
+router = APIRouter(prefix="/cart", tags=["購物車"])
 
 
 class CartItem(BaseModel):

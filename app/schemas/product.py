@@ -1,126 +1,74 @@
 from typing import Optional, List
 from decimal import Decimal
-from pydantic import validator, Field
-from app.schemas.base import BaseSchema, BaseResponseSchema, SlugSchema
-
+from pydantic import field_validator
+from app.schemas.base import BaseSchema, BaseResponseSchema
 
 class ProductBase(BaseSchema):
-    """
-    商品基礎 Schema 類別
-    
-    包含所有商品資料的基本欄位，用於創建和回應的共同結構。
-    """
-    name: str = Field(..., description="商品名稱", min_length=1, max_length=255)
-    description: str = Field(..., description="商品詳細描述", min_length=1)
-    short_description: Optional[str] = Field(None, description="商品簡短描述", max_length=500)
-    price: Decimal = Field(..., description="商品原價", ge=0)
-    sale_price: Optional[Decimal] = Field(None, description="商品特價（如果有）", ge=0)
-    stock_quantity: int = Field(0, description="庫存數量", ge=0)
-    sku: Optional[str] = Field(None, description="商品貨號/SKU", max_length=100)
-    featured_image: Optional[str] = Field(None, description="主要商品圖片 URL")
-    gallery_images: Optional[str] = Field(None, description="商品圖庫（JSON 格式）")
-    is_active: bool = Field(True, description="商品是否啟用")
-    is_featured: bool = Field(False, description="是否為推薦商品")
-    meta_title: Optional[str] = Field(None, description="SEO 標題", max_length=255)
-    meta_description: Optional[str] = Field(None, description="SEO 描述", max_length=500)
-    meta_keywords: Optional[str] = Field(None, description="SEO 關鍵字", max_length=255)
-
+    name: str
+    description: Optional[str] = None
+    short_description: Optional[str] = None
+    price: Decimal
+    sale_price: Optional[Decimal] = None
+    sku: Optional[str] = None
+    stock_quantity: int = 0
+    is_active: bool = True
+    is_featured: bool = False
+    featured_image: Optional[str] = None
+    gallery_images: Optional[List[str]] = []
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+    meta_keywords: Optional[str] = None
+    slug: Optional[str] = None
 
 class ProductCreate(ProductBase):
-    """
-    商品創建 Schema 類別
-    
-    用於創建新商品的請求結構，包含所有必要的驗證規則。
-    
-    驗證規則：
-    - 商品名稱和描述不能為空
-    - 價格必須大於 0
-    - 特價必須小於原價
-    """
-    
-    @validator('name')
-    def name_must_not_be_empty(cls, v):
-        if not v or not v.strip():
-            raise ValueError('商品名稱不能為空')
-        return v.strip()
-    
-    @validator('description')
-    def description_must_not_be_empty(cls, v):
-        if not v or not v.strip():
-            raise ValueError('商品描述不能為空')
-        return v.strip()
-    
-    @validator('price')
-    def price_must_be_positive(cls, v):
-        if v <= 0:
-            raise ValueError('價格必須大於 0')
-        return v
-    
-    @validator('sale_price')
-    def sale_price_validation(cls, v, values):
-        if v is not None:
-            if v <= 0:
-                raise ValueError('特價必須大於 0')
-            if 'price' in values and v >= values['price']:
-                raise ValueError('特價必須小於原價')
+    pass
+
+class ProductUpdate(ProductBase):
+    name: Optional[str] = None
+    price: Optional[Decimal] = None
+    stock_quantity: Optional[int] = None
+
+class ProductResponse(ProductBase, BaseResponseSchema):
+    id: int
+    view_count: int = 0
+
+    # 【核心修正點】: 為特色圖片加上路徑前綴
+    @field_validator('featured_image', mode='before')
+    @classmethod
+    def add_featured_image_prefix(cls, v: Optional[str]) -> Optional[str]:
+        if v and not v.startswith('/static/'):
+            return f"/static/images/{v}"
         return v
 
+    # 【核心修正點】: 為圖庫中的所有圖片加上路徑前綴，並處理空字符串
+    @field_validator('gallery_images', mode='before')
+    @classmethod
+    def add_gallery_image_prefix(cls, v) -> List[str]:
+        # 處理 None 或空值情況
+        if v is None:
+            return []
+        
+        # 處理空字符串
+        if isinstance(v, str):
+            if v.strip() == '':
+                return []
+            try:
+                import json
+                v = json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                # 如果不是有效的 JSON，當作單一字符串處理
+                return [f"/static/images/{v}"] if v and not v.startswith('/static/') else [v] if v else []
+        
+        # 處理列表
+        if isinstance(v, list):
+            return [f"/static/images/{img}" for img in v if img and isinstance(img, str) and not img.startswith('/static/')]
+        
+        # 其他情況返回空列表
+        return []
 
-class ProductUpdate(BaseSchema):
-    """
-    商品更新 Schema 類別
-    
-    用於更新現有商品的請求結構，所有欄位都是可選的。
-    只有提供的欄位會被更新。
-    """
-    name: Optional[str] = Field(None, description="商品名稱", min_length=1, max_length=255)
-    description: Optional[str] = Field(None, description="商品詳細描述", min_length=1)
-    short_description: Optional[str] = Field(None, description="商品簡短描述", max_length=500)
-    price: Optional[Decimal] = Field(None, description="商品原價", ge=0)
-    sale_price: Optional[Decimal] = Field(None, description="商品特價（如果有）", ge=0)
-    stock_quantity: Optional[int] = Field(None, description="庫存數量", ge=0)
-    sku: Optional[str] = Field(None, description="商品貨號/SKU", max_length=100)
-    featured_image: Optional[str] = Field(None, description="主要商品圖片 URL")
-    gallery_images: Optional[str] = Field(None, description="商品圖庫（JSON 格式）")
-    is_active: Optional[bool] = Field(None, description="商品是否啟用")
-    is_featured: Optional[bool] = Field(None, description="是否為推薦商品")
-    meta_title: Optional[str] = Field(None, description="SEO 標題", max_length=255)
-    meta_description: Optional[str] = Field(None, description="SEO 描述", max_length=500)
-    meta_keywords: Optional[str] = Field(None, description="SEO 關鍵字", max_length=255)
+    class Config:
+        from_attributes = True
 
-
-class ProductResponse(ProductBase, BaseResponseSchema, SlugSchema):
-    """
-    商品詳細資訊回應 Schema 類別
-    
-    用於回應商品詳細資訊的結構，包含所有商品資料以及額外的計算欄位。
-    
-    額外欄位：
-    - view_count: 商品瀏覽次數
-    - current_price: 當前實際價格（特價優先）
-    - is_on_sale: 是否正在特價
-    - slug: SEO 友好的 URL 別名
-    """
-    view_count: int = Field(0, description="商品瀏覽次數")
-    current_price: Decimal = Field(..., description="當前實際價格（特價優先）")
-    is_on_sale: bool = Field(..., description="是否正在特價")
-
-
-class ProductListResponse(BaseResponseSchema, SlugSchema):
-    """
-    商品列表回應 Schema 類別（簡化版）
-    
-    用於商品列表 API 的回應結構，包含必要的商品資訊以提升列表載入效能。
-    排除了較大的欄位如詳細描述、圖庫等。
-    """
-    name: str = Field(..., description="商品名稱")
-    short_description: Optional[str] = Field(None, description="商品簡短描述")
-    price: Decimal = Field(..., description="商品原價")
-    sale_price: Optional[Decimal] = Field(None, description="商品特價（如果有）")
-    featured_image: Optional[str] = Field(None, description="主要商品圖片 URL")
-    stock_quantity: int = Field(..., description="庫存數量")
-    is_active: bool = Field(..., description="商品是否啟用")
-    is_featured: bool = Field(..., description="是否為推薦商品")
-    view_count: int = Field(0, description="商品瀏覽次數")
-    current_price: Decimal = Field(..., description="當前實際價格（特價優先）")
-    is_on_sale: bool = Field(..., description="是否正在特價") 
+class ProductListResponse(BaseSchema):
+    products: List[ProductResponse]
+    total: int

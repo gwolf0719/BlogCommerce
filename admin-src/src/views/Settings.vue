@@ -869,7 +869,7 @@ const handleMenuClick = ({ key }) => {
 const loadSettings = async () => {
   loading.value = true
   try {
-    const response = await api.get('/api/admin/settings')
+    const response = await api.get('/api/settings')
     const data = response.data
     
     // 更新設定值
@@ -880,8 +880,7 @@ const loadSettings = async () => {
     })
 
   } catch (error) {
-    console.log('設定 API 尚未實現，使用預設值')
-    // 使用預設值
+    console.log('一般設定 API 尚未實現或載入失敗，使用預設值')
   } finally {
     loading.value = false
   }
@@ -890,7 +889,7 @@ const loadSettings = async () => {
 const saveAllSettings = async () => {
   saving.value = true
   try {
-    await api.put('/api/admin/settings', settings)
+    await api.post('/api/settings/bulk-update', { settings: settings })
     message.success('設定已儲存')
 
   } catch (error) {
@@ -902,13 +901,14 @@ const saveAllSettings = async () => {
 
 const refreshSettings = () => {
   loadSettings()
+  loadPaymentSettings()
 }
 
 const testEmail = async () => {
   testingEmail.value = true
   try {
-    await api.post('/api/admin/test-email', {
-      to: settings.admin_email,
+    await api.post('/api/auth/test-email', {
+      to: settings.admin_email, // 假設有一個管理員信箱設定
       subject: '郵件設定測試',
       content: '這是一封測試郵件，如果您收到這封郵件，表示郵件設定正確。'
     })
@@ -924,25 +924,18 @@ const testEmail = async () => {
 
 // 金流相關方法
 const togglePaymentMethod = (methodKey, checked) => {
-  if (checked === undefined) {
-    // 點擊卡片切換
-    const index = payment.enabledMethods.indexOf(methodKey)
+  const index = payment.enabledMethods.indexOf(methodKey)
+  if (checked === undefined) { // 點擊卡片
     if (index > -1) {
       payment.enabledMethods.splice(index, 1)
     } else {
       payment.enabledMethods.push(methodKey)
     }
-  } else {
-    // Switch 切換
+  } else { // Switch change
     if (checked) {
-      if (!payment.enabledMethods.includes(methodKey)) {
-        payment.enabledMethods.push(methodKey)
-      }
+      if (index === -1) payment.enabledMethods.push(methodKey)
     } else {
-      const index = payment.enabledMethods.indexOf(methodKey)
-      if (index > -1) {
-        payment.enabledMethods.splice(index, 1)
-      }
+      if (index > -1) payment.enabledMethods.splice(index, 1)
     }
   }
 }
@@ -954,39 +947,16 @@ const testPaymentConnection = async () => {
 const loadPaymentSettings = async () => {
   loading.value = true
   try {
-    // 使用統一的金流設定端點
-    const response = await api.get('/api/settings/payment/settings')
-    
-    const settings = response.data
-    payment.enabledMethods = []
-    
-    // 檢查轉帳設定
-    if (settings.transfer && settings.transfer.enabled) {
-      payment.enabledMethods.push('transfer')
-      payment.transfer = { bank: '台灣銀行', account: '123-456-789', name: 'BlogCommerce' }
-    }
-    
-    // 檢查 LinePay 設定
-    if (settings.linepay && settings.linepay.enabled) {
-      payment.enabledMethods.push('linepay')
-      payment.linepay = { channel_id: '', channel_secret: '', store_name: '' }
-    }
-    
-    // 檢查綠界設定
-    if (settings.ecpay && settings.ecpay.enabled) {
-      payment.enabledMethods.push('ecpay')
-      payment.ecpay = { merchant_id: '', api_url: '', hash_key: '', hash_iv: '' }
-    }
-    
-    // 檢查 PayPal 設定
-    if (settings.paypal && settings.paypal.enabled) {
-      payment.enabledMethods.push('paypal')
-      payment.paypal = { client_id: '', client_secret: '', environment: 'sandbox' }
-    }
-    
+    const paymentSettingsResponse = await api.get('/api/admin/payment/settings')
+    const data = paymentSettingsResponse.data
+    payment.enabledMethods = data.enabledMethods || []
+    payment.transfer = data.transfer || { bank: '', account: '', name: '' }
+    payment.linepay = data.linepay || { channel_id: '', channel_secret: '', store_name: '' }
+    payment.ecpay = data.ecpay || { merchant_id: '', hash_key: '', hash_iv: '', api_url: '' }
+    payment.paypal = data.paypal || { client_id: '', client_secret: '', environment: 'sandbox' }
   } catch (error) {
     console.error('載入金流設定失敗:', error)
-    message.error('載入金流設定失敗')
+    message.error('載入金流設定失敗，請檢查後端服務是否正常。')
   } finally {
     loading.value = false
   }
@@ -995,35 +965,11 @@ const loadPaymentSettings = async () => {
 const savePaymentSettings = async () => {
   savingPayment.value = true
   try {
-    // 使用正確的API端點更新金流啟用狀態
-    const reqs = [
-      api.put('/api/settings/payment_transfer_enabled', { 
-        value: payment.enabledMethods.includes('transfer') ? 'true' : 'false', 
-        category: 'payment', 
-        data_type: 'boolean' 
-      }),
-      api.put('/api/settings/payment_linepay_enabled', { 
-        value: payment.enabledMethods.includes('linepay') ? 'true' : 'false', 
-        category: 'payment', 
-        data_type: 'boolean' 
-      }),
-      api.put('/api/settings/payment_ecpay_enabled', { 
-        value: payment.enabledMethods.includes('ecpay') ? 'true' : 'false', 
-        category: 'payment', 
-        data_type: 'boolean' 
-      }),
-      api.put('/api/settings/payment_paypal_enabled', { 
-        value: payment.enabledMethods.includes('paypal') ? 'true' : 'false', 
-        category: 'payment', 
-        data_type: 'boolean' 
-      })
-    ]
-    
-    await Promise.all(reqs)
-    message.success('金流設定已儲存')
+    await api.put('/api/admin/payment/settings', payment)
+    message.success('金流設定已成功儲存')
   } catch (error) {
     console.error('儲存金流設定失敗:', error)
-    message.error('儲存金流設定失敗')
+    message.error('儲存金流設定失敗，請檢查後端日誌。')
   } finally {
     savingPayment.value = false
   }
@@ -1309,4 +1255,5 @@ onMounted(() => {
   border-color: #1890ff;
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
-</style> 
+</style>
+ 

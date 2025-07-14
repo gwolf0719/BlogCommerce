@@ -9,7 +9,7 @@ from app.services.view_tracking_service import ViewTrackingService
 from app.auth import get_current_admin_user, get_current_user_optional
 from app.models.user import User
 
-router = APIRouter(prefix="/api/posts", tags=["文章"])
+router = APIRouter(prefix="/posts", tags=["文章"])
 
 
 def process_post_content(post: Post) -> dict:

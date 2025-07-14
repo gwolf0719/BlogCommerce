@@ -26,7 +26,7 @@ import os
 import uuid
 from PIL import Image
 
-router = APIRouter(prefix="/api/admin", tags=["管理員"])
+router = APIRouter(prefix="/admin", tags=["管理員"])
 
 # ==============================================
 # 使用者管理
@@ -344,8 +344,11 @@ def get_all_orders_admin(
     """取得所有訂單列表（管理員）"""
     try:
         from sqlalchemy.orm import selectinload
+        from sqlalchemy import func
+        from app.models.order import OrderItem
         
-        query = db.query(Order).options(selectinload(Order.items))
+        # 先查詢訂單基本資訊
+        query = db.query(Order)
         
         if search:
             query = query.filter(
@@ -359,6 +362,11 @@ def get_all_orders_admin(
         # 轉換為 OrderListResponse 格式
         result = []
         for order in orders:
+            # 單獨查詢每個訂單的商品數量
+            items_count = db.query(func.sum(OrderItem.quantity)).filter(
+                OrderItem.order_id == order.id
+            ).scalar() or 0
+            
             result.append({
                 "id": order.id,
                 "order_number": order.order_number,
@@ -368,12 +376,31 @@ def get_all_orders_admin(
                 "payment_method": order.payment_method,
                 "payment_status": order.payment_status,
                 "created_at": order.created_at.isoformat() if order.created_at else None,
-                "items_count": len(order.items)
+                "items_count": int(items_count)
             })
         
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"獲取訂單列表失敗: {str(e)}")
+
+
+@router.get("/orders/{order_id}", response_model=OrderResponse)
+def get_admin_order_detail(
+    order_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    取得單一訂單詳情（含商品明細）
+    - order_id: 訂單ID
+    - 回傳: 訂單主資料與 items 陣列
+    """
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="訂單不存在")
+    # 強制載入 items 關聯
+    _ = order.items
+    return order
 
 
 @router.put("/orders/{order_id}", response_model=OrderResponse)
@@ -385,7 +412,7 @@ def admin_update_order(
 ):
     """更新訂單狀態（管理員）"""
     from app.routes.orders import update_order
-    return update_order(order_id, order_update, current_user, db)
+    return update_order(order_id, order_update, db)
 
 
 @router.put("/orders/{order_id}/payment")
@@ -1026,10 +1053,10 @@ async def update_admin_settings(
             elif isinstance(value, float):
                 data_type = "float"
                 str_value = str(value)
-            elif isinstance(value, list):
+            elif isinstance(value, (list, dict)):
                 data_type = "json"
                 import json
-                str_value = json.dumps(value)
+                str_value = json.dumps(value, ensure_ascii=False)
             else:
                 data_type = "string"
                 str_value = str(value) if value is not None else ""

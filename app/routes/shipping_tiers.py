@@ -16,16 +16,8 @@ from app.auth import get_current_admin_user, get_current_user_optional
 from app.models.user import User
 
 
-router = APIRouter(
-    prefix="/api/shipping-tiers",
-    tags=["運費級距"],
-    responses={
-        404: {"description": "運費級距不存在"},
-        400: {"description": "請求參數錯誤"},
-        403: {"description": "權限不足"},
-        500: {"description": "伺服器內部錯誤"}
-    }
-)
+router = APIRouter(prefix="/shipping-tiers", tags=["運費級距"])
+
 
 
 @router.get(

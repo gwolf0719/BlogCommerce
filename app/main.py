@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, APIRouter
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,12 +11,18 @@ from app.database import init_db
 from app.middleware import get_feature_settings, get_public_settings
 from pathlib import Path
 from fastapi.responses import FileResponse
-from app.api import router as api_router
 from app.utils.logger import app_logger, log_api_error, log_validation_error, LoggingMiddleware
 from datetime import datetime
 from typing import Optional
 from app.services.markdown_service import markdown_service
 from starlette.responses import RedirectResponse
+
+# 引入所有路由模組
+from app.routes import (
+    auth, posts, products, orders, cart, newsletter, 
+    admin, analytics, settings as settings_router, banners, discount_codes, 
+    favorites, payment, shipping_tiers, view_tracking, errors
+)
 
 # 建立 FastAPI 應用程式
 app = FastAPI(
@@ -190,8 +196,31 @@ def render_template(template_name: str, request: Request, **kwargs):
     context.update(kwargs)
     return templates.TemplateResponse(template_name, context)
 
-# 包含 API 路由
-app.include_router(api_router)
+# --- API 路由掛載 ---
+api_router = APIRouter()
+
+api_router.include_router(auth.router)
+api_router.include_router(posts.router)
+api_router.include_router(products.router)
+api_router.include_router(orders.router)
+api_router.include_router(cart.router)
+api_router.include_router(newsletter.router)
+api_router.include_router(admin.router)
+api_router.include_router(analytics.router)
+api_router.include_router(banners.router)
+api_router.include_router(discount_codes.router)
+api_router.include_router(favorites.router)
+api_router.include_router(payment.router)
+api_router.include_router(shipping_tiers.router)
+api_router.include_router(view_tracking.router)
+api_router.include_router(errors.router)
+
+# 特殊處理 settings 路由
+api_router.include_router(settings_router.router)
+api_router.include_router(settings_router.admin_router)
+api_router.include_router(settings_router.public_router)
+
+app.include_router(api_router, prefix="/api")
 
 # 全局異常處理器
 @app.exception_handler(HTTPException)
@@ -249,7 +278,7 @@ async def startup_event():
     app_logger.info("資料庫初始化完成")
     app_logger.info(f"應用程式已啟動，運行在 {settings.debug and 'DEBUG' or 'PRODUCTION'} 模式")
 
-# 前端路由
+# --- 前端頁面路由 ---
 @app.get("/")
 async def index(request: Request):
     return render_template("index.html", request)
@@ -368,8 +397,6 @@ async def contact_page(request: Request):
 async def help_page(request: Request):
     return render_template("pages/help.html", request)
 
-
-
 @app.get("/returns")
 async def returns_page(request: Request):
     return render_template("pages/returns.html", request)
@@ -411,17 +438,13 @@ else:
             content={"message": "Admin panel not built. Please run the build script."},
         )
 
-# 標籤和分類路由已移除
-
 # API 根路徑
 @app.get("/api")
 async def api_root():
     return {
         "message": "歡迎使用 BlogCommerce API",
-        "docs": "/api-docs",
-        "swagger": "/docs",
+        "docs": "/docs",
         "redoc": "/redoc",
-        "openapi": "/openapi.json"
     }
 
 # 健康檢查
@@ -444,6 +467,13 @@ async def enhanced_redoc():
 @app.get("/{path:path}", include_in_schema=False)
 async def catch_all(path: str, request: Request):
     """捕捉所有其他路由，返回前端頁面"""
+    # 不攔截 API 路由
+    if path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+    
+    # 這裡可以加入邏輯來判斷是否為已知的前端路由
+    # 如果不是，可以回傳 404 頁面
+    return render_template("index.html", request)
 
 if __name__ == "__main__":
     import uvicorn
