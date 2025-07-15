@@ -1,7 +1,52 @@
-from typing import Optional, List
+import json
+from typing import Optional, List, Type, Any
 from decimal import Decimal
-from pydantic import field_validator
+from pydantic import field_validator, GetCoreSchemaHandler
+from pydantic_core import CoreSchema, PydanticCustomError, core_schema
+
 from app.schemas.base import BaseSchema, BaseResponseSchema
+
+class JsonList(List[str]):
+    """
+    自定義 Pydantic 類型，用於將列表序列化為 JSON 字串並反序列化。
+    """
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        def validate_from_json_string(value: str) -> List[str]:
+            try:
+                list_value = json.loads(value)
+                if not isinstance(list_value, list):
+                    raise PydanticCustomError(
+                        'json_list_type', 'Input is not a valid JSON list'
+                    )
+                return [str(item) for item in list_value]
+            except json.JSONDecodeError:
+                raise PydanticCustomError(
+                    'json_list_decode', 'Input is not a valid JSON string'
+                )
+
+        def serialize_to_json_string(value: List[str]) -> str:
+            return json.dumps(value)
+
+        s = core_schema.json_or_python_schema(
+            json_schema=core_schema.no_info_after_validator_function(
+                validate_from_json_string, core_schema.str_schema()
+            ),
+            python_schema=core_schema.union_schema([
+                core_schema.is_instance_schema(list),
+                core_schema.no_info_after_validator_function(
+                    validate_from_json_string, core_schema.str_schema()
+                )
+            ]),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                serialize_to_json_string,
+                info_arg=False,
+                return_schema=core_schema.str_schema()
+            )
+        )
+        return s
 
 class ProductBase(BaseSchema):
     name: str
@@ -14,11 +59,13 @@ class ProductBase(BaseSchema):
     is_active: bool = True
     is_featured: bool = False
     featured_image: Optional[str] = None
-    gallery_images: Optional[List[str]] = []
+    gallery_images: Optional[JsonList] = [] # 使用新的 JsonList 類型
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
     meta_keywords: Optional[str] = None
     slug: Optional[str] = None
+
+    # 移除 convert_gallery_images_to_json_string 驗證器
 
 class ProductCreate(ProductBase):
     pass
@@ -40,35 +87,11 @@ class ProductResponse(ProductBase, BaseResponseSchema):
             return f"/static/images/{v}"
         return v
 
-    # 【核心修正點】: 為圖庫中的所有圖片加上路徑前綴，並處理空字符串
-    @field_validator('gallery_images', mode='before')
-    @classmethod
-    def add_gallery_image_prefix(cls, v) -> List[str]:
-        # 處理 None 或空值情況
-        if v is None:
-            return []
-        
-        # 處理空字符串
-        if isinstance(v, str):
-            if v.strip() == '':
-                return []
-            try:
-                import json
-                v = json.loads(v)
-            except (json.JSONDecodeError, TypeError):
-                # 如果不是有效的 JSON，當作單一字符串處理
-                return [f"/static/images/{v}"] if v and not v.startswith('/static/') else [v] if v else []
-        
-        # 處理列表
-        if isinstance(v, list):
-            return [f"/static/images/{img}" for img in v if img and isinstance(img, str) and not img.startswith('/static/')]
-        
-        # 其他情況返回空列表
-        return []
+    # 移除 add_gallery_image_prefix 驗證器，因為 JsonList 會處理
 
     class Config:
         from_attributes = True
 
 class ProductListResponse(BaseSchema):
-    products: List[ProductResponse]
+    items: List[ProductResponse]
     total: int

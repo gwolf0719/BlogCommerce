@@ -44,57 +44,7 @@ def process_post_content(post: Post) -> dict:
     return post_dict
 
 
-@router.get(
-    "",
-    response_model=List[PostListResponse],
-    summary="📄 獲取文章列表",
-    description="""
-    ## 🎯 功能描述
-    獲取部落格文章列表，支援分頁、搜尋和發布狀態篩選。
-    
-    ## 📋 功能特點
-    - 📊 支援分頁查詢
-    - 🔍 標題與內容搜尋
-    - 📝 發布狀態篩選
-    - 🗂️ 時間順序排列
-    
-    ## 🔍 查詢參數
-    - **published_only**: 僅顯示已發布文章
-    - **search**: 搜尋標題或內容關鍵字
-    - **skip**: 跳過的項目數（分頁）
-    - **limit**: 每頁項目數限制
-    
-    ## 📊 排序規則
-    按創建時間降序排列，最新文章在前。
-    
-    ## 🎯 使用場景
-    - 部落格首頁文章列表
-    - 管理後台文章管理
-    - 搜尋結果展示
-    """,
-    responses={
-        200: {
-            "description": "成功獲取文章列表",
-            "content": {
-                "application/json": {
-                    "example": [
-                        {
-                            "id": 1,
-                            "title": "我的第一篇文章",
-                            "slug": "my-first-post",
-                            "excerpt": "這是文章的摘要...",
-                            "featured_image": "https://example.com/image.jpg",
-                            "is_published": True,
-                            "view_count": 123,
-                            "created_at": "2024-01-15T10:30:00",
-                            "updated_at": "2024-01-15T10:30:00"
-                        }
-                    ]
-                }
-            }
-        }
-    }
-)
+@router.get("", response_model=PostListResponse, summary="📄 獲取文章列表")
 def get_posts(
     published_only: Optional[bool] = Query(None, description="僅顯示已發布的文章"),
     search: Optional[str] = Query(None, description="搜尋標題或內容"),
@@ -103,9 +53,7 @@ def get_posts(
     db: Session = Depends(get_db)
 ):
     """
-    取得文章列表，預設顯示所有（不論發布狀態），除非有指定 published_only
-    
-    支援分頁、搜尋和發布狀態篩選功能。
+    取得文章列表，支援分頁、搜尋和發布狀態篩選功能。
     """
     query = db.query(Post)
     if published_only is not None:
@@ -115,8 +63,12 @@ def get_posts(
             Post.title.contains(search) |
             Post.content.contains(search)
         )
+    
+    total = query.count()
     posts = query.order_by(Post.created_at.desc()).offset(skip).limit(limit).all()
-    return posts
+    
+    return PostListResponse(items=posts, total=total)
+
 
 
 @router.get(

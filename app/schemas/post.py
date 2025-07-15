@@ -46,10 +46,19 @@ class PostResponse(PostBase, BaseResponseSchema, SlugSchema):
     toc: Optional[str] = None           # 目錄
 
 
-class PostListResponse(BaseResponseSchema, SlugSchema):
-    """文章列表回應（簡化版）"""
+class PostSummary(BaseResponseSchema, SlugSchema):
+    """文章列表項目摘要"""
     title: str
     excerpt: Optional[str] = None
     featured_image: Optional[str] = None
     is_published: bool
-    view_count: int = 0 
+    view_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class PostListResponse(BaseSchema):
+    """文章列表的分頁回應"""
+    items: List[PostSummary]
+    total: int 

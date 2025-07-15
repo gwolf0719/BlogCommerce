@@ -1,0 +1,36 @@
+[project]
+name = "blogcommerce"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12.3"
+dependencies = [
+    "fastapi",
+    "starlette",
+    "pydantic",
+    "pydantic-settings",
+    "sqlalchemy",
+    "python-jose",
+    "passlib",
+    "user-agents",
+    "aiohttp",
+    "httpx",
+    "paypalrestsdk",
+    "pycryptodome",
+    "pillow",
+    "requests",
+    "pytest",
+    "python-slugify",
+    "redis",
+    "jinja2",
+    "uvicorn",
+    "itsdangerous>=2.2.0",
+    "markdown>=3.8.2",
+    "email-validator>=2.2.0",
+    "python-multipart>=0.0.20",
+    "alembic>=1.16.4",
+    "bcrypt>=4.3.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

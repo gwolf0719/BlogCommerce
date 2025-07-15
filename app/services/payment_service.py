@@ -127,8 +127,8 @@ class PaymentService:
                 ]
             }],
             "redirectUrls": {
-                "confirmUrl": f"http://localhost:8001/api/payment/linepay/confirm",
-                "cancelUrl": f"http://localhost:8001/api/payment/linepay/cancel"
+                "confirmUrl": f"http://localhost:8002/api/payment/linepay/confirm",
+                "cancelUrl": f"http://localhost:8002/api/payment/linepay/cancel"
             }
         }
         
@@ -193,7 +193,7 @@ class PaymentService:
             "TotalAmount": int(order.total_amount),
             "TradeDesc": f"訂單 {order.order_number}",
             "ItemName": "#".join([f"{item.product_name} x{item.quantity}" for item in order.items]),
-            "ReturnURL": f"http://localhost:8001/api/payment/ecpay/callback",
+            "ReturnURL": f"http://localhost:8002/api/payment/ecpay/callback",
             "ChoosePayment": "ALL",
             "EncryptType": "1"
         }

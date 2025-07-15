@@ -140,7 +140,6 @@ tests/
 # Alembic migrations (自動生成的遷移文件)
 alembic/versions/
 alembic/__pycache__/
-todo.md
 admin/
 alembic/
 admin-src/playwright-report

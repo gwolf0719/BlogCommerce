@@ -144,16 +144,40 @@ class OrderResponse(OrderBase, BaseResponseSchema):
         from_attributes = True
 
 
-class OrderListResponse(BaseSchema):
+class OrderSummary(BaseSchema):
     id: int
     order_number: Optional[str] = None
     customer_name: str
+    customer_email: str
+    customer_phone: Optional[str] = None
     total_amount: Decimal
     status: OrderStatus
     payment_method: Optional[PaymentMethod] = None
     payment_status: Optional[PaymentStatus] = PaymentStatus.unpaid
     created_at: datetime
-    items_count: int = 0
     
+    @computed_field
+    @property
+    def items_count(self) -> int:
+        if hasattr(self, 'items'):
+            return len(self.items)
+        return 0
+
     class Config:
         from_attributes = True
+
+
+class OrderListResponse(BaseSchema):
+    items: List[OrderSummary]
+    total: int
+
+
+class OrderStatusUpdate(BaseSchema):
+    status: OrderStatus
+
+
+class OrderStatsResponse(BaseSchema):
+    total_orders: int = 0
+    processing_orders: int = 0
+    today_orders: int = 0
+    total_revenue: Decimal = Decimal("0.00")

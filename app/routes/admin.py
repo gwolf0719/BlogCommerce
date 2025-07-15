@@ -21,6 +21,7 @@ from app.schemas.newsletter import (
     NewsletterSubscriberCreate,
     NewsletterSubscriberUpdate,
 )
+from app.schemas.admin import AdminStatsResponse
 from app.config import settings
 import os
 import uuid
@@ -29,18 +30,99 @@ from PIL import Image
 router = APIRouter(prefix="/admin", tags=["管理員"])
 
 # ==============================================
-# 使用者管理
+# 統計資訊
 # ==============================================
 
-@router.get("/users", response_model=List[UserResponse])
-def get_all_users(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(settings.orders_per_page, ge=1, le=100),
-    search: Optional[str] = Query(None, description="搜尋使用者名稱或電子郵件"),
+@router.get("/stats", response_model=AdminStatsResponse, summary="獲取儀表板統計數據")
+def get_admin_stats(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
-    """取得所有使用者列表（管理員）"""
+    """取得管理員儀表板所需的完整統計資訊。"""
+    from sqlalchemy import func
+    from app.models.analytics import UserSession
+    from app.models.discount_code import DiscountCode
+    from app.models.discount_usage import PromoUsage
+    from datetime import datetime, timedelta
+    
+    try:
+        today = datetime.now().date()
+        
+        # 使用者統計
+        total_users = db.query(func.count(User.id)).scalar() or 0
+        
+        # 文章統計
+        total_posts = db.query(func.count(Post.id)).scalar() or 0
+        published_posts = db.query(func.count(Post.id)).filter(Post.is_published == True).scalar() or 0
+        
+        # 商品統計
+        total_products = db.query(func.count(Product.id)).scalar() or 0
+        active_products = db.query(func.count(Product.id)).filter(Product.is_active == True).scalar() or 0
+        
+        # 訂單統計
+        total_orders = db.query(func.count(Order.id)).scalar() or 0
+        pending_orders = db.query(func.count(Order.id)).filter(Order.status.in_(["pending", "confirmed"])).scalar() or 0
+        
+        # 銷售統計
+        total_sales = db.query(func.sum(Order.total_amount)).filter(Order.payment_status == "paid").scalar() or 0
+        
+        # 今日訂單和銷售額
+        today_orders = db.query(func.count(Order.id)).filter(func.date(Order.created_at) == today).scalar() or 0
+        today_revenue = db.query(func.sum(Order.total_amount)).filter(
+            func.date(Order.created_at) == today,
+            Order.payment_status == "paid"
+        ).scalar() or 0
+        
+        # 活躍會話數（過去15分鐘）
+        active_sessions = db.query(func.count(UserSession.id)).filter(
+            UserSession.last_activity >= datetime.now() - timedelta(minutes=15)
+        ).scalar() or 0
+        
+        # 折扣碼統計
+        total_discount_codes = db.query(func.count(DiscountCode.id)).scalar() or 0
+        active_discount_codes = db.query(func.count(DiscountCode.id)).filter(DiscountCode.is_active == True).scalar() or 0
+        total_discount_usage = db.query(func.sum(PromoCode.used_count)).scalar() or 0
+        today_discount_usage = db.query(func.count(PromoUsage.id)).filter(func.date(PromoUsage.used_at) == today).scalar() or 0
+
+        return AdminStatsResponse(
+            total_users=total_users,
+            total_posts=total_posts,
+            published_posts=published_posts,
+            total_products=total_products,
+            active_products=active_products,
+            total_orders=total_orders,
+            pending_orders=pending_orders,
+            total_sales=total_sales or 0,
+            today_orders=today_orders,
+            today_revenue=today_revenue or 0,
+            active_sessions=active_sessions,
+            total_discount_codes=total_discount_codes,
+            active_discount_codes=active_discount_codes,
+            total_discount_usage=total_discount_usage,
+            today_discount_usage=today_discount_usage,
+            calculated_at=datetime.now()
+        )
+        
+    except Exception as e:
+        # 在生產環境中，可以記錄更詳細的錯誤日誌
+        print(f"獲取統計資料失敗: {e}")
+        raise HTTPException(status_code=500, detail="獲取儀表板統計資料時發生內部錯誤")
+
+# ==============================================
+# 使用者管理
+# ==============================================
+
+@router.get("/users", response_model=UserListResponse, summary="獲取使用者列表 (管理員)")
+def get_all_users(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
+    search: Optional[str] = Query(None, description="搜尋使用者名稱或電子郵件"),
+    role: Optional[str] = Query(None, description="依角色篩選 (admin/user)"),
+    is_active: Optional[bool] = Query(None, description="依啟用狀態篩選"),
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """取得所有使用者列表，支援分頁、搜尋和篩選。"""
     query = db.query(User)
     
     if search:
@@ -49,8 +131,45 @@ def get_all_users(
             User.email.contains(search)
         )
     
+    if role:
+        query = query.filter(User.role == role)
+        
+    if is_active is not None:
+        query = query.filter(User.is_active == is_active)
+    
+    total = query.count()
     users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
-    return users
+    
+    return UserListResponse(items=users, total=total)
+
+
+@router.post("/users", response_model=UserResponse, summary="新增使用者 (管理員)")
+def create_user_by_admin(
+    user_create: UserCreate,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """由管理員建立新使用者。"""
+    from app.auth import get_password_hash
+    
+    if db.query(User).filter(User.email == user_create.email).first():
+        raise HTTPException(status_code=400, detail="此信箱已被註冊")
+    if db.query(User).filter(User.username == user_create.username).first():
+        raise HTTPException(status_code=400, detail="此使用者名稱已被使用")
+
+    new_user = User(
+        username=user_create.username,
+        email=user_create.email,
+        hashed_password=get_password_hash(user_create.password),
+        role=user_create.role if hasattr(user_create, 'role') else 'user',
+        is_active=user_create.is_active if hasattr(user_create, 'is_active') else True
+    )
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return new_user
 
 
 @router.get("/users/{user_id}", response_model=UserResponse)
@@ -66,19 +185,24 @@ def get_user_by_id(
     return user
 
 
-@router.put("/users/{user_id}", response_model=UserResponse)
-def update_user(
+@router.put("/users/{user_id}", response_model=UserResponse, summary="更新使用者 (管理員)")
+def update_user_by_admin(
     user_id: int,
     user_update: UserUpdate,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
-    """更新使用者資訊（管理員）"""
+    """更新使用者資訊，包括角色和狀態。"""
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="使用者不存在")
     
     update_data = user_update.model_dump(exclude_unset=True)
+    
+    # 如果管理員試圖停用自己的帳號
+    if 'is_active' in update_data and not update_data['is_active'] and user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="不能停用自己的帳號")
+
     for field, value in update_data.items():
         setattr(user, field, value)
     
@@ -87,24 +211,28 @@ def update_user(
     return user
 
 
-@router.post("/users/{user_id}/toggle-status")
-def toggle_user_status(
+@router.delete("/users/{user_id}", summary="刪除使用者 (管理員)")
+def delete_user_by_admin(
     user_id: int,
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
-    """啟用/停用使用者帳號（管理員）"""
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+    """由管理員刪除使用者。"""
+    user_to_delete = db.query(User).filter(User.id == user_id).first()
+    
+    if not user_to_delete:
         raise HTTPException(status_code=404, detail="使用者不存在")
     
-    if user.id == current_user.id:
-        raise HTTPException(status_code=400, detail="不能停用自己的帳號")
+    if user_to_delete.id == current_user.id:
+        raise HTTPException(status_code=400, detail="不能刪除自己的帳號")
     
-    user.is_active = not user.is_active
+    if user_to_delete.orders:
+        raise HTTPException(status_code=400, detail="無法刪除：此使用者已有相關訂單")
+    
+    db.delete(user_to_delete)
     db.commit()
     
-    return {"message": f"使用者帳號已{'啟用' if user.is_active else '停用'}"}
+    return {"message": "使用者已刪除"}
 
 
 @router.get("/users/stats")
@@ -951,7 +1079,7 @@ async def get_admin_settings(
             'site_name': 'BlogCommerce',
             'site_tagline': '部落格與電商整合平台',
             'site_description': '一個結合部落格與電商功能的現代化平台',
-            'site_url': 'http://localhost:8001',
+            'site_url': 'http://localhost:8002',
             'admin_email': 'admin@example.com',
             'timezone': 'Asia/Taipei',
             'language': 'zh-TW',

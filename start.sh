@@ -48,67 +48,46 @@ VENV_PY=".venv/bin/python"
 # 檢查虛擬環境
 setup_venv() {
     echo -e "${BLUE}🔧 設定虛擬環境...${NC}"
-    if [ ! -f "$VENV_PY" ]; then
+    if [ ! -d ".venv" ]; then
         echo -e "${YELLOW}⚠️  虛擬環境不存在，正在建立...${NC}"
-        if ! command -v python &> /dev/null; then
-            python3 -m venv .venv
-        else
-            python -m venv .venv
-        fi
+        uv venv .venv
     fi
-    
     source .venv/bin/activate
     echo -e "${GREEN}✅ 虛擬環境已啟動${NC}"
-    
     # 安裝依賴
     echo -e "${BLUE}📦 安裝 Python 依賴...${NC}"
-    pip install -r requirements.txt
+    uv pip install --requirements pyproject.toml
     echo -e "${GREEN}✅ Python 依賴安裝完成${NC}"
 }
 
 # 資料庫遷移檢查和執行
 run_migrations() {
     echo -e "${BLUE}🗃️  檢查資料庫遷移狀態...${NC}"
-    
-    # 檢查是否有 alembic 目錄和配置
     if [ ! -f "alembic.ini" ]; then
         echo -e "${YELLOW}⚠️  Alembic 配置文件不存在，跳過遷移...${NC}"
         return 0
     fi
-    
     if [ ! -d "alembic/versions" ]; then
         echo -e "${YELLOW}⚠️  Alembic versions 目錄不存在，正在建立...${NC}"
         mkdir -p alembic/versions
     fi
-    
-    # 檢查是否有現有的遷移文件
     local migration_files=$(find alembic/versions -name "*.py" -type f | wc -l)
-    
     if [ "$migration_files" -eq 0 ]; then
         echo -e "${YELLOW}⚠️  沒有找到遷移文件，正在建立初始遷移...${NC}"
-        
-        # 建立初始遷移
-        if "$VENV_PY" -m alembic revision --autogenerate -m "Initial migration"; then
+        if uv run -m alembic revision --autogenerate -m "Initial migration"; then
             echo -e "${GREEN}✅ 初始遷移建立成功${NC}"
         else
             echo -e "${RED}❌ 初始遷移建立失敗${NC}"
             return 1
         fi
     fi
-    
-    # 檢查資料庫是否需要遷移
     echo -e "${BLUE}🔄 檢查資料庫遷移狀態...${NC}"
-    
-    # 嘗試獲取當前資料庫版本
-    if "$VENV_PY" -m alembic current &> /dev/null; then
-        local current_rev=$("$VENV_PY" -m alembic current 2>/dev/null | head -1)
-        local head_rev=$("$VENV_PY" -m alembic heads 2>/dev/null | head -1)
-        
+    if uv run -m alembic current &> /dev/null; then
+        local current_rev=$(uv run -m alembic current 2>/dev/null | head -1)
+        local head_rev=$(uv run -m alembic heads 2>/dev/null | head -1)
         if [ "$current_rev" != "$head_rev" ]; then
             echo -e "${YELLOW}⚠️  資料庫需要遷移，正在執行遷移...${NC}"
-            
-            # 執行遷移
-            if "$VENV_PY" -m alembic upgrade head; then
+            if uv run -m alembic upgrade head; then
                 echo -e "${GREEN}✅ 資料庫遷移完成${NC}"
             else
                 echo -e "${RED}❌ 資料庫遷移失敗${NC}"
@@ -119,16 +98,13 @@ run_migrations() {
         fi
     else
         echo -e "${YELLOW}⚠️  無法獲取資料庫版本，強制執行遷移...${NC}"
-        
-        # 強制執行遷移
-        if "$VENV_PY" -m alembic upgrade head; then
+        if uv run -m alembic upgrade head; then
             echo -e "${GREEN}✅ 資料庫遷移完成${NC}"
         else
             echo -e "${RED}❌ 資料庫遷移失敗${NC}"
             return 1
         fi
     fi
-    
     return 0
 }
 
@@ -252,27 +228,10 @@ start_dev_frontend() {
     cd ..
 }
 
-# 啟動後端服務器
+# 啟動主程式
 start_backend() {
-    echo -e "${BLUE}🚀 啟動 FastAPI 後端服務器...${NC}"
-    echo "   - Host: 0.0.0.0"
-    echo "   - Port: $PORT"
-    echo "   - 模式: $MODE"
-    
-    # 檢查 uvicorn 是否存在
-    if ! "$VENV_PY" -m uvicorn --version &> /dev/null; then
-        echo -e "${RED}❌ uvicorn 未安裝${NC}"
-        exit 1
-    fi
-    
-    # 根據模式啟動
-    if [ "$MODE" == "dev" ]; then
-        echo -e "${GREEN}✅ 開發模式啟動中...${NC}"
-        "$VENV_PY" -m uvicorn app.main:app --host 0.0.0.0 --port $PORT --reload
-    else
-        echo -e "${GREEN}✅ 生產模式啟動中...${NC}"
-        "$VENV_PY" -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    fi
+    echo -e "${BLUE}🚀 啟動後端服務...${NC}"
+    uv run run.py
 }
 
 # 主要執行邏輯
@@ -323,7 +282,7 @@ main() {
             echo "範例:"
             echo "  $0 dev        # 開發模式，固定端口 $DEV_BACKEND_PORT (後端) + $DEV_FRONTEND_PORT (前端)"
             echo "  $0 prod       # 生產模式，預設端口 $DEFAULT_PORT"
-            echo "  $0 prod 8001  # 生產模式，指定端口 8001"
+            echo "  $0 prod 8002  # 生產模式，指定端口 8002"
             echo "  $0 stop       # 停止所有服務，清理端口"
             exit 1
             ;;

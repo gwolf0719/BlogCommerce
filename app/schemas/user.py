@@ -125,4 +125,10 @@ class TokenData(BaseSchema):
     
     用於解析 JWT 令牌中的用戶資訊。
     """
-    username: Optional[str] = Field(None, description="用戶名稱") 
+    username: Optional[str] = Field(None, description="用戶名稱")
+
+
+class UserListResponse(BaseSchema):
+    """使用者列表的分頁回應"""
+    items: list[UserResponse]
+    total: int 
