@@ -1,41 +1,43 @@
 <template>
   <div class="markdown-editor-container">
-    <div class="editor-toolbar">
-      <div class="toolbar-left">
-        <a-button size="small" @click="insertText('**', '**')" title="粗體">
-          <strong>B</strong>
-        </a-button>
-        <a-button size="small" @click="insertText('*', '*')" title="斜體">
-          <em>I</em>
-        </a-button>
-        <a-button size="small" @click="insertText('# ', '')" title="標題">
-          H1
-        </a-button>
-        <a-button size="small" @click="insertText('[', '](url)')" title="連結">
-          🔗
-        </a-button>
-        <a-button size="small" @click="insertText('```\n', '\n```')" title="程式碼">
-          &lt;/&gt;
-        </a-button>
-        <a-divider type="vertical" />
-        <a-upload
-          :show-upload-list="false"
-          :before-upload="beforeUpload"
-          :custom-request="handleImageUpload"
-          accept="image/*"
-        >
-          <a-button size="small" title="上傳圖片">
-            <picture-outlined />
-            圖片
+    <a-form-item-rest>
+      <div class="editor-toolbar">
+        <div class="toolbar-left">
+          <a-button size="small" @click="insertText('**', '**')" title="粗體">
+            <strong>B</strong>
           </a-button>
-        </a-upload>
+          <a-button size="small" @click="insertText('*', '*')" title="斜體">
+            <em>I</em>
+          </a-button>
+          <a-button size="small" @click="insertText('# ', '')" title="標題">
+            H1
+          </a-button>
+          <a-button size="small" @click="insertText('[', '](url)')" title="連結">
+            🔗
+          </a-button>
+          <a-button size="small" @click="insertText('```\n', '\n```')" title="程式碼">
+            &lt;/&gt;
+          </a-button>
+          <a-divider type="vertical" />
+          <a-upload
+            :show-upload-list="false"
+            :before-upload="beforeUpload"
+            :custom-request="handleImageUpload"
+            accept="image/*"
+          >
+            <a-button size="small" title="上傳圖片">
+              <picture-outlined />
+              圖片
+            </a-button>
+          </a-upload>
+        </div>
+        <div class="toolbar-right">
+          <a-button size="small" @click="togglePreview" :type="showPreview ? 'primary' : 'default'">
+            {{ showPreview ? '隱藏預覽' : '顯示預覽' }}
+          </a-button>
+        </div>
       </div>
-      <div class="toolbar-right">
-        <a-button size="small" @click="togglePreview" :type="showPreview ? 'primary' : 'default'">
-          {{ showPreview ? '隱藏預覽' : '顯示預覽' }}
-        </a-button>
-      </div>
-    </div>
+    </a-form-item-rest>
 
     <div class="editor-content" :class="{ 'split-view': showPreview }">
       <div class="editor-pane">

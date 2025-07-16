@@ -599,6 +599,30 @@ const updatePaymentStatus = (value) => {
   paymentForm.status = value
 }
 
+const handleTableChange = (pag) => {
+  pagination.current = pag.current
+  pagination.pageSize = pag.pageSize
+  fetchOrders()
+}
+
+const refreshOrders = () => {
+  fetchOrders()
+  fetchStats()
+}
+
+const handleSearch = () => {
+  pagination.current = 1
+  fetchOrders()
+}
+
+const resetSearch = () => {
+  searchForm.search = ''
+  searchForm.status = ''
+  searchForm.dateRange = []
+  pagination.current = 1
+  fetchOrders()
+}
+
 // 輔助函數
 const getStatusColor = (status) => {
   const colors = {

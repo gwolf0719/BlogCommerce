@@ -1,9 +1,10 @@
 import axios from 'axios'
 import { handleApiError } from './errorHandler'
 
+
 // 建立 axios 實例
 const api = axios.create({
-  baseURL: 'http://localhost:8002',
+  baseURL: '',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -13,7 +14,6 @@ const api = axios.create({
 // 請求攔截器
 api.interceptors.request.use(
   (config) => {
-    // 可以在這裡加入 token 或其他認證資訊
     const token = localStorage.getItem('admin_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -33,13 +33,12 @@ api.interceptors.response.use(
   async (error) => {
     // 只有在非登錄頁面且收到401錯誤時才自動跳轉
     if (error.response?.status === 401 && !window.location.pathname.includes('/login')) {
-      // 未授權，清除 token 並跳轉到登入頁面
       localStorage.removeItem('admin_token')
+      // 跳轉路徑也需要是 /admin/login
       window.location.href = '/admin/login'
       return Promise.reject(error)
     }
     
-    // 對於其他錯誤，使用統一的錯誤處理
     if (error.response) {
       await handleApiError(error.response)
     }

@@ -45,20 +45,18 @@
       </a-upload>
     </div>
 
-    <!-- 手動輸入URL -->
-    <div class="manual-input">
-      <a-input
-        v-model:value="manualUrl"
-        placeholder="或直接輸入圖片URL (按Enter添加)"
-        @pressEnter="handleManualUrl"
-      >
-        <template #suffix>
-          <a-button type="text" size="small" @click="handleManualUrl" :disabled="!manualUrl">
-            添加
-          </a-button>
-        </template>
-      </a-input>
-    </div>
+    <!-- 手動輸入URL（改為純 input，避免 ant-design-vue 表單收集衝突） -->
+    <a-form-item-rest>
+      <div class="manual-input">
+        <input
+          v-model="manualUrl"
+          placeholder="或直接輸入圖片URL (按Enter添加)"
+          @keyup.enter="handleManualUrl"
+          style="width: 100%; padding: 4px 8px; border: 1px solid #d9d9d9; border-radius: 4px;"
+        />
+        <button type="button" @click="handleManualUrl" :disabled="!manualUrl" style="margin-top: 4px;">添加</button>
+      </div>
+    </a-form-item-rest>
 
     <!-- 圖片預覽彈窗 -->
     <a-modal
@@ -101,7 +99,10 @@ const imageList = ref([...props.modelValue])
 
 // 監聽 modelValue 變化
 watch(() => props.modelValue, (newValue) => {
-  imageList.value = [...newValue]
+  // 修正: 只有在新舊值不同時才更新，避免無限循環
+  if (JSON.stringify(newValue) !== JSON.stringify(imageList.value)) {
+    imageList.value = [...newValue]
+  }
 })
 
 // 監聽 imageList 變化，向父組件發射更新

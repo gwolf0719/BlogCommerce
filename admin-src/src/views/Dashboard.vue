@@ -160,7 +160,7 @@
     <!-- 數據更新時間 -->
     <div v-if="stats.calculatedAt" class="update-time">
       <a-typography-text type="secondary" style="font-size: 12px;">
-        數據更新時間: {{ new Date(stats.calculatedAt).toLocaleString('zh-TW') }}
+        數據更新時間: {{ formatDate(stats.calculatedAt) }}
       </a-typography-text>
     </div>
   </div>
@@ -171,6 +171,7 @@ import { ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import { formatDate } from '../utils/dateUtils'
 
 const authStore = useAuthStore()
 const loading = ref(true)

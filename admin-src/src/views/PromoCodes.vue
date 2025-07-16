@@ -3,7 +3,7 @@
     <div class="header-section">
       <h1 class="page-title">推薦碼管理</h1>
       <div class="header-actions">
-        <a-button type="primary" @click="showCreateModal">
+        <a-button type="primary" @click="showModalCreate">
           <template #icon>
             <PlusOutlined />
           </template>
@@ -263,7 +263,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { useAuthStore } from '../stores/auth'
-import dayjs from 'dayjs'
+import { formatDate, formatDateTime } from '../utils/dateUtils'
 
 const authStore = useAuthStore()
 
@@ -427,6 +427,15 @@ const showEditModal = (record) => {
   modalVisible.value = true
 }
 
+const showModalCreate = () => {
+  editingId.value = null
+  modalTitle.value = '新增推薦碼'
+  Object.assign(form, {
+    code: '', name: '', source: '', promo_type: '', promo_value: null, period: null, usage_limit: null, min_order_amount: null, is_active: true, description: ''
+  })
+  modalVisible.value = true
+}
+
 const showUsageModal = async (record) => {
   usageModalVisible.value = true
   usageLoading.value = true
@@ -491,6 +500,10 @@ const handleModalOk = async () => {
   }
 }
 
+const handleModalCancel = () => {
+  modalVisible.value = false
+}
+
 const deletePromoCode = async (id) => {
   try {
     const response = await fetch(`/api/discount-codes/${id}`, {
@@ -549,14 +562,6 @@ const getTypeText = (type) => {
     default:
       return type
   }
-}
-
-const formatDate = (dateString) => {
-  return dayjs(dateString).format('YYYY-MM-DD')
-}
-
-const formatDateTime = (dateString) => {
-  return dayjs(dateString).format('YYYY-MM-DD HH:mm:ss')
 }
 
 // 頁面載入

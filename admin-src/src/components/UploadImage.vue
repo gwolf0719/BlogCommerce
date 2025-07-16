@@ -38,20 +38,22 @@
     </div>
 
     <!-- 手動輸入URL -->
-    <div class="manual-input">
-      <a-input
-        v-model:value="manualUrl"
-        placeholder="或直接輸入圖片URL"
-        @blur="handleManualUrl"
-        @pressEnter="handleManualUrl"
-      >
-        <template #suffix>
-          <a-button type="text" size="small" @click="handleManualUrl" :disabled="!manualUrl">
-            確定
-          </a-button>
-        </template>
-      </a-input>
-    </div>
+    <a-form-item-rest>
+      <div class="manual-input">
+        <a-input
+          v-model:value="manualUrl"
+          placeholder="或直接輸入圖片URL"
+          @blur="handleManualUrl"
+          @pressEnter="handleManualUrl"
+        >
+          <template #suffix>
+            <a-button type="text" size="small" @click="handleManualUrl" :disabled="!manualUrl">
+              確定
+            </a-button>
+          </template>
+        </a-input>
+      </div>
+    </a-form-item-rest>
 
     <!-- 圖片預覽彈窗 -->
     <a-modal
@@ -89,8 +91,10 @@ const imageUrl = ref(props.modelValue)
 
 // 監聽 modelValue 變化
 watch(() => props.modelValue, (newValue) => {
-  imageUrl.value = newValue
-  // 同時更新手動輸入的 URL 欄位，以便用戶看到完整的 URL
+  // 修正: 只有在新舊值不同時才更新，避免無限循環
+  if (newValue !== imageUrl.value) {
+    imageUrl.value = newValue;
+  }
   if (newValue && !manualUrl.value) {
     manualUrl.value = newValue
   }
@@ -136,27 +140,11 @@ const handleUpload = async ({ file, onProgress, onSuccess, onError }) => {
     })
 
     if (!response.ok) {
-      // 嘗試解析API錯誤響應
       let errorMessage = '上傳失敗'
-      
       try {
         const errorData = await response.json()
-        
-        // 處理 FastAPI 驗證錯誤格式
-        if (errorData.detail && Array.isArray(errorData.detail)) {
-          const errors = errorData.detail.map(err => err.msg || err.message || '未知錯誤')
-          errorMessage = errors.join(', ')
-        } else if (errorData.detail && typeof errorData.detail === 'string') {
-          errorMessage = errorData.detail
-        } else if (errorData.message) {
-          errorMessage = errorData.message
-        } else if (errorData.msg) {
-          errorMessage = errorData.msg
-        }
-      } catch (parseError) {
-        console.error('解析錯誤響應失敗:', parseError)
-      }
-      
+        errorMessage = errorData.detail || errorMessage
+      } catch (e) { /* ignore */ }
       throw new Error(errorMessage)
     }
 
