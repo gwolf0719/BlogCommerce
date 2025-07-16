@@ -65,9 +65,28 @@ def get_posts(
         )
     
     total = query.count()
-    posts = query.order_by(Post.created_at.desc()).offset(skip).limit(limit).all()
+    db_posts = query.order_by(Post.created_at.desc()).offset(skip).limit(limit).all()
     
-    return PostListResponse(items=posts, total=total)
+    # 修正：每篇文章都帶有 excerpt（若無則自動產生），並確保 content 欄位存在
+    items = []
+    for post in db_posts:
+        excerpt = post.excerpt or (markdown_service.extract_excerpt(post.content) if post.content else "")
+        items.append({
+            "id": post.id,
+            "title": post.title,
+            "excerpt": excerpt,
+            "content": post.content,
+            "featured_image": post.featured_image,
+            "is_published": post.is_published,
+            "meta_title": post.meta_title,
+            "meta_description": post.meta_description,
+            "meta_keywords": post.meta_keywords,
+            "slug": post.slug,
+            "view_count": post.view_count,
+            "created_at": post.created_at,
+            "updated_at": post.updated_at
+        })
+    return {"items": items, "total": total}
 
 
 

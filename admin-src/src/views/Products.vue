@@ -331,11 +331,10 @@
           </a-form-item>
 
           <a-form-item label="相冊圖片" name="gallery_images">
-            <UploadGallery v-model="form.gallery_images" />
+            <div class="form-help-text" style="margin-bottom: 16px;">
+              <small class="text-gray-500">可上傳多張圖片，拖曳排序，或手動輸入圖片URL</small>
+            </div>
           </a-form-item>
-          <div class="form-help-text" style="margin-bottom: 16px;">
-            <small class="text-gray-500">可上傳多張圖片，拖曳排序，或手動輸入圖片URL</small>
-          </div>
         </a-card>
 
         <!-- 圖片設定區塊下方，顯示相冊圖片預覽 -->
@@ -430,8 +429,6 @@ import UploadImage from '../components/UploadImage.vue'
 import { formatDate } from '../utils/dateUtils'
 // 1. 匯入 MarkdownEditor
 import MarkdownEditor from '../components/MarkdownEditor.vue'
-// 1. 匯入 UploadGallery
-import UploadGallery from '../components/UploadGallery.vue'
 
 // 響應式數據
 const products = ref([])
@@ -707,22 +704,6 @@ const handleSubmit = async () => {
     await formRef.value.validate()
     
     const data = { ...form }
-    
-    // Ensure gallery_images is an array or a JSON string
-    if (Array.isArray(data.gallery_images)) {
-      data.gallery_images = JSON.stringify(data.gallery_images);
-    } else if (typeof data.gallery_images === 'string') {
-      try {
-        data.gallery_images = JSON.parse(data.gallery_images);
-      } catch (e) {
-        console.error("Invalid JSON string for gallery_images:", e);
-        message.error("相冊圖片格式不正確，請確保為JSON陣列。");
-        submitting.value = false;
-        return;
-      }
-    } else {
-      data.gallery_images = JSON.stringify([]); // Default to empty array if not an array or string
-    }
 
     if (isEditing.value) {
       await axios.put(`/api/products/${form.id}`, data)

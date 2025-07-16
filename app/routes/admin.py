@@ -649,8 +649,8 @@ async def upload_image(
         return {
             "success": True,
             "filename": unique_filename,
-            "url": f"{settings.site_url}/static/uploads/{unique_filename}",
-            "thumbnail_url": f"{settings.site_url}/static/uploads/thumbnails/{unique_filename}",
+            "url": f"/static/uploads/{unique_filename}",
+            "thumbnail_url": f"/static/uploads/thumbnails/{unique_filename}",
             "message": "檔案上傳成功"
         }
         

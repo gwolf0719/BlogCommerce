@@ -82,14 +82,7 @@ admin-src/.output/
 admin-src/.vite/
 admin/
 
-# Static files
-app/static/assets/
-app/static/public/
-app/static/images/*
-!app/static/images/logo.svg
-!app/static/images/favicon.svg
-app/static/css/style.css
-app/static/js/
+
 
 # Environment
 .env

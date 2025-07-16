@@ -163,7 +163,7 @@
         <div class="border-t p-8">
             <h2 class="text-2xl font-bold text-gray-900 mb-4">商品描述</h2>
             <div class="prose max-w-none">
-                <p x-text="product?.description" class="text-gray-700 leading-relaxed"></p>
+                {{ product.description_html | safe }}
             </div>
         </div>
         
@@ -206,35 +206,18 @@
 
 {% block scripts %}
 <script>
-function productDetailApp(slug) {
+function productDetailApp() {
     return {
-        product: null,
+        product: {{ product | tojson | safe if product else 'null' }},
         relatedProducts: [],
         quantity: 1,
-        loading: true,
+        loading: false,
         isFavorited: false,
         
         async init() {
-            await this.loadProduct(slug);
             if (this.product) {
                 await this.loadRelatedProducts();
                 await this.checkFavoriteStatus();
-            }
-        },
-        
-        async loadProduct(slug) {
-            try {
-                const response = await fetch(`/api/products/slug/${slug}`);
-                if (response.ok) {
-                    this.product = await response.json();
-                } else {
-                    this.product = null;
-                }
-            } catch (error) {
-                console.error('載入商品失敗:', error);
-                this.product = null;
-            } finally {
-                this.loading = false;
             }
         },
         

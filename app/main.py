@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, Request, HTTPException, APIRouter
+from fastapi import FastAPI, Request, HTTPException, APIRouter, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +17,8 @@ from datetime import datetime
 from typing import Optional
 from app.services.markdown_service import markdown_service
 from starlette.responses import RedirectResponse
+from app.auth import get_current_user_optional
+from app.schemas.product import ProductResponse
 
 # 引入所有路由模組
 from app.routes import (
@@ -130,8 +132,28 @@ async def products_page(request: Request):
     return render_template("shop/products.html", request)
 
 @app.get("/product/{slug}", include_in_schema=False)
-async def product_detail_page(request: Request, slug: str):
-    return render_template("shop/product_detail.html", request, slug=slug)
+async def product_detail_page(request: Request, slug: str, current_user=Depends(get_current_user_optional)):
+    from app.database import get_db
+    from app.routes.products import get_product_by_slug as get_product_data
+    from app.services.markdown_service import markdown_service
+
+    db = next(get_db())
+    try:
+        # 獲取原始商品數據
+        product = get_product_data(slug=slug, request=request, db=db, current_user=current_user)
+        # 用 Pydantic schema 轉換，確保 datetime 可序列化
+        product_schema = ProductResponse.model_validate(product)
+        product_dict = product_schema.model_dump(mode="json")
+        product_dict['description_html'] = markdown_service.render(product.description)
+    except HTTPException as e:
+        if e.status_code == 404:
+            product_dict = None
+        else:
+            raise e
+    finally:
+        db.close()
+    
+    return render_template("shop/product_detail.html", request, product=product_dict, slug=slug)
 
 @app.get("/cart", include_in_schema=False)
 async def cart_page(request: Request):
