@@ -1,17 +1,12 @@
 from sqlalchemy import Column, String, Boolean, Enum
 from sqlalchemy.orm import relationship
-from passlib.context import CryptContext
+import bcrypt
 import enum
 from app.models.base import BaseModel
 
-# 密碼加密設定
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
 class UserRole(enum.Enum):
-    USER = "user"
-    ADMIN = "admin"
-
+    user = "user"
+    admin = "admin"
 
 class User(BaseModel):
     __tablename__ = "users"
@@ -25,7 +20,7 @@ class User(BaseModel):
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
     is_verified = Column(Boolean, default=False)
-    role = Column(Enum(UserRole), default=UserRole.USER)
+    role = Column(Enum(UserRole, values_callable=lambda obj: [e.value for e in obj]), default=UserRole.USER)
     
     # 關聯
     orders = relationship("Order", back_populates="user")
@@ -36,12 +31,17 @@ class User(BaseModel):
     discount_usages = relationship("PromoUsage", back_populates="user", viewonly=True)
     
     def set_password(self, password: str):
-        """設定密碼（加密）"""
-        self.hashed_password = pwd_context.hash(password)
+        """設定密碼（使用 bcrypt）"""
+        # bcrypt.gensalt() 預設成本係數 rounds=12，可用 bcrypt.gensalt(rounds=10) 調整
+        hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+        self.hashed_password = hashed.decode("utf-8")
     
     def verify_password(self, password: str) -> bool:
-        """驗證密碼"""
-        return pwd_context.verify(password, self.hashed_password)  # type: ignore
+        """驗證密碼（使用 bcrypt）"""
+        return bcrypt.checkpw(
+            password.encode("utf-8"),
+            self.hashed_password.encode("utf-8")
+        )
     
     def __repr__(self):
-        return f"<User {self.username}>" 
+        return f"<User {self.username}>"

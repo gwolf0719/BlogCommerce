@@ -1,13 +1,17 @@
 from datetime import datetime, timedelta
 from typing import Optional
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
+
 from app.config import settings
 from app.database import get_db
-from app.models.user import User, pwd_context
+from app.models.user import User
 from app.schemas.user import TokenData
+
+import bcrypt
 
 # JWT 設定
 security = HTTPBearer()
@@ -15,13 +19,17 @@ optional_security = HTTPBearer(auto_error=False)
 
 
 def get_password_hash(password: str) -> str:
-    """加密密碼"""
-    return pwd_context.hash(password)
+    """使用 bcrypt 加密密碼"""
+    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+    return hashed.decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """驗證密碼"""
-    return pwd_context.verify(plain_password, hashed_password)
+    """使用 bcrypt 驗證密碼"""
+    return bcrypt.checkpw(
+        plain_password.encode("utf-8"),
+        hashed_password.encode("utf-8")
+    )
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -31,7 +39,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
-    
+
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
     return encoded_jwt
@@ -45,7 +53,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         detail="無法驗證身份",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
         payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
         username: str = payload.get("sub")
@@ -54,7 +62,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    
+
     return token_data
 
 
@@ -96,14 +104,14 @@ def get_current_user_optional(
     """取得目前登入的使用者（可選）"""
     if credentials is None:
         return None
-    
+
     try:
         token = credentials.credentials
         payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
         username: str = payload.get("sub")
         if username is None:
             return None
-        
+
         user = db.query(User).filter(User.username == username).first()
         return user
     except JWTError:
@@ -115,6 +123,6 @@ def authenticate_user(db: Session, username: str, password: str):
     user = db.query(User).filter(User.username == username).first()
     if not user:
         return False
-    if not user.verify_password(password):
+    if not verify_password(password, user.hashed_password):
         return False
-    return user 
+    return user

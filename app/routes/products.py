@@ -245,7 +245,9 @@ def delete_product(
         raise HTTPException(status_code=404, detail="商品不存在")
     
     # 檢查是否有相關訂單
-    if product.order_items:
+    from app.models.order import OrderItem
+    order_item_exists = db.query(OrderItem).filter(OrderItem.product_id == product_id).first()
+    if order_item_exists:
         raise HTTPException(
             status_code=400,
             detail="無法刪除：此商品已有相關訂單"

@@ -11,7 +11,6 @@ dependencies = [
     "pydantic-settings",
     "sqlalchemy",
     "python-jose",
-    "passlib",
     "user-agents",
     "aiohttp",
     "httpx",

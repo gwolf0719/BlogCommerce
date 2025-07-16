@@ -11,7 +11,7 @@ from app.models.discount_code import PromoCode
 from app.models.discount_usage import PromoUsage
 # 分類和標籤已移除
 from app.models.newsletter import NewsletterSubscriber
-from app.schemas.user import UserResponse, UserUpdate
+from app.schemas.user import UserResponse, UserUpdate, UserListResponse, UserCreate
 from app.schemas.post import PostResponse, PostCreate, PostUpdate
 from app.schemas.product import ProductResponse, ProductCreate, ProductUpdate
 from app.schemas.order import OrderResponse, OrderUpdate, OrderListResponse
@@ -139,8 +139,8 @@ def get_all_users(
     
     total = query.count()
     users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
-    
-    return UserListResponse(items=users, total=total)
+    user_responses = [UserResponse.model_validate(user) for user in users]
+    return UserListResponse(items=user_responses, total=total)
 
 
 @router.post("/users", response_model=UserResponse, summary="新增使用者 (管理員)")
@@ -161,7 +161,7 @@ def create_user_by_admin(
         username=user_create.username,
         email=user_create.email,
         hashed_password=get_password_hash(user_create.password),
-        role=user_create.role if hasattr(user_create, 'role') else 'user',
+        role=user_create.role if hasattr(user_create, 'role') else UserRole.user,
         is_active=user_create.is_active if hasattr(user_create, 'is_active') else True
     )
     
@@ -263,7 +263,7 @@ def get_users_stats(
         # 管理員數量  
         from app.models.user import UserRole
         admin_users = db.query(func.count(User.id)).filter(
-            User.role == UserRole.ADMIN
+            User.role == UserRole.admin
         ).scalar() or 0
         
         return {
@@ -461,7 +461,7 @@ def admin_delete_product(
 # 訂單管理
 # ==============================================
 
-@router.get("/orders", response_model=List[OrderListResponse])
+@router.get("/orders")
 def get_all_orders_admin(
     skip: int = Query(0, ge=0),
     limit: int = Query(settings.orders_per_page, ge=1, le=100),
@@ -485,29 +485,10 @@ def get_all_orders_admin(
                 Order.customer_email.contains(search)
             )
         
+        total = query.count()
         orders = query.order_by(Order.created_at.desc()).offset(skip).limit(limit).all()
         
-        # 轉換為 OrderListResponse 格式
-        result = []
-        for order in orders:
-            # 單獨查詢每個訂單的商品數量
-            items_count = db.query(func.sum(OrderItem.quantity)).filter(
-                OrderItem.order_id == order.id
-            ).scalar() or 0
-            
-            result.append({
-                "id": order.id,
-                "order_number": order.order_number,
-                "customer_name": order.customer_name,
-                "total_amount": order.total_amount,
-                "status": order.status,
-                "payment_method": order.payment_method,
-                "payment_status": order.payment_status,
-                "created_at": order.created_at.isoformat() if order.created_at else None,
-                "items_count": int(items_count)
-            })
-        
-        return result
+        return OrderListResponse(items=orders, total=total)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"獲取訂單列表失敗: {str(e)}")
 
@@ -1041,8 +1022,8 @@ async def upload_image(
         return {
             "success": True,
             "filename": unique_filename,
-            "url": f"/static/uploads/{unique_filename}",
-            "thumbnail_url": f"/static/uploads/thumbnails/{unique_filename}",
+            "url": f"{settings.site_url}/static/uploads/{unique_filename}",
+            "thumbnail_url": f"{settings.site_url}/static/uploads/thumbnails/{unique_filename}",
             "message": "檔案上傳成功"
         }
         
