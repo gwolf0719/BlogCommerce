@@ -26,7 +26,7 @@
     <div class="content-section">
       <a-row :gutter="24">
         <!-- 左側選單 -->
-        <a-col :span="6">
+        <a-col :xs="24" :sm="24" :md="6" style="margin-bottom: 24px;">
           <a-card>
             <a-menu v-model:selected-keys="selectedKeys" mode="vertical" @click="handleMenuClick">
               <a-menu-item key="general">
@@ -41,10 +41,7 @@
                 <template #icon>📧</template>
                 郵件設定
               </a-menu-item>
-              <a-menu-item key="analytics">
-                <template #icon>📊</template>
-                數據分析
-              </a-menu-item>
+              <!-- 移除: 數據分析選單項目 -->
               <a-menu-item key="ai">
                 <template #icon>🤖</template>
                 AI 設定
@@ -62,7 +59,7 @@
         </a-col>
 
         <!-- 右側內容 -->
-        <a-col :span="18">
+        <a-col :xs="24" :sm="24" :md="18">
           <!-- 基本設定 -->
           <a-card v-if="activeTab === 'general'" title="基本設定" :loading="loading">
             <a-form layout="vertical">
@@ -139,21 +136,15 @@
                   </a-form-item>
                 </a-col>
                 <a-col :span="12">
-                  <a-form-item label="數據分析">
-                    <a-switch v-model:checked="settings.analytics_enabled" checked-children="開啟" un-checked-children="關閉" />
-                    <div class="text-gray-500 text-sm mt-1">啟用/停用訪客統計</div>
-                  </a-form-item>
-                </a-col>
-              </a-row>
-
-              <a-row :gutter="24">
-                <a-col :span="12">
                   <a-form-item label="電子報">
                     <a-switch v-model:checked="settings.newsletter_enabled" checked-children="開啟" un-checked-children="關閉" />
                     <div class="text-gray-500 text-sm mt-1">啟用/停用電子報功能</div>
                   </a-form-item>
                 </a-col>
-                <a-col :span="12">
+              </a-row>
+
+              <a-row :gutter="24">
+                 <a-col :span="12">
                   <a-form-item label="維護模式">
                     <a-switch v-model:checked="settings.maintenance_mode" checked-children="開啟" un-checked-children="關閉" />
                     <div class="text-gray-500 text-sm mt-1">網站維護模式</div>
@@ -226,36 +217,6 @@
 
               <a-form-item>
                 <a-button @click="testEmail" :loading="testingEmail">測試郵件</a-button>
-              </a-form-item>
-            </a-form>
-          </a-card>
-
-          <!-- 數據分析設定 -->
-          <a-card v-if="activeTab === 'analytics'" title="數據分析設定" :loading="loading">
-            <a-form layout="vertical">
-              <a-form-item label="Google Analytics">
-                <a-input v-model:value="settings.google_analytics_id" placeholder="G-XXXXXXXXXX" />
-                <div class="text-gray-500 text-sm mt-1">輸入 Google Analytics 追蹤 ID</div>
-              </a-form-item>
-
-              <a-form-item label="Google Tag Manager">
-                <a-input v-model:value="settings.google_tag_manager_id" placeholder="GTM-XXXXXXX" />
-                <div class="text-gray-500 text-sm mt-1">輸入 Google Tag Manager 容器 ID</div>
-              </a-form-item>
-
-              <a-form-item label="Facebook Pixel">
-                <a-input v-model:value="settings.facebook_pixel_id" placeholder="123456789012345" />
-                <div class="text-gray-500 text-sm mt-1">輸入 Facebook Pixel ID</div>
-              </a-form-item>
-
-              <a-form-item label="數據保留期限">
-                <a-select v-model:value="settings.analytics_retention_days">
-                  <a-select-option :value="30">30 天</a-select-option>
-                  <a-select-option :value="90">90 天</a-select-option>
-                  <a-select-option :value="365">365 天</a-select-option>
-                  <a-select-option :value="0">永久保留</a-select-option>
-                </a-select>
-                <div class="text-gray-500 text-sm mt-1">超過期限的數據將自動刪除</div>
               </a-form-item>
             </a-form>
           </a-card>
@@ -730,12 +691,6 @@ import { message } from 'ant-design-vue'
 import { 
   SaveOutlined, 
   ReloadOutlined, 
-  SettingOutlined, 
-  AppstoreOutlined, 
-  MailOutlined, 
-  BarChartOutlined, 
-  RobotOutlined, 
-  SafetyOutlined,
   CreditCardOutlined,
   BankOutlined,
   MessageOutlined,
@@ -750,9 +705,6 @@ import {
   EnvironmentOutlined,
   ExperimentOutlined,
   RocketOutlined,
-  CarOutlined,
-  MoneyCollectOutlined,
-  GiftOutlined
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '../stores/auth'
 import UploadImage from '../components/UploadImage.vue'
@@ -781,7 +733,6 @@ const settings = reactive({
   user_registration: true,
   comment_enabled: true,
   search_enabled: true,
-  analytics_enabled: true,
   newsletter_enabled: false,
   maintenance_mode: false,
 
@@ -794,12 +745,6 @@ const settings = reactive({
   smtp_encryption: 'tls',
   email_from_name: '',
   email_from_address: '',
-
-  // 數據分析
-  google_analytics_id: '',
-  google_tag_manager_id: '',
-  facebook_pixel_id: '',
-  analytics_retention_days: 365,
 
   // AI 設定
   openai_api_key: '',
@@ -872,12 +817,14 @@ const loadSettings = async () => {
     const response = await api.get('/api/settings')
     const data = response.data
     
-    // 更新設定值
-    Object.keys(settings).forEach(key => {
-      if (data[key] !== undefined) {
-        settings[key] = data[key]
-      }
-    })
+    // 修正: 增加防呆處理，確保 data 存在
+    if (data) {
+      Object.keys(settings).forEach(key => {
+        if (data[key] !== undefined) {
+          settings[key] = data[key]
+        }
+      })
+    }
 
   } catch (error) {
     console.log('一般設定 API 尚未實現或載入失敗，使用預設值')
@@ -893,7 +840,8 @@ const saveAllSettings = async () => {
     message.success('設定已儲存')
 
   } catch (error) {
-    message.error(error.message || '儲存設定失敗')
+    const errorMessage = error.response?.data?.detail || '儲存設定失敗'
+    message.error(errorMessage)
   } finally {
     saving.value = false
   }
@@ -907,16 +855,23 @@ const refreshSettings = () => {
 const testEmail = async () => {
   testingEmail.value = true
   try {
+    // 假設 authStore 中有管理員信箱
+    const adminEmail = authStore.user?.email 
+    if (!adminEmail) {
+        message.error('找不到管理員信箱')
+        return
+    }
     await api.post('/api/auth/test-email', {
-      to: settings.admin_email, // 假設有一個管理員信箱設定
+      to: adminEmail,
       subject: '郵件設定測試',
-      content: '這是一封測試郵件，如果您收到這封郵件，表示郵件設定正確。'
+      content: '這是一封來自 BlogCommerce 的測試郵件，如果您收到這封郵件，表示郵件設定正確。'
     })
 
     message.success('測試郵件已發送，請檢查您的信箱')
 
   } catch (error) {
-    message.error(error.message || '發送測試郵件失敗')
+    const errorMessage = error.response?.data?.detail || '發送測試郵件失敗'
+    message.error(errorMessage)
   } finally {
     testingEmail.value = false
   }
@@ -949,11 +904,14 @@ const loadPaymentSettings = async () => {
   try {
     const paymentSettingsResponse = await api.get('/api/admin/payment/settings')
     const data = paymentSettingsResponse.data
-    payment.enabledMethods = data.enabledMethods || []
-    payment.transfer = data.transfer || { bank: '', account: '', name: '' }
-    payment.linepay = data.linepay || { channel_id: '', channel_secret: '', store_name: '' }
-    payment.ecpay = data.ecpay || { merchant_id: '', hash_key: '', hash_iv: '', api_url: '' }
-    payment.paypal = data.paypal || { client_id: '', client_secret: '', environment: 'sandbox' }
+    // 修正: 增加防呆處理，確保 data 存在
+    if (data) {
+      payment.enabledMethods = data.enabledMethods || []
+      payment.transfer = data.transfer || { bank: '', account: '', name: '' }
+      payment.linepay = data.linepay || { channel_id: '', channel_secret: '', store_name: '' }
+      payment.ecpay = data.ecpay || { merchant_id: '', hash_key: '', hash_iv: '', api_url: '' }
+      payment.paypal = data.paypal || { client_id: '', client_secret: '', environment: 'sandbox' }
+    }
   } catch (error) {
     console.error('載入金流設定失敗:', error)
     message.error('載入金流設定失敗，請檢查後端服務是否正常。')
@@ -969,7 +927,8 @@ const savePaymentSettings = async () => {
     message.success('金流設定已成功儲存')
   } catch (error) {
     console.error('儲存金流設定失敗:', error)
-    message.error('儲存金流設定失敗，請檢查後端日誌。')
+    const errorMessage = error.response?.data?.detail || '儲存金流設定失敗'
+    message.error(errorMessage)
   } finally {
     savingPayment.value = false
   }
@@ -1256,4 +1215,3 @@ onMounted(() => {
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 </style>
- 

@@ -5,7 +5,8 @@ import asyncio
 import subprocess
 
 from app.database import SessionLocal
-from app.models.user import User
+# 修改：同時匯入 User 和 UserRole
+from app.models.user import User, UserRole
 from app.auth import get_password_hash
 from sqlalchemy.orm import Session
 from app.config import settings
@@ -27,7 +28,8 @@ def run_alembic_upgrade():
 
 def check_admin_exists(db: Session) -> bool:
     """檢查是否已有管理員帳號"""
-    return db.query(User).filter(User.is_admin == True).first() is not None
+    # 修改：改為使用 role 欄位進行判斷
+    return db.query(User).filter(User.role == UserRole.admin).first() is not None
 
 def create_admin_user(db: Session):
     """從設定檔建立預設管理員帳號"""
@@ -51,8 +53,11 @@ def create_admin_user(db: Session):
         username=username,
         email=email,
         hashed_password=hashed_password,
-        is_admin=True,
-        is_active=True
+        # 修改：移除 is_admin=True，改為設定 role
+        role=UserRole.admin,
+        is_active=True,
+        # 建議將管理員預設為已驗證
+        is_verified=True 
     )
     db.add(admin_user)
     db.commit()

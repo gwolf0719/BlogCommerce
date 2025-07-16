@@ -5,7 +5,7 @@ import Posts from '../views/Posts.vue'
 import Products from '../views/Products.vue'
 import Orders from '../views/Orders.vue'
 import Users from '../views/Users.vue'
-import Analytics from '../views/Analytics.vue'
+// 移除: import Analytics from '../views/Analytics.vue'
 import Settings from '../views/Settings.vue'
 import Banners from '../views/Banners.vue'
 import ShippingTiers from '../views/ShippingTiers.vue'
@@ -24,52 +24,48 @@ const routes = [
     redirect: '/dashboard',
     children: [
       {
-        path: '/dashboard',
+        path: 'dashboard',
         name: 'Dashboard',
         component: Dashboard
       },
       {
-        path: '/posts',
+        path: 'posts',
         name: 'Posts',
         component: Posts
       },
       {
-        path: '/products',
+        path: 'products',
         name: 'Products',
         component: Products
       },
       {
-        path: '/orders',
+        path: 'orders',
         name: 'Orders',
         component: Orders
       },
       {
-        path: '/users',
+        path: 'users',
         name: 'Users',
         component: Users
       },
       {
-        path: '/banners',
+        path: 'banners',
         name: 'Banners',
         component: Banners
       },
       {
-        path: '/shipping-tiers',
+        path: 'shipping-tiers',
         name: 'ShippingTiers',
         component: ShippingTiers
       },
       {
-        path: '/promo-codes',
+        path: 'promo-codes',
         name: 'PromoCodes',
         component: PromoCodes
       },
+      // 移除: Analytics 路由設定
       {
-        path: '/analytics',
-        name: 'Analytics',
-        component: Analytics
-      },
-      {
-        path: '/settings',
+        path: 'settings',
         name: 'Settings',
         component: Settings
       }
@@ -77,4 +73,4 @@ const routes = [
   }
 ]
 
-export default routes 
+export default routes

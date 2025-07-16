@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, File, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import desc, or_
 from typing import List, Optional
 import os
 import uuid
@@ -21,7 +22,7 @@ from app.models.user import User
 router = APIRouter(prefix="/banners", tags=["廣告橫幅"])
 
 
-
+# 修正: 移除對 BannerService 的依賴，改為直接查詢資料庫以修復 AttributeError
 @router.get("", response_model=BannerListResponse, summary="📋 取得廣告列表")
 async def get_banners(
     request: Request,
@@ -32,31 +33,36 @@ async def get_banners(
     """
     取得廣告列表，支援多種篩選條件和分頁查詢。
     """
-    banner_service = BannerService(db)
-    
-    # 從查詢參數解析篩選條件
     params = request.query_params
     position = params.get("position")
     is_active_str = params.get("is_active")
     search = params.get("search")
 
-    is_active = None
+    query = db.query(Banner)
+
+    if position:
+        try:
+            position_enum = BannerPosition[position.lower()]
+            query = query.filter(Banner.position == position_enum)
+        except KeyError:
+            pass # 如果 position 值無效，則忽略此篩選條件
+
     if is_active_str is not None:
         is_active = is_active_str.lower() in ['true', '1']
+        query = query.filter(Banner.is_active == is_active)
 
-    total = banner_service.count_banners(
-        position=position,
-        is_active=is_active,
-        search=search
-    )
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                Banner.title.ilike(search_term),
+                Banner.description.ilike(search_term)
+            )
+        )
+
+    total = query.count()
     
-    banners = banner_service.get_banners(
-        skip=skip,
-        limit=limit,
-        position=position,
-        is_active=is_active,
-        search=search
-    )
+    banners = query.order_by(desc(Banner.sort_order), desc(Banner.created_at)).offset(skip).limit(limit).all()
     
     return BannerListResponse(items=banners, total=total)
 

@@ -1,21 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, func, desc, asc
 from typing import List, Optional
 from app.database import get_db
 from app.auth import get_current_admin_user
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.post import Post
 from app.models.product import Product
 from app.models.order import Order
 from app.models.discount_code import PromoCode
 from app.models.discount_usage import PromoUsage
-# 分類和標籤已移除
 from app.models.newsletter import NewsletterSubscriber
 from app.schemas.user import UserResponse, UserUpdate, UserListResponse, UserCreate
 from app.schemas.post import PostResponse, PostCreate, PostUpdate
 from app.schemas.product import ProductResponse, ProductCreate, ProductUpdate
 from app.schemas.order import OrderResponse, OrderUpdate, OrderListResponse
-# 標籤schemas已移除
 from app.schemas.newsletter import (
     NewsletterSubscriberResponse,
     NewsletterSubscriberCreate,
@@ -26,6 +25,7 @@ from app.config import settings
 import os
 import uuid
 from PIL import Image
+from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/admin", tags=["管理員"])
 
@@ -38,49 +38,26 @@ def get_admin_stats(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
-    """取得管理員儀表板所需的完整統計資訊。"""
-    from sqlalchemy import func
-    from app.models.analytics import UserSession
-    from app.models.discount_code import DiscountCode
-    from app.models.discount_usage import PromoUsage
-    from datetime import datetime, timedelta
-    
+    """取得管理員儀表板所需的統計資訊。"""
     try:
         today = datetime.now().date()
         
-        # 使用者統計
         total_users = db.query(func.count(User.id)).scalar() or 0
-        
-        # 文章統計
         total_posts = db.query(func.count(Post.id)).scalar() or 0
         published_posts = db.query(func.count(Post.id)).filter(Post.is_published == True).scalar() or 0
-        
-        # 商品統計
         total_products = db.query(func.count(Product.id)).scalar() or 0
         active_products = db.query(func.count(Product.id)).filter(Product.is_active == True).scalar() or 0
-        
-        # 訂單統計
         total_orders = db.query(func.count(Order.id)).scalar() or 0
         pending_orders = db.query(func.count(Order.id)).filter(Order.status.in_(["pending", "confirmed"])).scalar() or 0
-        
-        # 銷售統計
         total_sales = db.query(func.sum(Order.total_amount)).filter(Order.payment_status == "paid").scalar() or 0
-        
-        # 今日訂單和銷售額
         today_orders = db.query(func.count(Order.id)).filter(func.date(Order.created_at) == today).scalar() or 0
         today_revenue = db.query(func.sum(Order.total_amount)).filter(
             func.date(Order.created_at) == today,
             Order.payment_status == "paid"
         ).scalar() or 0
         
-        # 活躍會話數（過去15分鐘）
-        active_sessions = db.query(func.count(UserSession.id)).filter(
-            UserSession.last_activity >= datetime.now() - timedelta(minutes=15)
-        ).scalar() or 0
-        
-        # 折扣碼統計
-        total_discount_codes = db.query(func.count(DiscountCode.id)).scalar() or 0
-        active_discount_codes = db.query(func.count(DiscountCode.id)).filter(DiscountCode.is_active == True).scalar() or 0
+        total_discount_codes = db.query(func.count(PromoCode.id)).scalar() or 0
+        active_discount_codes = db.query(func.count(PromoCode.id)).filter(PromoCode.is_active == True).scalar() or 0
         total_discount_usage = db.query(func.sum(PromoCode.used_count)).scalar() or 0
         today_discount_usage = db.query(func.count(PromoUsage.id)).filter(func.date(PromoUsage.used_at) == today).scalar() or 0
 
@@ -95,7 +72,7 @@ def get_admin_stats(
             total_sales=total_sales or 0,
             today_orders=today_orders,
             today_revenue=today_revenue or 0,
-            active_sessions=active_sessions,
+            active_sessions=0, # 移除後給定預設值
             total_discount_codes=total_discount_codes,
             active_discount_codes=active_discount_codes,
             total_discount_usage=total_discount_usage,
@@ -104,7 +81,6 @@ def get_admin_stats(
         )
         
     except Exception as e:
-        # 在生產環境中，可以記錄更詳細的錯誤日誌
         print(f"獲取統計資料失敗: {e}")
         raise HTTPException(status_code=500, detail="獲取儀表板統計資料時發生內部錯誤")
 
@@ -126,9 +102,12 @@ def get_all_users(
     query = db.query(User)
     
     if search:
+        search_term = f"%{search}%"
         query = query.filter(
-            User.username.contains(search) |
-            User.email.contains(search)
+            or_(
+                User.username.ilike(search_term),
+                User.email.ilike(search_term)
+            )
         )
     
     if role:
@@ -139,8 +118,7 @@ def get_all_users(
     
     total = query.count()
     users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
-    user_responses = [UserResponse.model_validate(user) for user in users]
-    return UserListResponse(items=user_responses, total=total)
+    return UserListResponse(items=users, total=total)
 
 
 @router.post("/users", response_model=UserResponse, summary="新增使用者 (管理員)")
@@ -161,8 +139,8 @@ def create_user_by_admin(
         username=user_create.username,
         email=user_create.email,
         hashed_password=get_password_hash(user_create.password),
-        role=user_create.role if hasattr(user_create, 'role') else UserRole.user,
-        is_active=user_create.is_active if hasattr(user_create, 'is_active') else True
+        role=user_create.role,
+        is_active=user_create.is_active
     )
     
     db.add(new_user)
@@ -170,6 +148,31 @@ def create_user_by_admin(
     db.refresh(new_user)
     
     return new_user
+
+# 修正: 將 /users/stats 路由移到 /users/{user_id} 之前
+@router.get("/users/stats")
+def get_users_stats(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """獲取會員統計數據"""
+    try:
+        today = datetime.now().date()
+        
+        total_users = db.query(func.count(User.id)).scalar() or 0
+        active_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar() or 0
+        today_new_users = db.query(func.count(User.id)).filter(func.date(User.created_at) == today).scalar() or 0
+        admin_users = db.query(func.count(User.id)).filter(User.role == UserRole.admin).scalar() or 0
+        
+        return {
+            "total_users": total_users,
+            "active_users": active_users,
+            "today_new_users": today_new_users,
+            "admin_users": admin_users
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"獲取會員統計失敗: {str(e)}")
 
 
 @router.get("/users/{user_id}", response_model=UserResponse)
@@ -199,9 +202,13 @@ def update_user_by_admin(
     
     update_data = user_update.model_dump(exclude_unset=True)
     
-    # 如果管理員試圖停用自己的帳號
     if 'is_active' in update_data and not update_data['is_active'] and user.id == current_user.id:
         raise HTTPException(status_code=400, detail="不能停用自己的帳號")
+    
+    if 'password' in update_data and update_data['password']:
+        from app.auth import get_password_hash
+        user.hashed_password = get_password_hash(update_data['password'])
+        del update_data['password']
 
     for field, value in update_data.items():
         setattr(user, field, value)
@@ -235,48 +242,6 @@ def delete_user_by_admin(
     return {"message": "使用者已刪除"}
 
 
-@router.get("/users/stats")
-def get_users_stats(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """獲取會員統計數據"""
-    from sqlalchemy import func
-    from datetime import datetime, timedelta
-    
-    try:
-        today = datetime.now().date()
-        
-        # 總會員數
-        total_users = db.query(func.count(User.id)).scalar() or 0
-        
-        # 活躍會員（使用is_active狀態）
-        active_users = db.query(func.count(User.id)).filter(
-            User.is_active == True
-        ).scalar() or 0
-        
-        # 今日新增會員
-        today_new_users = db.query(func.count(User.id)).filter(
-            func.date(User.created_at) == today
-        ).scalar() or 0
-        
-        # 管理員數量  
-        from app.models.user import UserRole
-        admin_users = db.query(func.count(User.id)).filter(
-            User.role == UserRole.admin
-        ).scalar() or 0
-        
-        return {
-            "total_users": total_users,
-            "active_users": active_users,
-            "today_new_users": today_new_users,
-            "admin_users": admin_users
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取會員統計失敗: {str(e)}")
-
-
 # ==============================================
 # 文章管理
 # ==============================================
@@ -295,8 +260,10 @@ def get_all_posts(
     
     if search:
         query = query.filter(
-            Post.title.contains(search) |
-            Post.content.contains(search)
+            or_(
+                Post.title.contains(search),
+                Post.content.contains(search)
+            )
         )
     
     if published is not None:
@@ -349,28 +316,23 @@ def get_all_products(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     search: Optional[str] = Query(None, description="搜尋商品名稱或描述"),
-
     status: Optional[str] = Query(None, description="狀態篩選"),
     sort: Optional[str] = Query("created_at_desc", description="排序方式"),
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
     """取得所有商品列表（管理員）"""
-    from sqlalchemy import func, desc, asc
-    
     query = db.query(Product)
     
-    # 搜尋篩選
     if search:
         query = query.filter(
-            Product.name.contains(search) |
-            Product.description.contains(search) |
-            Product.sku.contains(search)
+            or_(
+                Product.name.contains(search),
+                Product.description.contains(search),
+                Product.sku.contains(search)
+            )
         )
     
-    # 分類篩選已移除
-    
-    # 狀態篩選
     if status == "active":
         query = query.filter(Product.is_active == True)
     elif status == "inactive":
@@ -378,7 +340,6 @@ def get_all_products(
     elif status == "featured":
         query = query.filter(Product.is_featured == True)
     
-    # 排序
     if sort == "created_at_desc":
         query = query.order_by(desc(Product.id))
     elif sort == "created_at_asc":
@@ -394,10 +355,8 @@ def get_all_products(
     else:
         query = query.order_by(desc(Product.id))
     
-    # 計算總數
     total = query.count()
     
-    # 分頁
     skip = (page - 1) * page_size
     products = query.offset(skip).limit(page_size).all()
     
@@ -472,17 +431,16 @@ def get_all_orders_admin(
     """取得所有訂單列表（管理員）"""
     try:
         from sqlalchemy.orm import selectinload
-        from sqlalchemy import func
-        from app.models.order import OrderItem
         
-        # 先查詢訂單基本資訊
         query = db.query(Order)
         
         if search:
             query = query.filter(
-                Order.order_number.contains(search) |
-                Order.customer_name.contains(search) |
-                Order.customer_email.contains(search)
+                or_(
+                    Order.order_number.contains(search),
+                    Order.customer_name.contains(search),
+                    Order.customer_email.contains(search)
+                )
             )
         
         total = query.count()
@@ -507,7 +465,6 @@ def get_admin_order_detail(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="訂單不存在")
-    # 強制載入 items 關聯
     _ = order.items
     return order
 
@@ -532,13 +489,10 @@ def admin_update_order_payment(
     db: Session = Depends(get_db)
 ):
     """更新訂單付款狀態（管理員）"""
-    from datetime import datetime
-    
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="訂單不存在")
     
-    # 更新付款相關欄位
     if "payment_method" in payment_data:
         order.payment_method = payment_data["payment_method"]
     
@@ -548,335 +502,12 @@ def admin_update_order_payment(
     if "payment_info" in payment_data:
         order.payment_info = payment_data["payment_info"]
     
-    # 更新付款時間
     order.payment_updated_at = datetime.now()
     
     db.commit()
     db.refresh(order)
     
     return {"message": "付款狀態更新成功", "order_id": order_id}
-
-
-# 分類管理功能已移除
-
-
-# ==============================================
-# 統計資訊
-# ==============================================
-
-@router.get("/stats")
-async def get_admin_stats(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """取得管理員儀表板統計資訊"""
-    from sqlalchemy import func
-    from app.models.analytics import PageView
-    from app.models.discount_code import DiscountCode
-    from app.models.discount_usage import DiscountUsage
-    from datetime import datetime, timedelta
-    
-    try:
-        # 基本統計
-        total_users = db.query(func.count(User.id)).scalar() or 0
-        total_posts = db.query(func.count(Post.id)).scalar() or 0
-        total_products = db.query(func.count(Product.id)).scalar() or 0
-        total_orders = db.query(func.count(Order.id)).scalar() or 0
-        
-        # 訂單統計
-        pending_orders = db.query(func.count(Order.id)).filter(
-            Order.status.in_(["pending", "confirmed"])
-        ).scalar() or 0
-        
-        # 頁面瀏覽統計
-        total_page_views = db.query(func.count(PageView.id)).scalar() or 0
-        
-        # 商品統計
-        active_products = db.query(func.count(Product.id)).filter(
-            Product.is_active == True
-        ).scalar() or 0
-        
-        # 已發布文章統計
-        published_posts = db.query(func.count(Post.id)).filter(
-            Post.is_published == True
-        ).scalar() or 0
-        
-        # 折扣碼統計
-        total_discount_codes = db.query(func.count(DiscountCode.id)).scalar() or 0
-        active_discount_codes = db.query(func.count(DiscountCode.id)).filter(
-            DiscountCode.is_active == True
-        ).scalar() or 0
-        total_discount_usage = db.query(func.sum(PromoCode.used_count)).scalar() or 0
-        total_discount_amount = db.query(func.sum(PromoUsage.promo_amount)).scalar() or 0
-        
-        # 今日推薦碼使用次數
-        today = datetime.now().date()
-        today_discount_usage = db.query(func.count(PromoUsage.id)).filter(
-            func.date(PromoUsage.used_at) == today
-        ).scalar() or 0
-        
-        # 銷售統計
-        total_sales = db.query(func.sum(Order.total_amount)).filter(
-            Order.status.in_(["confirmed", "shipped", "delivered"])
-        ).scalar() or 0
-        
-        # 今日訂單和銷售額
-        today_orders = db.query(func.count(Order.id)).filter(
-            func.date(Order.created_at) == today
-        ).scalar() or 0
-        
-        today_revenue = db.query(func.sum(Order.total_amount)).filter(
-            func.date(Order.created_at) == today,
-            Order.status.in_(["confirmed", "shipped", "delivered"])
-        ).scalar() or 0
-        
-        # 活躍會話數（過去15分鐘）
-        from app.models.analytics import UserSession
-        active_sessions = db.query(func.count(UserSession.id)).filter(
-            UserSession.last_activity >= datetime.now() - timedelta(minutes=15)
-        ).scalar() or 0
-        
-        stats = {
-            "total_users": total_users,
-            "total_posts": total_posts,
-            "published_posts": published_posts,
-            "total_products": total_products,
-            "active_products": active_products,
-            "total_orders": total_orders,
-            "pending_orders": pending_orders,
-            "total_page_views": total_page_views,
-            "total_sales": float(total_sales or 0),
-            "today_orders": today_orders,
-            "today_revenue": float(today_revenue or 0),
-            "active_sessions": active_sessions,
-            "total_discount_codes": total_discount_codes,
-            "active_discount_codes": active_discount_codes,
-            "total_discount_usage": total_discount_usage,
-            "total_discount_amount": float(total_discount_amount or 0),
-            "today_discount_usage": today_discount_usage,
-            "calculated_at": datetime.now().isoformat()
-        }
-        
-        return stats
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取統計資料失敗: {str(e)}")
-
-
-@router.get("/quick-stats")
-async def get_quick_stats(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """獲取快速統計數據（數據分析頁面使用）"""
-    from sqlalchemy import func
-    from app.models.analytics import PageView
-    
-    try:
-        stats = {
-            "total_users": db.query(func.count(User.id)).scalar() or 0,
-            "total_posts": db.query(func.count(Post.id)).scalar() or 0,
-            "total_products": db.query(func.count(Product.id)).scalar() or 0,
-            "total_orders": db.query(func.count(Order.id)).scalar() or 0,
-            "total_page_views": db.query(func.count(PageView.id)).scalar() or 0,
-            "active_products": db.query(func.count(Product.id)).filter(Product.is_active == True).scalar() or 0,
-            "published_posts": db.query(func.count(Post.id)).filter(Post.is_published == True).scalar() or 0,
-            "pending_orders": db.query(func.count(Order.id)).filter(Order.status == "pending").scalar() or 0
-        }
-        return stats
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取快速統計失敗: {str(e)}")
-
-
-@router.get("/recent-activity")
-async def get_recent_activity(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db),
-    limit: int = Query(default=10, ge=1, le=50)
-):
-    """獲取最近活動記錄"""
-    try:
-        from datetime import datetime, timedelta
-        from sqlalchemy import desc, union_all, literal_column
-        
-        # 最近7天的數據
-        recent_date = datetime.now() - timedelta(days=7)
-        
-        activities = []
-        
-        # 最近的用戶註冊
-        recent_users = db.query(User).filter(
-            User.created_at >= recent_date
-        ).order_by(desc(User.created_at)).limit(5).all()
-        
-        for user in recent_users:
-            activities.append({
-                "type": "user",
-                "title": user.username,
-                "action": "新用戶註冊",
-                "time": user.created_at.isoformat() if user.created_at else None
-            })
-        
-        # 最近的訂單
-        recent_orders = db.query(Order).filter(
-            Order.created_at >= recent_date
-        ).order_by(desc(Order.created_at)).limit(5).all()
-        
-        for order in recent_orders:
-            activities.append({
-                "type": "order",
-                "title": order.order_number,
-                "action": "新訂單",
-                "time": order.created_at.isoformat() if order.created_at else None
-            })
-        
-        # 最近的文章
-        recent_posts = db.query(Post).filter(
-            Post.created_at >= recent_date,
-            Post.is_published == True
-        ).order_by(desc(Post.created_at)).limit(5).all()
-        
-        for post in recent_posts:
-            activities.append({
-                "type": "post",
-                "title": post.title,
-                "action": "文章發布",
-                "time": post.created_at.isoformat() if post.created_at else None
-            })
-        
-        # 最近的商品
-        recent_products = db.query(Product).filter(
-            Product.created_at >= recent_date,
-            Product.is_active == True
-        ).order_by(desc(Product.created_at)).limit(5).all()
-        
-        for product in recent_products:
-            activities.append({
-                "type": "product",
-                "title": product.name,
-                "action": "商品上架",
-                "time": product.created_at.isoformat() if product.created_at else None
-            })
-        
-        # 按時間排序並限制數量
-        activities.sort(key=lambda x: x["time"] or "", reverse=True)
-        return activities[:limit]
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"獲取最近活動失敗: {str(e)}")
-
-
-# ==============================================
-# AI 設定管理
-# ==============================================
-
-@router.put("/settings/ai")
-async def update_ai_settings(
-    settings_data: dict,
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """更新AI設定"""
-    from app.models.settings import SystemSettings
-    
-    try:
-        for key, value in settings_data.items():
-            if key.startswith('ai_'):
-                # 查找現有設定
-                setting = db.query(SystemSettings).filter(
-                    SystemSettings.key == key
-                ).first()
-                
-                if setting:
-                    # 根據數據類型轉換值
-                    if setting.data_type == "boolean":
-                        setting.value = str(value).lower()
-                    else:
-                        setting.value = str(value)
-                else:
-                    # 創建新設定
-                    setting = SystemSettings(
-                        key=key,
-                        value=str(value),
-                        category="ai",
-                        data_type="boolean" if isinstance(value, bool) else "string"
-                    )
-                    db.add(setting)
-        
-        db.commit()
-        return {"message": "AI設定更新成功"}
-        
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"更新設定失敗: {str(e)}")
-
-
-@router.post("/posts/generate")
-async def generate_ai_post(
-    generation_request: dict,
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """使用AI生成文章"""
-    from app.services.ai_service import AIService
-    
-    try:
-        user_prompt = generation_request.get("prompt", "")
-        title_hint = generation_request.get("title_hint", "")
-        generate_image = generation_request.get("generate_image", True)
-        
-        if not user_prompt:
-            raise HTTPException(status_code=400, detail="請提供文章提示詞")
-        
-        async with AIService() as ai_service:
-            if not ai_service.is_ai_enabled():
-                raise HTTPException(status_code=400, detail="AI功能未啟用，請先在系統設定中啟用")
-            
-            result = await ai_service.generate_complete_article(
-                user_prompt=user_prompt,
-                title_hint=title_hint,
-                generate_image=generate_image
-            )
-            
-            if not result["success"]:
-                raise HTTPException(status_code=400, detail=result["error"])
-            
-            return {
-                "success": True,
-                "data": result["data"],
-                "message": "文章生成成功"
-            }
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI生成失敗: {str(e)}")
-
-
-@router.get("/ai/status")
-async def get_ai_status(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
-):
-    """檢查AI功能狀態"""
-    from app.services.ai_service import AIService
-    
-    try:
-        async with AIService() as ai_service:
-            return {
-                "ai_enabled": ai_service.is_ai_enabled(),
-                "image_generation_enabled": ai_service.is_image_generation_enabled(),
-                "settings": ai_service.get_ai_settings()
-            }
-    except Exception as e:
-        return {
-            "ai_enabled": False,
-            "image_generation_enabled": False,
-            "error": str(e)
-        }
-
-
-# 標籤管理功能已移除
 
 
 # ==============================================
@@ -973,6 +604,10 @@ def delete_newsletter_subscriber_admin(
     return {"message": "訂閱者已刪除"}
 
 
+# ==============================================
+# 檔案上傳
+# ==============================================
+
 @router.post("/upload/image")
 async def upload_image(
     file: UploadFile = File(...),
@@ -980,39 +615,31 @@ async def upload_image(
 ):
     """上傳圖片"""
     try:
-        # 檢查檔案類型
         allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
         if file.content_type not in allowed_types:
             raise HTTPException(status_code=400, detail="不支援的檔案格式")
         
-        # 檢查檔案大小 (5MB)
         if file.size > 5 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="檔案大小不能超過5MB")
         
-        # 生成唯一檔名
         file_extension = file.filename.split('.')[-1].lower()
         unique_filename = f"{uuid.uuid4()}.{file_extension}"
         
-        # 建立上傳目錄
         upload_dir = "app/static/uploads"
         os.makedirs(upload_dir, exist_ok=True)
         
-        # 儲存檔案
         file_path = os.path.join(upload_dir, unique_filename)
         content = await file.read()
         
         with open(file_path, "wb") as f:
             f.write(content)
         
-        # 如果是圖片，生成縮圖
         try:
             if file.content_type.startswith("image/"):
                 with Image.open(file_path) as img:
-                    # 建立縮圖目錄
                     thumbnail_dir = os.path.join(upload_dir, "thumbnails")
                     os.makedirs(thumbnail_dir, exist_ok=True)
                     
-                    # 生成縮圖
                     img.thumbnail((300, 300), Image.Resampling.LANCZOS)
                     thumbnail_path = os.path.join(thumbnail_dir, unique_filename)
                     img.save(thumbnail_path, optimize=True, quality=85)
@@ -1046,17 +673,13 @@ async def get_admin_settings(
     from app.models.settings import SystemSettings
     
     try:
-        # 從數據庫獲取所有設定
         settings_db = db.query(SystemSettings).all()
         
-        # 轉換為字典格式
         settings_dict = {}
         for setting in settings_db:
             settings_dict[setting.key] = setting.parse_value()
         
-        # 設定預設值
         defaults = {
-            # 基本設定
             'site_name': 'BlogCommerce',
             'site_tagline': '部落格與電商整合平台',
             'site_description': '一個結合部落格與電商功能的現代化平台',
@@ -1066,18 +689,13 @@ async def get_admin_settings(
             'language': 'zh-TW',
             'site_logo': '',
             'site_favicon': '',
-            
-            # 功能開關
             'blog_enabled': True,
             'shop_enabled': True,
             'user_registration': True,
             'comment_enabled': True,
             'search_enabled': True,
-            'analytics_enabled': True,
             'newsletter_enabled': False,
             'maintenance_mode': False,
-            
-            # 郵件設定
             'email_provider': 'smtp',
             'smtp_host': '',
             'smtp_port': 587,
@@ -1086,21 +704,11 @@ async def get_admin_settings(
             'smtp_encryption': 'tls',
             'email_from_name': '',
             'email_from_address': '',
-            
-            # 數據分析
-            'google_analytics_id': '',
-            'google_tag_manager_id': '',
-            'facebook_pixel_id': '',
-            'analytics_retention_days': 365,
-            
-            # AI 設定
             'openai_api_key': '',
             'ai_model': 'gpt-3.5-turbo',
             'ai_content_generation': False,
             'ai_image_generation': False,
             'ai_temperature': 0.7,
-            
-            # 安全設定
             'login_attempts_limit': 5,
             'lockout_duration': 15,
             'session_timeout': 24,
@@ -1111,7 +719,6 @@ async def get_admin_settings(
             'max_file_size': 10
         }
         
-        # 合併預設值和數據庫設定
         for key, default_value in defaults.items():
             if key not in settings_dict:
                 settings_dict[key] = default_value
@@ -1133,18 +740,12 @@ async def update_admin_settings(
     
     try:
         for key, value in settings_data.items():
-            # 查找現有設定
-            setting = db.query(SystemSettings).filter(
-                SystemSettings.key == key
-            ).first()
+            setting = db.query(SystemSettings).filter(SystemSettings.key == key).first()
             
-            # 確定設定分類
-            if key.startswith(('blog_', 'shop_', 'user_', 'comment_', 'search_', 'analytics_', 'newsletter_', 'maintenance_')):
+            if key.startswith(('blog_', 'shop_', 'user_', 'comment_', 'search_', 'newsletter_', 'maintenance_')):
                 category = "features"
             elif key.startswith(('email_', 'smtp_')):
                 category = "email"
-            elif key.startswith(('google_', 'facebook_', 'analytics_')):
-                category = "analytics"
             elif key.startswith(('openai_', 'ai_')):
                 category = "ai"
             elif key.startswith(('login_', 'lockout_', 'session_', 'password_', 'force_', 'two_factor_', 'allowed_', 'max_')):
@@ -1152,7 +753,6 @@ async def update_admin_settings(
             else:
                 category = "general"
             
-            # 確定數據類型
             if isinstance(value, bool):
                 data_type = "boolean"
                 str_value = "true" if value else "false"
@@ -1170,23 +770,20 @@ async def update_admin_settings(
                 data_type = "string"
                 str_value = str(value) if value is not None else ""
             
-            # 確定是否公開
             is_public = (
                 key.endswith('_enabled') or 
                 key in ['blog_enabled', 'shop_enabled', 'user_registration'] or
                 key in ['site_name', 'site_tagline', 'site_description', 'site_logo', 'site_favicon',
                        'default_currency', 'default_currency_symbol', 'default_meta_title', 'default_meta_description',
-                       'default_meta_keywords', 'google_analytics_id', 'google_tag_manager_id']
+                       'default_meta_keywords']
             )
             
             if setting:
-                # 更新現有設定
                 setting.value = str_value
                 setting.data_type = data_type
                 setting.category = category
                 setting.is_public = is_public
             else:
-                # 創建新設定
                 setting = SystemSettings(
                     key=key,
                     value=str_value,
@@ -1213,8 +810,6 @@ async def test_email_settings(
 ):
     """測試郵件設定"""
     try:
-        # 這裡可以實現實際的郵件發送邏輯
-        # 目前返回成功訊息（模擬）
         return {"message": "測試郵件已發送"}
         
     except Exception as e:

@@ -6,7 +6,6 @@ from .product import Product
 from .order import Order, OrderItem, OrderStatus, PaymentMethod, PaymentStatus
 from .settings import SystemSettings
 from .newsletter import NewsletterSubscriber, NewsletterCampaign
-from .analytics import PageView, DailyStats, PopularContent, UserSession
 from .favorite import Favorite
 from .view_log import ViewLog
 from .banner import Banner, BannerPosition
@@ -22,11 +21,10 @@ __all__ = [
     "Order", "OrderItem", "OrderStatus", "PaymentMethod", "PaymentStatus",
     "SystemSettings",
     "NewsletterSubscriber", "NewsletterCampaign",
-    "PageView", "DailyStats", "PopularContent", "UserSession",
     "Favorite",
     "ViewLog",
     "Banner", "BannerPosition",
     "ShippingTier",
     "PromoCode", "PromoType", "PromoUsage",
     "DiscountCode", "DiscountType", "DiscountUsage"  # 向後相容的別名
-] 
+]

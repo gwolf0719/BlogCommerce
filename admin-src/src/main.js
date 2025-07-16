@@ -9,7 +9,9 @@ import errorHandler from './utils/errorHandler'
 import { useAuthStore } from './stores/auth'
 
 const router = createRouter({
-  history: createWebHistory('/admin'),
+  // 修正: 移除寫死的基礎路徑 '/admin'
+  // createWebHistory() 會自動從 vite.config.js 的 'base' 設定中獲取基礎路徑
+  history: createWebHistory(),
   routes
 })
 
@@ -22,7 +24,7 @@ app.use(pinia)
 // 設置路由守衛（在pinia初始化之後）
 router.beforeEach(async (to, from, next) => {
   // 如果是登入頁面，直接放行
-  if (to.path === '/login') {
+  if (to.name === 'Login') { // 建議使用路由名稱進行判斷，更為穩健
     next()
     return
   }
@@ -37,11 +39,11 @@ router.beforeEach(async (to, from, next) => {
     if (isAuthenticated) {
       next() // 認證成功，繼續訪問
     } else {
-      next('/login') // 認證失敗，跳轉到登入頁面
+      next({ name: 'Login' }) // 認證失敗，跳轉到登入頁面
     }
   } catch (error) {
     console.error('認證檢查失敗:', error)
-    next('/login') // 發生錯誤，跳轉到登入頁面
+    next({ name: 'Login' }) // 發生錯誤，跳轉到登入頁面
   }
 })
 

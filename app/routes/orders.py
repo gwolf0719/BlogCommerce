@@ -125,7 +125,8 @@ def get_order_stats(
     )
 
 
-@router.get("/", response_model=OrderListResponse, summary="獲取訂單列表 (管理員)")
+# 修正: 將 @router.get("/") 改為 @router.get("") 以修復 404 錯誤
+@router.get("", response_model=OrderListResponse, summary="獲取訂單列表 (管理員)")
 def list_orders(
     skip: int = 0,
     limit: int = 10,

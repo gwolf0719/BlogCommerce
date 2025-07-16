@@ -18,9 +18,11 @@ class User(BaseModel):
     phone = Column(String(20), nullable=True)
     address = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
-    is_admin = Column(Boolean, default=False)
+    # is_admin = Column(Boolean, default=False) # 已移除此行
     is_verified = Column(Boolean, default=False)
-    role = Column(Enum(UserRole, values_callable=lambda obj: [e.value for e in obj]), default=UserRole.USER)
+    
+    # 修正: 將 default 的值從 UserRole.USER 改為 UserRole.user
+    role = Column(Enum(UserRole, values_callable=lambda obj: [e.value for e in obj]), default=UserRole.user)
     
     # 關聯
     orders = relationship("Order", back_populates="user")

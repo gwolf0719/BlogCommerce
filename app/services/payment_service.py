@@ -82,6 +82,32 @@ class PaymentService:
             return self.create_paypal_order(order)
         else:
             raise ValueError(f"不支援的付款方式: {payment_method}")
+
+    # 新增: 補上 process_webhook 函式以解決靜態分析錯誤
+    def process_webhook(self, order: Order, data: Dict[str, Any]) -> bool:
+        """
+        處理來自金流服務的 Webhook（統一入口）。
+        根據訂單的付款方式，分派給對應的處理函式。
+        """
+        if order.payment_method == PaymentMethod.linepay:
+            # Line Pay 的確認流程通常由前端觸發，或需要解析 data 中的 transaction_id
+            transaction_id = data.get("transactionId") or (json.loads(order.payment_info or '{}')).get('transaction_id')
+            if not transaction_id:
+                return False
+            result = self.handle_linepay_callback(transaction_id, order.order_number)
+            return result.get("success", False)
+        
+        elif order.payment_method == PaymentMethod.ecpay:
+            result = self.handle_ecpay_callback(data)
+            return result.get("success", False)
+            
+        # PayPal 和其他金流的 Webhook 處理邏輯可以加在這裡
+        # elif order.payment_method == PaymentMethod.paypal:
+        #     # ... PayPal Webhook 處理邏輯 ...
+        #     return True
+
+        return False
+
             
     # --- 轉帳相關方法 ---
     def create_transfer_order(self, order: Order) -> Dict[str, Any]:

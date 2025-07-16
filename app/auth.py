@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.models.user import User
+# 修改：同時匯入 User 和 UserRole
+from app.models.user import User, UserRole
 from app.schemas.user import TokenData
 
 import bcrypt
@@ -89,7 +90,8 @@ def get_current_active_user(current_user: User = Depends(get_current_user)):
 
 def get_current_admin_user(current_user: User = Depends(get_current_active_user)):
     """取得目前的管理員使用者"""
-    if not current_user.is_admin:
+    # 修改：將 is_admin 的檢查改為對 role 的檢查
+    if current_user.role != UserRole.admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="權限不足"

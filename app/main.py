@@ -18,9 +18,10 @@ from app.services.markdown_service import markdown_service
 from starlette.responses import RedirectResponse
 
 # 引入所有路由模組
+# 修正: 移除 analytics
 from app.routes import (
     auth, posts, products, orders, cart, newsletter, 
-    admin, analytics, settings as settings_router, banners, discount_codes, 
+    admin, settings as settings_router, banners, discount_codes, 
     favorites, payment, shipping_tiers, view_tracking, errors
 )
 
@@ -50,11 +51,6 @@ app = FastAPI(
     - 購物車功能
     - 訂單處理
     - 收藏功能
-    
-    ### 📊 分析統計
-    - 頁面瀏覽統計
-    - 用戶行為分析
-    - 即時數據追蹤
     
     ### 🔧 系統管理
     - 系統設定管理
@@ -121,10 +117,6 @@ app = FastAPI(
         {
             "name": "收藏",
             "description": "用戶收藏功能，允許收藏商品並管理收藏清單。"
-        },
-        {
-            "name": "分析統計",
-            "description": "網站分析統計，包括頁面瀏覽、用戶行為、即時數據等。"
         },
         {
             "name": "系統設定",
@@ -206,7 +198,7 @@ api_router.include_router(orders.router)
 api_router.include_router(cart.router)
 api_router.include_router(newsletter.router)
 api_router.include_router(admin.router)
-api_router.include_router(analytics.router)
+# 修正: 移除 analytics.router
 api_router.include_router(banners.router)
 api_router.include_router(discount_codes.router)
 api_router.include_router(favorites.router)
@@ -482,4 +474,4 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8002,
         reload=settings.debug
-    ) 
+    )
