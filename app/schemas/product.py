@@ -59,7 +59,7 @@ class ProductBase(BaseSchema):
     is_active: bool = True
     is_featured: bool = False
     featured_image: Optional[str] = None
-    gallery_images: Optional[JsonList] = [] # 使用新的 JsonList 類型
+    # gallery_images: Optional[JsonList] = [] # 移除相冊圖片功能
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
     meta_keywords: Optional[str] = None

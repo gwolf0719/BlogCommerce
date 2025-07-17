@@ -41,15 +41,7 @@
                          class="w-full h-full object-cover">
                 </div>
                 
-                <!-- 縮圖列表 -->
-                <div x-show="product?.gallery_images && product.gallery_images.length > 0" 
-                     class="flex space-x-2 overflow-x-auto pb-2">
-                    <template x-for="image in product.gallery_images" :key="image">
-                        <img :src="image" 
-                             :alt="product.name"
-                             class="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded cursor-pointer hover:opacity-75 flex-shrink-0 border-2 border-primary-200 hover:border-primary-400 transition-colors">
-                    </template>
-                </div>
+                <!-- 相冊圖片功能已移除 -->
             </div>
             
             <!-- 商品資訊 -->

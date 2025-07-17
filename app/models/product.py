@@ -16,7 +16,7 @@ class Product(BaseModel, SlugMixin):
     
     # 圖片
     featured_image = Column(String(255), nullable=True)
-    gallery_images = Column(Text, nullable=True)  # JSON 格式儲存多圖片
+    # gallery_images = Column(Text, nullable=True)  # 移除相冊圖片功能
     
     # 商品狀態
     is_active = Column(Boolean, default=True)

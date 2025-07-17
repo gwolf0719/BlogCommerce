@@ -291,7 +291,7 @@
               <a-form-item label="商品價格" name="price" :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
                 <a-input-number
                   v-model:value="form.price"
-                  :min="0"
+                  :min="0.01"
                   :precision="2"
                   style="width: 100%"
                   placeholder="0.00"
@@ -330,19 +330,7 @@
             <UploadImage v-model="form.featured_image" />
           </a-form-item>
 
-          <a-form-item label="相冊圖片" name="gallery_images">
-            <div class="form-help-text" style="margin-bottom: 16px;">
-              <small class="text-gray-500">可上傳多張圖片，拖曳排序，或手動輸入圖片URL</small>
-            </div>
-          </a-form-item>
         </a-card>
-
-        <!-- 圖片設定區塊下方，顯示相冊圖片預覽 -->
-        <a-row v-if="form.gallery_images && form.gallery_images.length" :gutter="8" style="margin-bottom: 16px;">
-          <a-col v-for="(img, idx) in form.gallery_images" :key="idx" :span="3">
-            <a-image :src="getImageUrl(img)" width="80" height="80" :alt="`相冊圖片${idx+1}`" style="border-radius: 4px;" />
-          </a-col>
-        </a-row>
 
         <!-- 商品設定 -->
         <a-card title="商品設定" size="small" class="form-card">
@@ -559,7 +547,6 @@ const form = reactive({
   stock_quantity: 0,
   sku: '',
   featured_image: '',
-  gallery_images: [], // Changed to array
   is_active: true,
   is_featured: false,
   meta_title: '',
@@ -579,7 +566,10 @@ const rules = {
   ],
   price: [
     { required: true, message: '請輸入商品價格' },
-    { type: 'number', min: 0, message: '價格不能為負數' }
+    { type: 'number', min: 0.01, message: '價格必須大於 0' }
+  ],
+  sale_price: [
+    { type: 'number', min: 0, message: '特價不能為負數' }
   ],
   stock_quantity: [
     { required: true, message: '請輸入庫存數量' },
@@ -673,7 +663,6 @@ const editProduct = async (product) => {
       stock_quantity: fullProductData.stock_quantity || 0,
       sku: fullProductData.sku || '',
       featured_image: fullProductData.featured_image || '',
-      gallery_images: fullProductData.gallery_images || [], // Ensure it's an array
       is_active: fullProductData.is_active !== undefined ? fullProductData.is_active : true,
       is_featured: fullProductData.is_featured !== undefined ? fullProductData.is_featured : false,
       meta_title: fullProductData.meta_title || '',
@@ -693,7 +682,7 @@ const editProduct = async (product) => {
 const resetForm = () => {
   Object.assign(form, {
     name: '', description: '', short_description: '', price: null, sale_price: null,
-    stock_quantity: 0, sku: '', featured_image: '', gallery_images: [], is_active: true, is_featured: false, meta_title: '', meta_description: '', meta_keywords: ''
+    stock_quantity: 0, sku: '', featured_image: '', is_active: true, is_featured: false, meta_title: '', meta_description: '', meta_keywords: ''
   })
 }
 
