@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}結帳 - BlogCommerce{% endblock %}
+{% block title %}結帳 - 伴獸家{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -15,14 +15,14 @@
                     <!-- 購物車商品將在這裡顯示 -->
                 </div>
                 
-                <!-- 推薦碼輸入 -->
+                <!-- 優惠碼輸入 -->
                 <div class="border-t pt-4 mt-4">
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">推薦碼</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">優惠碼</label>
                         <div class="flex space-x-2">
                             <input type="text" 
                                    id="coupon-code" 
-                                   placeholder="請輸入推薦碼"
+                                   placeholder="請輸入優惠碼"
                                    class="flex-1 px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
                             <button type="button" 
                                     id="apply-coupon-btn"
@@ -40,14 +40,16 @@
                             <span id="subtotal-amount">$0</span>
                         </div>
                         <div id="coupon-discount" class="flex justify-between items-center text-green-600 hidden">
-                            <span>推薦碼折扣</span>
+                            <span>優惠折扣</span>
                             <span id="discount-amount">-$0</span>
                         </div>
-                        <div id="shipping-fee-row" class="flex justify-between items-center">
+                        <div class="flex justify-between items-center">
                             <span>運費</span>
-                            <span id="shipping-amount">計算中...</span>
+                            <div id="shipping-amount" class="text-right">
+                                <span id="original-shipping" class="text-gray-900">NT$0</span>
+                                <span id="free-shipping" class="text-green-600 font-medium hidden">免運費</span>
+                            </div>
                         </div>
-                        <div id="free-shipping-notice" class="text-sm text-green-600 hidden"></div>
                         <div class="flex justify-between items-center text-lg font-semibold border-t pt-2">
                             <span>總計</span>
                             <span id="total-amount">$0</span>
@@ -59,9 +61,6 @@
             <!-- 結帳表單 -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 class="text-xl font-semibold mb-4">結帳資訊</h2>
-                
-                <!-- 個人資料提示區域 -->
-                <div id="profile-info"></div>
                 
                 <form id="checkout-form" class="space-y-4">
                     <!-- 收件人資訊 -->
@@ -197,538 +196,589 @@
         </div>
     </div>
 </div>
+
 <script>
-    let cartItems = [];
-    let currentOrderId = null;
-    let appliedCoupon = null;
-    let couponDiscount = 0;
-    let shippingFee = 0;
-    
-    // 初始化頁面
-    document.addEventListener('DOMContentLoaded', function() {
-        loadCart();
-        setupForm();
-    });
-    
-    // 載入購物車
-    async function loadCart() {
-        try {
-            const response = await fetch('/api/cart/');
-            if (!response.ok) throw new Error('無法載入購物車資料');
-            
+let cartItems = [];
+let currentOrderId = null;
+let appliedCoupon = null;
+let couponDiscount = 0;
+
+// 初始化頁面
+document.addEventListener('DOMContentLoaded', function() {
+    loadCart();
+    checkPaymentMethods();
+    setupForm();
+    loadUserProfile();
+});
+
+// 載入購物車
+async function loadCart() {
+    try {
+        const response = await fetch('/api/cart/');
+
+        if (response.ok) {
             const data = await response.json();
             cartItems = data.items || [];
-            
-            if (data.applied_promo) {
-                appliedCoupon = data.applied_promo;
-                couponDiscount = data.discount_amount || 0;
-                const couponInput = document.getElementById('coupon-code');
-                if(couponInput) couponInput.value = appliedCoupon.code;
-                const applyBtn = document.getElementById('apply-coupon-btn');
-                if(applyBtn) {
-                    applyBtn.textContent = '移除';
-                    applyBtn.onclick = removeCoupon;
-                }
-                showCouponMessage(`推薦碼已套用：${appliedCoupon.name}`, 'success');
-            }
-            
             displayOrderItems();
-            await checkPaymentMethods();
-            await calculateShipping();
             calculateTotal();
-            await loadUserProfile(); 
-    
-        } catch (error) {
-            console.error('載入購物車失敗:', error);
-            alert('載入購物車失敗');
-        }
-    }
-    
-    // 顯示訂單商品
-    function displayOrderItems() {
-        const container = document.getElementById('order-items');
-        if (!container) return;
-        if (cartItems.length === 0) {
-            container.innerHTML = '<p class="text-gray-500">購物車是空的</p>';
-            return;
-        }
-        container.innerHTML = cartItems.map(item => `
-            <div class="flex items-center space-x-4 p-3 border-b">
-                <img src="${item.product.featured_image || '/static/images/default-product.svg'}" 
-                     alt="${item.product.name}" class="w-16 h-16 object-cover rounded">
-                <div class="flex-1">
-                    <h4 class="font-medium">${item.product.name}</h4>
-                    <p class="text-gray-600">數量: ${item.quantity}</p>
-                </div>
-                <div class="text-right">
-                    <p class="font-medium">NT$${(item.product.price * item.quantity).toLocaleString()}</p>
-                </div>
-            </div>
-        `).join('');
-    }
-    
-    // 計算運費
-    async function calculateShipping() {
-        try {
-            const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-            const shippingAmountEl = document.getElementById('shipping-amount');
-            if (subtotal === 0) {
-                shippingFee = 0;
-                if(shippingAmountEl) shippingAmountEl.textContent = 'NT$0';
-                return;
-            }
-            const response = await fetch('/api/shipping-tiers/calculate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ order_amount: subtotal - couponDiscount })
-            });
-            if (response.ok) {
-                const data = await response.json();
-                shippingFee = parseFloat(data.shipping_fee);
-                if(shippingAmountEl) {
-                    shippingAmountEl.textContent = data.free_shipping ? '免運費' : `NT$${shippingFee.toLocaleString()}`;
-                }
-                const noticeDiv = document.getElementById('free-shipping-notice');
-                if (noticeDiv) {
-                    if (data.amount_needed_for_free_shipping && parseFloat(data.amount_needed_for_free_shipping) > 0) {
-                        noticeDiv.textContent = `再購買 NT$${parseFloat(data.amount_needed_for_free_shipping).toLocaleString()} 即可享免運費`;
-                        noticeDiv.classList.remove('hidden');
-                    } else if (data.free_shipping) {
-                        noticeDiv.textContent = '🎉 恭喜您享有免運費優惠！';
-                        noticeDiv.classList.remove('hidden');
-                    } else {
-                        noticeDiv.classList.add('hidden');
-                    }
-                }
-            } else {
-                if(shippingAmountEl) shippingAmountEl.textContent = 'NT$0';
-                shippingFee = 0;
-            }
-        } catch (error) {
-            console.error('計算運費失敗:', error);
-            const shippingAmountEl = document.getElementById('shipping-amount');
-            if(shippingAmountEl) shippingAmountEl.textContent = 'NT$0';
-            shippingFee = 0;
-        }
-    }
-    
-    // 計算總金額
-    function calculateTotal() {
-        const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-        const total = subtotal - couponDiscount + shippingFee;
-        document.getElementById('subtotal-amount').textContent = `NT$${subtotal.toLocaleString()}`;
-        document.getElementById('total-amount').textContent = `NT$${Math.max(0, total).toLocaleString()}`;
-        const discountDiv = document.getElementById('coupon-discount');
-        if (couponDiscount > 0) {
-            discountDiv.classList.remove('hidden');
-            const roundedDiscount = Math.round(couponDiscount);
-            document.getElementById('discount-amount').textContent = `-NT$${roundedDiscount.toLocaleString()}`;
         } else {
-            discountDiv.classList.add('hidden');
+            alert('無法載入購物車資料');
+            window.location.href = '/cart';
         }
+    } catch (error) {
+        console.error('載入購物車失敗:', error);
+        alert('載入購物車失敗');
     }
-    
-    // 套用推薦碼
-    async function applyCoupon() {
-        const couponCodeInput = document.getElementById('coupon-code');
-        const couponCode = couponCodeInput ? couponCodeInput.value.trim() : '';
-        if (!couponCode) {
-            showCouponMessage('請輸入推薦碼', 'error');
-            return;
-        }
-        const applyBtn = document.getElementById('apply-coupon-btn');
-        if(applyBtn) {
-            applyBtn.disabled = true;
-            applyBtn.textContent = '驗證中...';
-        }
-        try {
-            const response = await fetch('/api/cart/apply-promo', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ promo_code: couponCode })
-            });
-            const result = await response.json();
-            if (response.ok) {
-                appliedCoupon = result.promo_code;
-                couponDiscount = result.discount_amount;
-                showCouponMessage(`推薦碼已套用：${appliedCoupon.name}`, 'success');
-                await calculateShipping();
-                calculateTotal();
-                if(applyBtn) {
-                    applyBtn.textContent = '移除';
-                    applyBtn.onclick = removeCoupon;
-                }
-            } else {
-                showCouponMessage(result.detail || '推薦碼無效', 'error');
-            }
-        } catch (error) {
-            showCouponMessage('套用推薦碼失敗，請稍後再試', 'error');
-        } finally {
-            if(applyBtn) {
-                applyBtn.disabled = false;
-                if (applyBtn.textContent === '驗證中...') {
-                    applyBtn.textContent = '套用';
-                }
-            }
-        }
-    }
-    
-    // 移除推薦碼
-    async function removeCoupon() {
-        try {
-            await fetch('/api/cart/remove-promo', { method: 'DELETE' });
-            appliedCoupon = null;
-            couponDiscount = 0;
-            const couponInput = document.getElementById('coupon-code');
-            if(couponInput) couponInput.value = '';
-            showCouponMessage('推薦碼已移除', 'info');
-            await calculateShipping();
-            calculateTotal();
-            const applyBtn = document.getElementById('apply-coupon-btn');
-            if(applyBtn) {
-                applyBtn.textContent = '套用';
-                applyBtn.onclick = applyCoupon;
-            }
-        } catch (error) {
-            showCouponMessage('移除推薦碼失敗', 'error');
-        }
-    }
-    
-    // 顯示優惠碼訊息
-    function showCouponMessage(message, type) {
-        const messageDiv = document.getElementById('coupon-message');
-        if (!messageDiv) return;
-        messageDiv.textContent = message;
-        messageDiv.className = 'mt-2 text-sm';
-        if (type === 'error') messageDiv.classList.add('text-red-600');
-        else if (type === 'success') messageDiv.classList.add('text-green-600');
-        else messageDiv.classList.add('text-blue-600');
-        setTimeout(() => { messageDiv.className = 'mt-2 text-sm hidden'; }, 3000);
-    }
-    
-    // 顯示/隱藏沒有付款方式的警告
-    function toggleNoPaymentWarning(show) {
-        const warningEl = document.getElementById('no-payment-warning');
-        const submitBtn = document.getElementById('submit-btn');
-        if(warningEl) warningEl.style.display = show ? 'block' : 'none';
-        if(submitBtn) {
-            submitBtn.disabled = show;
-            submitBtn.textContent = show ? '沒有可用的付款方式' : '確認下單';
-        }
-    }
-    
-    // 檢查可用的付款方式
-    async function checkPaymentMethods() {
-        try {
-            const response = await fetch('/api/settings/payment/settings');
-            if (response.ok) {
-                const paymentSettings = await response.json();
-                const paymentOptions = {
-                    'transfer': paymentSettings.transfer && paymentSettings.transfer.enabled,
-                    'linepay': paymentSettings.linepay && paymentSettings.linepay.enabled,
-                    'ecpay': paymentSettings.ecpay && paymentSettings.ecpay.enabled,
-                    'paypal': paymentSettings.paypal && paymentSettings.paypal.enabled
-                };
+}
 
-                let enabledCount = 0;
-                for (const [key, enabled] of Object.entries(paymentOptions)) {
-                    const optionElement = document.getElementById(`${key}-option`);
-                    if (optionElement) {
-                        optionElement.style.display = enabled ? 'flex' : 'none';
-                        if (enabled) enabledCount++;
-                    }
-                }
-                toggleNoPaymentWarning(enabledCount === 0);
+// 顯示訂單商品
+function displayOrderItems() {
+    const container = document.getElementById('order-items');
+    
+    if (cartItems.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">購物車是空的</p>';
+        return;
+    }
+    
+    container.innerHTML = cartItems.map(item => `
+        <div class="flex items-center space-x-4 p-3 border-b">
+            <img src="${item.product.featured_image || '/static/images/placeholder-product.jpg'}" 
+                 alt="${item.product.name}" class="w-16 h-16 object-cover rounded">
+            <div class="flex-1">
+                <h4 class="font-medium">${item.product.name}</h4>
+                <p class="text-gray-600">數量: ${item.quantity}</p>
+            </div>
+            <div class="text-right">
+                <p class="font-medium">$${(item.product.price * item.quantity).toFixed(2)}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 計算總金額
+function calculateTotal() {
+    const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    
+    // 使用動態運費設定
+    const shippingFee = window.shippingFee || 60;
+    const freeShippingThreshold = window.freeShippingThreshold || 1000;
+    
+    // 檢查免運條件
+    const reachedFreeThreshold = subtotal >= freeShippingThreshold;
+    const hasFreeShippingCoupon = appliedCoupon && appliedCoupon.free_shipping;
+    const isFreeShipping = reachedFreeThreshold || hasFreeShippingCoupon;
+    
+    const shipping = isFreeShipping ? 0 : shippingFee;
+    const total = subtotal - couponDiscount + shipping;
+    
+    // 更新顯示
+    document.getElementById('subtotal-amount').textContent = `NT$${subtotal.toLocaleString()}`;
+    updateShippingDisplay(shippingFee, isFreeShipping, reachedFreeThreshold, hasFreeShippingCoupon);
+    document.getElementById('total-amount').textContent = `NT$${total.toLocaleString()}`;
+    
+    // 顯示/隱藏優惠折扣
+    if (couponDiscount > 0) {
+        document.getElementById('coupon-discount').classList.remove('hidden');
+        document.getElementById('discount-amount').textContent = `-NT$${couponDiscount.toLocaleString()}`;
+    } else {
+        document.getElementById('coupon-discount').classList.add('hidden');
+    }
+}
+
+// 更新運費顯示
+function updateShippingDisplay(originalFee, isFreeShipping, reachedFreeThreshold, hasFreeShippingCoupon) {
+    const originalShippingElement = document.getElementById('original-shipping');
+    const freeShippingElement = document.getElementById('free-shipping');
+    
+    // 先顯示原運費
+    originalShippingElement.textContent = `NT$${originalFee.toLocaleString()}`;
+    
+    if (isFreeShipping) {
+        // 免運條件：劃掉原運費，顯示免運費
+        originalShippingElement.classList.add('line-through', 'text-gray-400');
+        freeShippingElement.classList.remove('hidden');
+        
+        // 根據免運原因顯示不同訊息
+        if (hasFreeShippingCoupon) {
+            freeShippingElement.innerHTML = '🎫 優惠券免運';
+        } else if (reachedFreeThreshold) {
+            freeShippingElement.innerHTML = '🚚 滿額免運';
+        } else {
+            freeShippingElement.innerHTML = '免運費';
+        }
+    } else {
+        // 需要運費：正常顯示
+        originalShippingElement.classList.remove('line-through', 'text-gray-400');
+        freeShippingElement.classList.add('hidden');
+    }
+}
+
+// 套用優惠碼
+async function applyCoupon() {
+    const couponCode = document.getElementById('coupon-code').value.trim();
+    const messageDiv = document.getElementById('coupon-message');
+    const applyBtn = document.getElementById('apply-coupon-btn');
+    
+    if (!couponCode) {
+        showCouponMessage('請輸入優惠碼', 'error');
+        return;
+    }
+    
+    // 如果已有套用的優惠碼，先清除
+    if (appliedCoupon) {
+        removeCoupon();
+    }
+    
+    applyBtn.disabled = true;
+    applyBtn.textContent = '驗證中...';
+    
+    try {
+        const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+        
+        const response = await fetch('/api/coupons/validate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                code: couponCode,
+                amount: subtotal
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.is_valid) {
+            appliedCoupon = result;
+            couponDiscount = result.discount_amount;
+            
+            showCouponMessage(`優惠碼已套用！折扣：NT$${couponDiscount.toLocaleString()}`, 'success');
+            calculateTotal();
+            
+            // 更新按鈕為移除狀態
+            applyBtn.textContent = '移除';
+            applyBtn.onclick = removeCoupon;
+        } else {
+            showCouponMessage(result.message || '優惠碼無效', 'error');
+        }
+    } catch (error) {
+        console.error('驗證優惠碼失敗:', error);
+        showCouponMessage('驗證優惠碼失敗，請稍後再試', 'error');
+    } finally {
+        applyBtn.disabled = false;
+        if (applyBtn.textContent === '驗證中...') {
+            applyBtn.textContent = '套用';
+        }
+    }
+}
+
+// 移除優惠碼
+function removeCoupon() {
+    appliedCoupon = null;
+    couponDiscount = 0;
+    
+    document.getElementById('coupon-code').value = '';
+    showCouponMessage('優惠碼已移除', 'info');
+    calculateTotal();
+    
+    // 重設按鈕
+    const applyBtn = document.getElementById('apply-coupon-btn');
+    applyBtn.textContent = '套用';
+    applyBtn.onclick = applyCoupon;
+}
+
+// 顯示優惠碼訊息
+function showCouponMessage(message, type) {
+    const messageDiv = document.getElementById('coupon-message');
+    messageDiv.textContent = message;
+    messageDiv.classList.remove('hidden', 'text-red-600', 'text-green-600', 'text-blue-600');
+    
+    if (type === 'error') {
+        messageDiv.classList.add('text-red-600');
+    } else if (type === 'success') {
+        messageDiv.classList.add('text-green-600');
+    } else {
+        messageDiv.classList.add('text-blue-600');
+    }
+    
+    messageDiv.classList.remove('hidden');
+    
+    // 3秒後隱藏訊息
+    setTimeout(() => {
+        messageDiv.classList.add('hidden');
+    }, 3000);
+}
+
+// 顯示沒有付款方式的警告
+function showNoPaymentMethodsWarning() {
+    document.getElementById('no-payment-warning').style.display = 'block';
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('submit-btn').textContent = '沒有可用的付款方式';
+}
+
+// 隱藏沒有付款方式的警告
+function hideNoPaymentMethodsWarning() {
+    document.getElementById('no-payment-warning').style.display = 'none';
+    document.getElementById('submit-btn').disabled = false;
+    document.getElementById('submit-btn').textContent = '確認下單';
+}
+
+// 檢查可用的付款方式
+async function checkPaymentMethods() {
+    try {
+        const response = await fetch('/api/settings/payment/settings');
+
+        if (response.ok) {
+            const settings = await response.json();
+            
+            // 顯示可用的付款方式
+            if (settings.transfer && settings.transfer.enabled) {
+                document.getElementById('transfer-option').style.display = 'block';
             } else {
-                throw new Error('Failed to fetch payment settings');
+                document.getElementById('transfer-option').style.display = 'none';
             }
-        } catch (error) {
-            console.error('檢查付款方式失敗:', error);
-            toggleNoPaymentWarning(true);
+            
+            if (settings.linepay && settings.linepay.enabled) {
+                document.getElementById('linepay-option').style.display = 'block';
+            } else {
+                document.getElementById('linepay-option').style.display = 'none';
+            }
+            
+            if (settings.ecpay && settings.ecpay.enabled) {
+                document.getElementById('ecpay-option').style.display = 'block';
+            } else {
+                document.getElementById('ecpay-option').style.display = 'none';
+            }
+            
+            if (settings.paypal && settings.paypal.enabled) {
+                document.getElementById('paypal-option').style.display = 'block';
+            } else {
+                document.getElementById('paypal-option').style.display = 'none';
+            }
+            
+            // 更新運費設定
+            if (settings.shipping) {
+                window.shippingFee = settings.shipping.fee;
+                window.freeShippingThreshold = settings.shipping.free_threshold;
+            }
+            
+            // 檢查是否至少有一個付款方式啟用
+            const enabledMethods = Object.keys(settings).filter(key => 
+                key !== 'shipping' && settings[key] && settings[key].enabled
+            );
+            
+            if (enabledMethods.length === 0) {
+                // 沒有啟用的付款方式時，顯示提示並停用提交按鈕
+                showNoPaymentMethodsWarning();
+            } else {
+                hideNoPaymentMethodsWarning();
+            }
         }
+    } catch (error) {
+        console.error('檢查付款方式失敗:', error);
+        // 預設顯示轉帳選項
+        document.getElementById('transfer-option').style.display = 'block';
+        hideNoPaymentMethodsWarning();
+    }
+}
+
+// 設定表單處理
+function setupForm() {
+    document.getElementById('checkout-form').addEventListener('submit', handleSubmit);
+}
+
+// 載入用戶資料並自動填入表單
+async function loadUserProfile() {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        // 用戶未登入，不需要載入資料
+        console.log('用戶未登入，跳過載入個人資料');
+        return;
     }
     
-    // 設定表單處理
-    function setupForm() {
-        const form = document.getElementById('checkout-form');
-        if (form) form.addEventListener('submit', handleSubmit);
-    }
-    
-    // 載入用戶資料
-    async function loadUserProfile() {
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            console.log('用戶未登入，跳過載入個人資料');
-            return;
-        }
-        try {
-            const response = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
-            if (response.ok) {
-                const user = await response.json();
-                
+    try {
+        const response = await fetch('/api/auth/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const user = await response.json();
+            console.log('載入用戶資料成功:', user);
+            
+            // 確保表單元素存在後再填入
+            setTimeout(() => {
+                // 自動填入表單欄位
                 const customerNameField = document.getElementsByName('customer_name')[0];
                 const customerPhoneField = document.getElementsByName('customer_phone')[0];
                 const customerEmailField = document.getElementsByName('customer_email')[0];
                 const shippingAddressField = document.getElementsByName('shipping_address')[0];
                 
-                if (customerEmailField && user.email) customerEmailField.value = user.email;
-                if (customerNameField && user.full_name) customerNameField.value = user.full_name;
-                if (customerPhoneField && user.phone) customerPhoneField.value = user.phone;
-                if (shippingAddressField && user.address) shippingAddressField.value = user.address;
-                
-                const missingFields = [];
-                if (!user.full_name) missingFields.push('姓名');
-                if (!user.phone) missingFields.push('電話');
-                if (!user.address) missingFields.push('地址');
-                
-                const infoDiv = document.getElementById('profile-info');
-                if (infoDiv && missingFields.length > 0) {
-                    infoDiv.innerHTML = `
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                            <div class="flex items-start">
-                                <svg class="w-5 h-5 text-blue-400 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
-                                <div>
-                                    <h4 class="text-sm font-medium text-blue-800">個人資料不完整</h4>
-                                    <p class="text-sm text-blue-700 mt-1">您的個人資料中缺少：${missingFields.join('、')}。</p>
-                                    <p class="text-sm text-blue-700 mt-1">
-                                        <a href="/profile" class="font-medium underline hover:text-blue-800">前往個人資料頁面完善資料</a>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>`;
+                if (customerNameField && user.full_name) {
+                    customerNameField.value = user.full_name;
+                    console.log('填入姓名:', user.full_name);
                 }
-            }
-        } catch (error) {
-            console.error('載入用戶資料失敗:', error);
+                if (customerPhoneField && user.phone) {
+                    customerPhoneField.value = user.phone;
+                    console.log('填入電話:', user.phone);
+                }
+                if (customerEmailField && user.email) {
+                    customerEmailField.value = user.email;
+                    console.log('填入信箱:', user.email);
+                }
+                if (shippingAddressField && user.address) {
+                    shippingAddressField.value = user.address;
+                    console.log('填入地址:', user.address);
+                }
+            }, 100); // 短暫延遲確保 DOM 完全載入
+        } else {
+            console.error('無法載入用戶資料，HTTP狀態:', response.status);
         }
+    } catch (error) {
+        console.error('載入用戶資料失敗:', error);
+        // 載入失敗時不影響結帳流程，靜默處理
+    }
+}
+
+// 處理表單提交
+async function handleSubmit(e) {
+    e.preventDefault();
+    
+    // 檢查是否已登入
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        if (confirm('您需要先登入才能完成訂單。是否前往登入頁面？')) {
+            // 儲存當前頁面以便登入後返回
+            localStorage.setItem('redirect_after_login', '/checkout');
+            window.location.href = '/login';
+        }
+        return;
     }
     
-    // 處理表單提交
-    async function handleSubmit(e) {
-        e.preventDefault();
-        
-        const token = localStorage.getItem('access_token');
-        if (!token) {
-            if (confirm('您需要先登入才能完成訂單。是否前往登入頁面？')) {
-                localStorage.setItem('redirect_after_login', '/checkout');
-                window.location.href = '/login';
-            }
-            return;
-        }
-        
-        if (cartItems.length === 0) {
-            alert('購物車是空的');
-            return;
-        }
-        
-        const formData = new FormData(e.target);
-        const orderData = Object.fromEntries(formData.entries());
-        
-        orderData.items = cartItems.map(item => ({
-            product_id: item.product_id,
-            quantity: item.quantity
-        }));
-        
-        if (appliedCoupon) {
-            orderData.coupon_code = appliedCoupon.code;
-        }
-        
-        showPaymentModal('正在建立訂單...');
-        
-        try {
-            const orderResponse = await fetch('/api/orders/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(orderData)
-            });
-            
-            if (!orderResponse.ok) {
-                const errorResult = await orderResponse.json();
-                throw new Error(errorResult.detail || '建立訂單失敗');
-            }
-            
-            const orderResult = await orderResponse.json();
-            currentOrderId = orderResult.id;
-            const paymentMethod = orderData.payment_method;
-            
-            const paymentHandlers = {
-                'transfer': handleTransferPayment,
-                'linepay': handleLinePayPayment,
-                'ecpay': handleEcpayPayment,
-                'paypal': handlePaypalPayment
-            };
-            
-            if (paymentHandlers[paymentMethod]) {
-                await paymentHandlers[paymentMethod](orderResult);
-            } else {
-                hidePaymentModal();
-                alert(`訂單建立成功！\n訂單編號：${orderResult.order_number}`);
-                await clearCart();
-                window.location.href = '/orders';
-            }
-            
-        } catch (error) {
-            hidePaymentModal();
-            console.error('提交訂單錯誤:', error);
-            alert(error.message || '訂單處理失敗，請稍後再試');
-        }
+    if (cartItems.length === 0) {
+        alert('購物車是空的');
+        return;
     }
     
-    // 處理轉帳付款
-    async function handleTransferPayment(orderResult) {
+    const formData = new FormData(e.target);
+    const orderData = Object.fromEntries(formData.entries());
+    
+    // 添加購物車商品
+    orderData.items = cartItems.map(item => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price
+    }));
+    
+    // 添加優惠碼資訊
+    if (appliedCoupon) {
+        orderData.coupon_code = appliedCoupon.code;
+        orderData.discount_amount = couponDiscount;
+    }
+    
+    showPaymentModal('正在建立訂單...');
+    
+    try {
+        // 建立訂單
+        const orderResponse = await fetch('/api/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            },
+            body: JSON.stringify(orderData)
+        });
+        
+        if (!orderResponse.ok) {
+            throw new Error('建立訂單失敗');
+        }
+        
+        const orderResult = await orderResponse.json();
+        currentOrderId = orderResult.id;
+        
+        // 根據付款方式處理
+        const paymentMethod = orderData.payment_method;
+        
+        if (paymentMethod === 'transfer') {
+            await handleTransferPayment(orderResult.id);
+        } else if (paymentMethod === 'linepay') {
+            await handleLinePayPayment(orderResult.id);
+        } else if (paymentMethod === 'ecpay') {
+            await handleEcpayPayment(orderResult.id);
+        }
+        
+    } catch (error) {
         hidePaymentModal();
+        alert(error.message || '處理失敗');
+    }
+}
+
+// 處理轉帳付款
+async function handleTransferPayment(orderId) {
+    try {
+        updatePaymentStatus('取得轉帳資訊...');
         
-        const paymentInfo = (typeof orderResult.payment_info === 'string') 
-            ? JSON.parse(orderResult.payment_info || '{}') 
-            : (orderResult.payment_info || {});
-    
-        const transferDetails = {
-            order_number: orderResult.order_number,
-            total_amount: orderResult.total_amount,
-            bank_name: paymentInfo?.bank_name || 'N/A',
-            account_name: paymentInfo?.account_name || 'N/A',
-            account_number: paymentInfo?.account_number || 'N/A',
-            note: paymentInfo?.note || '請依照上方資訊完成轉帳。'
-        };
+        const response = await fetch(`/api/payment/transfer/info/${orderId}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
         
-        showTransferInfo(transferDetails);
+        if (!response.ok) {
+            throw new Error('無法取得轉帳資訊');
+        }
+        
+        const transferInfo = await response.json();
+        hidePaymentModal();
+        showTransferInfo(transferInfo);
+        
+        // 清空購物車
         await clearCart();
+        
+    } catch (error) {
+        hidePaymentModal();
+        throw error;
     }
-    
-    // 處理 Line Pay 付款
-    async function handleLinePayPayment(orderResult) {
-        try {
-            updatePaymentStatus('連接 Line Pay...');
-            const paymentInfo = JSON.parse(orderResult.payment_info || '{}');
-            if (paymentInfo.payment_url) {
-                window.location.href = paymentInfo.payment_url;
-            } else {
-                throw new Error('無法取得 Line Pay 付款連結');
+}
+
+// 處理 Line Pay 付款
+async function handleLinePayPayment(orderId) {
+    try {
+        updatePaymentStatus('連接 Line Pay...');
+        
+        const response = await fetch(`/api/payment/linepay/create/${orderId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
-        } catch (error) {
-            hidePaymentModal();
-            throw error;
+        });
+        
+        if (!response.ok) {
+            throw new Error('無法建立 Line Pay 付款');
         }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 重導向到 Line Pay 付款頁面
+            window.location.href = result.payment_url;
+        } else {
+            throw new Error(result.message || 'Line Pay 付款建立失敗');
+        }
+        
+    } catch (error) {
+        hidePaymentModal();
+        throw error;
     }
-    
-    // 處理綠界付款
-    async function handleEcpayPayment(orderResult) {
-        try {
-            updatePaymentStatus('連接綠界金流...');
-            const paymentInfo = JSON.parse(orderResult.payment_info || '{}');
-            if (paymentInfo.action_url && paymentInfo.form_data) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = paymentInfo.action_url;
-                
-                Object.entries(paymentInfo.form_data).forEach(([key, value]) => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = value;
-                    form.appendChild(input);
-                });
-                
-                document.body.appendChild(form);
-                form.submit();
-            } else {
-                throw new Error('無法取得綠界付款資訊');
+}
+
+// 處理綠界付款
+async function handleEcpayPayment(orderId) {
+    try {
+        updatePaymentStatus('連接綠界金流...');
+        
+        const response = await fetch(`/api/payment/ecpay/create/${orderId}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             }
-        } catch (error) {
-            hidePaymentModal();
-            throw error;
+        });
+        
+        if (!response.ok) {
+            throw new Error('無法建立綠界付款');
         }
-    }
-    
-    // 處理 PayPal 付款
-    async function handlePaypalPayment(orderResult) {
-        try {
-            updatePaymentStatus('連接 PayPal...');
-            const paymentInfo = JSON.parse(orderResult.payment_info || '{}');
-            if (paymentInfo.approval_url) {
-                window.location.href = paymentInfo.approval_url;
-            } else {
-                throw new Error('無法取得 PayPal 付款連結');
-            }
-        } catch (error) {
-            hidePaymentModal();
-            throw error;
-        }
-    }
-    
-    // 清空購物車
-    async function clearCart() {
-        try {
-            await fetch('/api/cart/clear', {
-                method: 'DELETE',
-                headers: {'Authorization': `Bearer ${localStorage.getItem('access_token')}`}
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // 動態建立表單並提交到綠界
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = result.action_url;
+            
+            Object.entries(result.form_data).forEach(([key, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value;
+                form.appendChild(input);
             });
-        } catch (error) { console.error('清空購物車失敗:', error); }
-    }
-    
-    // 彈窗相關函式
-    function showPaymentModal(status) {
-        const modal = document.getElementById('payment-modal');
-        const statusEl = document.getElementById('payment-status');
-        if (statusEl) statusEl.textContent = status;
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            
+            document.body.appendChild(form);
+            form.submit();
+        } else {
+            throw new Error(result.message || '綠界付款建立失敗');
         }
-    }
-    
-    function updatePaymentStatus(status) {
-        const statusEl = document.getElementById('payment-status');
-        if(statusEl) statusEl.textContent = status;
-    }
-    
-    function hidePaymentModal() {
-        const modal = document.getElementById('payment-modal');
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-    }
-    
-    function showTransferInfo(info) {
-        const container = document.getElementById('transfer-info');
-        if (!container) return;
         
-        container.innerHTML = `
-            <div class="bg-blue-50 p-4 rounded-lg">
-                <h4 class="font-medium mb-2">訂單編號：${info.order_number}</h4>
-                <p class="text-lg font-semibold text-blue-600">金額：NT$${parseFloat(info.total_amount).toLocaleString()}</p>
-            </div>
-            <div class="space-y-2 mt-4">
-                <div><strong>銀行名稱：</strong>${info.bank_name}</div>
-                <div><strong>戶名：</strong>${info.account_name}</div>
-                <div><strong>帳號：</strong>${info.account_number}</div>
-                <div class="text-sm text-gray-600 bg-yellow-50 p-2 rounded mt-2">${info.note}</div>
-            </div>
-        `;
-        
-        const modal = document.getElementById('transfer-modal');
-        if(modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
+    } catch (error) {
+        hidePaymentModal();
+        throw error;
     }
-    
-    function closeTransferModal() {
-        const modal = document.getElementById('transfer-modal');
-        if(modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-        window.location.href = '/';
+}
+
+// 清空購物車
+async function clearCart() {
+    try {
+        await fetch('/api/cart/clear', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            }
+        });
+    } catch (error) {
+        console.error('清空購物車失敗:', error);
     }
+}
+
+// 顯示付款處理彈窗
+function showPaymentModal(status) {
+    document.getElementById('payment-status').textContent = status;
+    document.getElementById('payment-modal').classList.remove('hidden');
+    document.getElementById('payment-modal').classList.add('flex');
+}
+
+// 更新付款狀態
+function updatePaymentStatus(status) {
+    document.getElementById('payment-status').textContent = status;
+}
+
+// 隱藏付款處理彈窗
+function hidePaymentModal() {
+    document.getElementById('payment-modal').classList.add('hidden');
+    document.getElementById('payment-modal').classList.remove('flex');
+}
+
+// 顯示轉帳資訊
+function showTransferInfo(info) {
+    const container = document.getElementById('transfer-info');
+    container.innerHTML = `
+        <div class="bg-blue-50 p-4 rounded-lg">
+            <h4 class="font-medium mb-2">訂單編號：${info.order_number}</h4>
+            <p class="text-lg font-semibold text-blue-600">金額：$${info.total_amount}</p>
+        </div>
+        <div class="space-y-2">
+            <div><strong>銀行名稱：</strong>${info.bank_name}</div>
+            <div><strong>戶名：</strong>${info.account_name}</div>
+            <div><strong>帳號：</strong>${info.account_number}</div>
+            <div class="text-sm text-gray-600 bg-yellow-50 p-2 rounded">${info.note}</div>
+        </div>
+    `;
     
-    function viewOrder() {
-        window.location.href = '/orders';
-    }
-    
-    </script>
+    document.getElementById('transfer-modal').classList.remove('hidden');
+    document.getElementById('transfer-modal').classList.add('flex');
+}
+
+// 關閉轉帳資訊彈窗
+function closeTransferModal() {
+    document.getElementById('transfer-modal').classList.add('hidden');
+    document.getElementById('transfer-modal').classList.remove('flex');
+    window.location.href = '/';
+}
+
+// 查看訂單
+function viewOrder() {
+    window.location.href = '/orders';
+}
+</script>
 {% endblock %} 

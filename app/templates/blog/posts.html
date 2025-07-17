@@ -4,11 +4,6 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="blogApp()">
-    <!-- 部落格廣告輪播 -->
-    <div class="mb-8">
-        {{ banner_carousel('BLOG_LIST', 'mb-8') }}
-    </div>
-    
     <div class="mb-8">
         <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">部落格文章</h1>
         <p class="text-gray-600">探索最新的文章和見解</p>
@@ -174,13 +169,14 @@ function blogApp() {
                 const response = await fetch(url);
                 if (response.ok) {
                     const newPosts = await response.json();
-                    const items = newPosts.items || [];
+                    
                     if (reset) {
-                        this.posts = items;
+                        this.posts = newPosts;
                     } else {
-                        this.posts = [...this.posts, ...items];
+                        this.posts = [...this.posts, ...newPosts];
                     }
-                    this.hasMore = items.length === 12;
+                    
+                    this.hasMore = newPosts.length === 12;
                 }
             } catch (error) {
                 console.error('載入文章失敗:', error);

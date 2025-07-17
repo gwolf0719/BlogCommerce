@@ -1,254 +1,317 @@
 {% extends "base.html" %}
 
-{% block title %}我的訂單 - BlogCommerce{% endblock %}
+{% block title %}我的訂單 - {{ settings.site_name }}{% endblock %}
 
 {% block content %}
-<div x-data="ordersPage()" x-init="init()" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">我的訂單</h1>
-    <p class="text-gray-600 mb-8">查看您的訂單狀態和詳細資訊。</p>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="ordersApp()" x-init="loadOrders()">
+    <!-- 頁面標題 -->
+    <div class="mb-8">
+        <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">我的訂單</h1>
+        <p class="text-gray-600">查看您的訂單狀態和詳細資訊</p>
+    </div>
 
-    <!-- 篩選器區域 -->
-    <div class="bg-gray-50 p-4 rounded-xl border mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+    <!-- 篩選器 -->
+    <div class="mb-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex flex-wrap items-center gap-4">
             <div>
-                <label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">訂單狀態</label>
-                <select id="status-filter" x-model="statusFilter" class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50">
-                    <option value="all">全部狀態</option>
-                    <option value="pending">處理中</option>
-                    <option value="confirmed">已確認</option>
+                <label class="block text-sm font-medium text-gray-700 mb-1">訂單狀態</label>
+                <select x-model="filters.status" @change="loadOrders()" 
+                        class="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors">
+                    <option value="">全部狀態</option>
+                    <option value="pending">待處理</option>
+                    <option value="processing">處理中</option>
                     <option value="shipped">已出貨</option>
                     <option value="delivered">已送達</option>
                     <option value="cancelled">已取消</option>
                 </select>
             </div>
-            <div>
-                <label for="start-date" class="block text-sm font-medium text-gray-700 mb-1">開始日期</label>
-                <input type="date" id="start-date" x-model="startDate" class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50">
-            </div>
-            <div>
-                <label for="end-date" class="block text-sm font-medium text-gray-700 mb-1">結束日期</label>
-                <input type="date" id="end-date" x-model="endDate" class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50">
-            </div>
-            <div class="flex space-x-2">
-                <button @click="applyFilters" class="w-full bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition-colors">篩選</button>
-                <button @click="clearFilters" class="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors">清除</button>
+            
+            <div class="flex-1"></div>
+            
+            <div class="text-sm text-gray-500">
+                共 <span x-text="orders.length"></span> 筆訂單
             </div>
         </div>
     </div>
 
     <!-- 訂單列表 -->
-    <div x-show="loading" class="text-center py-10">
-        <p>載入中...</p>
+    <div x-show="loading" class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+        <div class="animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
+            <div class="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+        </div>
+        <p class="text-gray-500 mt-4">載入中...</p>
     </div>
 
-    <div x-show="!loading && orders.length === 0" class="text-center py-10 bg-gray-50 rounded-lg">
-        <p class="text-gray-500">您目前沒有任何訂單。</p>
-    </div>
-    
-    <div x-show="!loading && orders.length > 0 && filteredOrders.length === 0" class="text-center py-10 bg-gray-50 rounded-lg">
-        <p class="text-gray-500">找不到符合篩選條件的訂單。</p>
+    <div x-show="!loading && orders.length === 0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+        <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">目前沒有訂單</h3>
+        <p class="text-gray-600 mb-4">您還沒有任何訂單記錄</p>
+        <a href="/products" class="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-6 py-3 rounded-xl hover:from-primary-600 hover:to-primary-700 transition-colors font-medium">
+            開始購物
+        </a>
     </div>
 
-    <div x-show="!loading && filteredOrders.length > 0" class="space-y-6">
-        <template x-for="order in filteredOrders" :key="order.id">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-shadow hover:shadow-md">
-                <div class="p-4 sm:p-6 bg-gray-50 border-b flex flex-wrap justify-between items-center gap-2">
-                    <div>
-                        <p class="font-semibold text-gray-800">訂單編號：<span class="font-mono" x-text="order.order_number"></span></p>
-                        <p class="text-sm text-gray-500">下訂時間：<span x-text="formatDate(order.created_at)"></span></p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-sm text-gray-500">訂單金額</p>
-                        <p class="font-bold text-lg text-primary-600" x-text="`NT$${formatPrice(order.total_amount)}`"></p>
-                    </div>
-                </div>
-                <div class="p-4 sm:p-6">
-                    <div class="space-y-4">
-                        <template x-for="item in order.items" :key="item.id">
-                            <div class="flex items-start space-x-4">
-                                <a :href="`/products/${item.product_slug}`" class="flex-shrink-0">
-                                    <img :src="item.product_featured_image || '/static/images/default-product.svg'" 
-                                         :alt="item.product_name" 
-                                         class="w-20 h-20 object-cover rounded-lg border hover:opacity-80 transition-opacity">
-                                </a>
-                                <div class="flex-1">
-                                    <a :href="`/products/${item.product_slug}`" class="font-medium text-gray-800 hover:text-primary-600" x-text="item.product_name"></a>
-                                    <p class="text-sm text-gray-500" x-text="`單價: NT$${formatPrice(item.product_price)} × ${item.quantity}`"></p>
+    <div x-show="!loading && orders.length > 0" class="space-y-6">
+        <template x-for="order in orders" :key="order.id">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                        <!-- 訂單標題 -->
+                        <div class="p-6 border-b border-gray-200">
+                            <div class="flex flex-wrap items-center justify-between gap-4">
+                                <div>
+                                    <h3 class="font-semibold text-gray-900">
+                                        訂單編號: <span x-text="order.order_number || '#' + order.id"></span>
+                                    </h3>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        下單時間: <span x-text="formatDate(order.created_at)"></span>
+                                    </p>
                                 </div>
-                                <p class="font-medium text-gray-800" x-text="`NT$${formatPrice(item.product_price * item.quantity)}`"></p>
-                            </div>
-                        </template>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t">
-                        <div>
-                            <h4 class="font-semibold text-gray-700 mb-2">配送資訊</h4>
-                            <div class="text-sm text-gray-600 space-y-1">
-                                <p>收件人: <span x-text="order.customer_name"></span></p>
-                                <p>電話: <span x-text="order.customer_phone"></span></p>
-                                <p>地址: <span x-text="order.shipping_address"></span></p>
+                                
+                                <div class="text-right">
+                                    <div class="flex items-center gap-2">
+                                        <span :class="getStatusColor(order.status)" 
+                                              class="px-3 py-1 rounded-full text-xs font-medium"
+                                              x-text="getStatusText(order.status)"></span>
+                                    </div>
+                                    <p class="text-lg font-semibold text-gray-900 mt-1">
+                                        NT$<span x-text="order.total_amount.toLocaleString()"></span>
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <h4 class="font-semibold text-gray-700 mb-2">付款資訊</h4>
-                            <div class="text-sm text-gray-600 space-y-1">
-                                <p>付款方式: <span x-text="getPaymentMethodText(order.payment_method)"></span></p>
-                                <p>付款狀態: <span :class="getPaymentStatusClass(order.payment_status)" class="font-medium px-2 py-1 rounded-full text-xs" x-text="getPaymentStatusText(order.payment_status)"></span></p>
-                                <div x-html="renderPaymentInfo(order)" class="mt-2"></div>
+
+                        <!-- 訂單項目 -->
+                        <div class="p-6">
+                            <div class="space-y-3">
+                                <template x-for="item in order.items" :key="item.id">
+                                    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                                        <div class="flex-1">
+                                            <h4 class="font-medium text-gray-900" x-text="item.product_name"></h4>
+                                            <p class="text-sm text-gray-600">
+                                                單價: NT$<span x-text="item.product_price.toLocaleString()"></span> × 
+                                                <span x-text="item.quantity"></span>
+                                            </p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="font-medium text-gray-900">
+                                                NT$<span x-text="(item.product_price * item.quantity).toLocaleString()"></span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
+
+                            <!-- 訂單詳情 -->
+                            <div class="mt-6 pt-6 border-t border-gray-200">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900 mb-2">配送資訊</h4>
+                                        <div class="text-sm text-gray-600 space-y-1">
+                                            <p><strong>收件人:</strong> <span x-text="order.customer_name"></span></p>
+                                            <p><strong>電話:</strong> <span x-text="order.customer_phone || '未提供'"></span></p>
+                                            <p><strong>地址:</strong> <span x-text="order.shipping_address"></span></p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <h4 class="font-medium text-gray-900 mb-2">付款資訊</h4>
+                                        <div class="text-sm text-gray-600 space-y-1">
+                                            <p><strong>付款方式:</strong> <span x-text="getPaymentMethodText(order.payment_method)"></span></p>
+                                            <template x-if="order.notes">
+                                                <p><strong>備註:</strong> <span x-text="order.notes"></span></p>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        <!-- 訂單操作 -->
+                        <div class="mt-6 pt-6 border-t border-gray-200 flex justify-end space-x-3">
+                            <template x-if="order.status === 'pending'">
+                                <button @click="cancelOrder(order.id)" 
+                                        class="px-4 py-2 text-red-600 border border-red-200 rounded-xl hover:bg-red-50 transition-colors">
+                                    取消訂單
+                                </button>
+                            </template>
+                            
+                            <button @click="viewOrderDetail(order)" 
+                                    class="px-4 py-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl hover:from-primary-600 hover:to-primary-700 transition-colors">
+                                查看詳情
+                            </button>
                         </div>
                     </div>
                 </div>
+            </template>
+        </div>
 
-                <div class="p-4 bg-gray-50 border-t flex justify-end items-center gap-3">
-                     <span :class="getStatusClass(order.status)" class="font-bold text-sm" x-text="`訂單狀態: ${getStatusText(order.status)}`"></span>
-                    <button @click="cancelOrder(order.id)" x-show="order.status === 'pending' || order.status === 'confirmed'" class="px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">取消訂單</button>
-                    <a :href="`/orders/${order.id}`" class="px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors">查看詳情</a>
-                </div>
+        <!-- 分頁 -->
+        <div x-show="!loading && orders.length > 0" class="mt-12 flex justify-center">
+            <div class="flex space-x-2">
+                <button @click="loadOrders(Math.max(0, currentPage - 1))" 
+                        :disabled="currentPage === 0"
+                        class="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    上一頁
+                </button>
+                <span class="px-4 py-2 text-gray-600">
+                    第 <span x-text="currentPage + 1"></span> 頁
+                </span>
+                <button @click="loadOrders(currentPage + 1)" 
+                        :disabled="orders.length < pageSize"
+                        class="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    下一頁
+                </button>
             </div>
-        </template>
+        </div>
+    </div>
+
+    <!-- 訊息提示 -->
+    <div x-show="message" x-transition 
+         :class="messageType === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'"
+         class="fixed top-4 right-4 border px-4 py-3 rounded-xl shadow-lg z-50">
+        <span x-text="message"></span>
     </div>
 </div>
 
 <script>
-    function ordersPage() {
-        return {
-            orders: [],
-            filteredOrders: [],
-            loading: true,
-            statusFilter: 'all',
-            startDate: '',
-            endDate: '',
-            init() {
-                this.fetchOrders();
-            },
-            async fetchOrders() {
-                this.loading = true;
-                try {
-                    const token = localStorage.getItem('access_token');
-                    if (!token) {
-                        window.location.href = '/login';
-                        return;
-                    }
-
-                    const params = new URLSearchParams();
-                    if (this.statusFilter && this.statusFilter !== 'all') {
-                        params.append('status', this.statusFilter);
-                    }
-                    if (this.startDate) {
-                        params.append('start_date', this.startDate);
-                    }
-                    if (this.endDate) {
-                        params.append('end_date', this.endDate);
-                    }
-                    
-                    const response = await fetch(`/api/orders/my?${params.toString()}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        this.orders = data;
-                        this.filteredOrders = data;
-                    } else {
-                        console.error('無法獲取訂單');
-                        this.orders = [];
-                        this.filteredOrders = [];
-                    }
-                } catch (error) {
-                    console.error('獲取訂單失敗:', error);
-                } finally {
-                    this.loading = false;
-                }
-            },
-            applyFilters() {
-                this.fetchOrders();
-            },
-            clearFilters() {
-                this.statusFilter = 'all';
-                this.startDate = '';
-                this.endDate = '';
-                this.fetchOrders();
-            },
-            formatDate(dateString) {
-                if (!dateString) return 'N/A';
-                return new Date(dateString).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-            },
-            formatPrice(price) {
-                return parseFloat(price).toLocaleString();
-            },
-            getStatusText(status) {
-                const map = { pending: '處理中', confirmed: '已確認', shipped: '已出貨', delivered: '已送達', cancelled: '已取消' };
-                return map[status] || '未知';
-            },
-            getStatusClass(status) {
-                const map = {
-                    pending: 'text-yellow-800 bg-yellow-100',
-                    confirmed: 'text-blue-800 bg-blue-100',
-                    shipped: 'text-indigo-800 bg-indigo-100',
-                    delivered: 'text-green-800 bg-green-100',
-                    cancelled: 'text-gray-800 bg-gray-100'
-                };
-                return map[status] || 'text-gray-800 bg-gray-100';
-            },
-            getPaymentMethodText(method) {
-                const map = { transfer: '銀行轉帳', linepay: 'Line Pay', ecpay: '綠界金流', paypal: 'PayPal' };
-                return map[method] || '未指定';
-            },
-            getPaymentStatusText(status) {
-                 const map = { unpaid: '待付款', paid: '已付款', failed: '付款失敗', refunded: '已退款', pending: '處理中', partial: '部分付款' };
-                return map[status] || '未知';
-            },
-            getPaymentStatusClass(status) {
-                const map = {
-                    unpaid: 'text-red-800 bg-red-100',
-                    pending: 'text-yellow-800 bg-yellow-100',
-                    paid: 'text-green-800 bg-green-100',
-                    failed: 'text-red-800 bg-red-100',
-                    refunded: 'text-gray-800 bg-gray-100',
-                    partial: 'text-blue-800 bg-blue-100'
-                };
-                return map[status] || 'text-gray-800 bg-gray-100';
-            },
-            renderPaymentInfo(order) {
-                if (order.payment_status !== 'unpaid' && order.payment_status !== 'pending') {
-                    return '';
-                }
-
-                const paymentInfo = (typeof order.payment_info === 'string') 
-                    ? JSON.parse(order.payment_info || '{}') 
-                    : (order.payment_info || {});
-
-                if (order.payment_method === 'transfer') {
-                    return `
-                        <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
-                            <p><strong>銀行:</strong> ${paymentInfo.bank_name || 'N/A'}</p>
-                            <p><strong>戶名:</strong> ${paymentInfo.account_name || 'N/A'}</p>
-                            <p><strong>帳號:</strong> ${paymentInfo.account_number || 'N/A'}</p>
-                            <p class="mt-1 text-xs text-gray-500">${paymentInfo.note || ''}</p>
-                        </div>
-                    `;
+function ordersApp() {
+    return {
+        orders: [],
+        loading: false,
+        message: '',
+        messageType: 'success',
+        currentPage: 0,
+        pageSize: 10,
+        filters: {
+            status: ''
+        },
+        
+        async loadOrders(page = 0) {
+            this.loading = true;
+            this.currentPage = page;
+            
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
                 }
                 
-                if (paymentInfo.payment_url) {
-                    return `
-                        <a href="${paymentInfo.payment_url}" target="_blank" class="mt-2 inline-block px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
-                            前往付款
-                        </a>
-                    `;
+                const params = new URLSearchParams({
+                    skip: page * this.pageSize,
+                    limit: this.pageSize
+                });
+                
+                if (this.filters.status) {
+                    params.append('status', this.filters.status);
                 }
-
-                return '<p class="text-sm text-red-500 mt-2">付款資訊遺失，請聯絡客服。</p>';
-            },
-            async cancelOrder(orderId) {
-                if (confirm('您確定要取消此訂單嗎？此操作無法復原。')) {
-                    // 實際應用中應呼叫 API 取消訂單
-                    console.log(`取消訂單: ${orderId}`);
-                    alert('訂單已取消（模擬）');
-                    // this.fetchOrders(); // 重新載入訂單
+                
+                const response = await fetch(`/api/orders/my?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    this.orders = await response.json();
+                } else {
+                    throw new Error('無法載入訂單');
                 }
+            } catch (error) {
+                console.error('載入訂單失敗:', error);
+                this.showMessage('載入訂單失敗', 'error');
+            } finally {
+                this.loading = false;
             }
+        },
+        
+        async cancelOrder(orderId) {
+            if (!confirm('確定要取消這筆訂單嗎？')) {
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`/api/orders/${orderId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        status: 'cancelled'
+                    })
+                });
+                
+                if (response.ok) {
+                    this.showMessage('訂單已成功取消', 'success');
+                    this.loadOrders(this.currentPage);
+                } else {
+                    throw new Error('取消訂單失敗');
+                }
+            } catch (error) {
+                console.error('取消訂單失敗:', error);
+                this.showMessage('取消訂單失敗', 'error');
+            }
+        },
+        
+        viewOrderDetail(order) {
+            // 這裡可以實現查看詳情的模態框或跳轉到詳情頁
+            console.log('查看訂單詳情:', order);
+        },
+        
+        formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        },
+        
+        getStatusText(status) {
+            const statusMap = {
+                'pending': '待處理',
+                'processing': '處理中',
+                'shipped': '已出貨',
+                'delivered': '已送達',
+                'cancelled': '已取消'
+            };
+            return statusMap[status] || status;
+        },
+        
+        getStatusColor(status) {
+            const colorMap = {
+                'pending': 'bg-yellow-100 text-yellow-800',
+                'processing': 'bg-blue-100 text-blue-800',
+                'shipped': 'bg-purple-100 text-purple-800',
+                'delivered': 'bg-green-100 text-green-800',
+                'cancelled': 'bg-red-100 text-red-800'
+            };
+            return colorMap[status] || 'bg-gray-100 text-gray-800';
+        },
+        
+        getPaymentMethodText(method) {
+            const methodMap = {
+                'credit_card': '信用卡',
+                'bank_transfer': '銀行轉帳',
+                'cod': '貨到付款',
+                'paypal': 'PayPal'
+            };
+            return methodMap[method] || method;
+        },
+        
+        showMessage(text, type = 'success') {
+            this.message = text;
+            this.messageType = type;
+            setTimeout(() => {
+                this.message = '';
+            }, 5000);
         }
     }
+}
 </script>
-{% endblock %}
+{% endblock %} 
