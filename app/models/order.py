@@ -47,8 +47,7 @@ class Order(BaseModel):
     
     # 訂單金額
     subtotal = Column(Numeric(10, 2), nullable=False)
-    shipping_fee = Column(Numeric(10, 2), default=0)
-    discount_amount = Column(Numeric(10, 2), default=0)  # 優惠券折扣金額
+    discount_amount = Column(Numeric(10, 2), default=0)  # 折扣金額
     total_amount = Column(Numeric(10, 2), nullable=False)
     
     # 訂單狀態
@@ -66,7 +65,9 @@ class Order(BaseModel):
     # 關聯
     user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
-    coupon_usage = relationship("CouponUsage", back_populates="order", cascade="all, delete-orphan", uselist=False)
+    promo_usage = relationship("PromoUsage", back_populates="order", uselist=False)
+    # 向後相容的別名
+    discount_usage = relationship("PromoUsage", back_populates="order", uselist=False, viewonly=True)
     
     def __repr__(self):
         return f"<Order {self.order_number}>"

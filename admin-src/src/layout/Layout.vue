@@ -3,7 +3,7 @@
     <a-layout-sider v-model:collapsed="collapsed" collapsible>
       <div class="logo">
         <h3 v-if="!collapsed" style="color: white; text-align: center; margin: 16px 0;">
-          伴獸家
+          BlogCommerce
         </h3>
         <h3 v-else style="color: white; text-align: center; margin: 16px 0;">
           BC
@@ -31,25 +31,27 @@
           <span>訂單管理</span>
         </a-menu-item>
         
-        <a-menu-item key="campaigns" @click="$router.push('/campaigns')">
-          <tag-outlined />
-          <span>行銷專案</span>
-        </a-menu-item>
-        
-        <a-menu-item key="coupons" @click="$router.push('/coupons')">
-          <tag-outlined />
-          <span>優惠券管理</span>
-        </a-menu-item>
-        
         <a-menu-item key="users" @click="$router.push('/users')">
           <user-outlined />
           <span>會員管理</span>
         </a-menu-item>
         
-        <a-menu-item key="analytics" @click="$router.push('/analytics')">
-          <bar-chart-outlined />
-          <span>數據分析</span>
+        <a-menu-item key="banners" @click="$router.push('/banners')">
+          <picture-outlined />
+          <span>廣告管理</span>
         </a-menu-item>
+        
+        <a-menu-item key="shipping-tiers" @click="$router.push('/shipping-tiers')">
+          <car-outlined />
+          <span>運費級距</span>
+        </a-menu-item>
+        
+        <a-menu-item key="promo-codes" @click="$router.push('/promo-codes')">
+          <gift-outlined />
+          <span>推薦碼管理</span>
+        </a-menu-item>
+        
+        <!-- 移除: 數據分析選單項目 -->
         
         <a-menu-item key="settings" @click="$router.push('/settings')">
           <setting-outlined />
@@ -103,11 +105,12 @@ import {
   ShoppingOutlined,
   ShoppingCartOutlined,
   UserOutlined,
-  BarChartOutlined,
   SettingOutlined,
   LogoutOutlined,
   DownOutlined,
-  TagOutlined
+  PictureOutlined,
+  CarOutlined,
+  GiftOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -125,10 +128,11 @@ const pageTitle = {
   posts: '文章管理',
   products: '商品管理',
   orders: '訂單管理',
-  campaigns: '行銷專案',
-  coupons: '優惠券管理',
   users: '會員管理',
-  analytics: '數據分析',
+  banners: '廣告管理',
+  'shipping-tiers': '運費級距',
+  'promo-codes': '推薦碼管理',
+  // 移除: analytics: '數據分析',
   settings: '系統設定'
 }
 
@@ -142,13 +146,6 @@ const handleLogout = () => {
   message.success('已登出')
   router.push('/login')
 }
-
-onMounted(async () => {
-  const isAuth = await authStore.checkAuth()
-  if (!isAuth) {
-    router.push('/login')
-  }
-})
 </script>
 
 <style scoped>

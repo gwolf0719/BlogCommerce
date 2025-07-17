@@ -11,7 +11,7 @@
         <template x-for="item in favorites" :key="item.id">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-shadow duration-300">
                 <div class="relative">
-                    <img :src="item.product.featured_image || '/static/images/placeholder-product.jpg'" 
+                    <img :src="item.product.featured_image || '/static/images/default-product.svg'" 
                          :alt="item.product.name"
                          class="w-full h-48 object-cover rounded-t-xl">
                     

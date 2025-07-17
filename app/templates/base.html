@@ -45,16 +45,16 @@
                 extend: {
                     colors: {
                         primary: {
-                            50:  '#f5f0ee',  // 極淺 – 類似霧白帶淡杏
-                            100: '#e3d4cd',  // 更柔和的杏粉
-                            200: '#d1b7ac',  // 淡暖駝
-                            300: '#b68c7b',  // 軟木棕
-                            400: '#a46f5a',  // 溫暖肉桂
-                            500: '#946451',  // 基準色偏亮
-                            600: '#835948',  // 基準色 (#835948)
-                            700: '#734e3f',  // 深焦糖
-                            800: '#624336',  // 濃咖啡棕
-                            900: '#52372d'   // 最深 – 烘焙可可
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a'
                         },
                         gray: {
                             50: '#f9fafb',
@@ -67,19 +67,6 @@
                             700: '#374151',
                             800: '#1f2937',
                             900: '#111827'
-                        },
-                        // 輔助色彩
-                        accent: {
-                            50: '#fef7ee',
-                            100: '#fdedd3',
-                            200: '#fcd9a5',
-                            300: '#fabe6d',
-                            400: '#f79833',
-                            500: '#f47a0a',
-                            600: '#e55e05',
-                            700: '#be4508',
-                            800: '#973710',
-                            900: '#7a2e10'
                         }
                     },
                     fontFamily: {
@@ -93,19 +80,6 @@
                         'xl': '0.75rem',
                         '2xl': '1rem',
                         '3xl': '1.5rem'
-                    },
-                    // 自訂背景漸層
-                    backgroundImage: {
-                        'primary-gradient': 'linear-gradient(135deg, #f5f0ee 0%, #e3d4cd 100%)',
-                        'primary-button': 'linear-gradient(135deg, #946451 0%, #835948 100%)',
-                        'primary-button-hover': 'linear-gradient(135deg, #835948 0%, #734e3f 100%)',
-                        'primary-logo': 'linear-gradient(135deg, #a46f5a 0%, #835948 100%)',
-                    },
-                    // 自訂陰影
-                    boxShadow: {
-                        'primary': '0 4px 14px 0 rgba(131, 89, 72, 0.1)',
-                        'primary-lg': '0 10px 25px -3px rgba(131, 89, 72, 0.1), 0 4px 6px -2px rgba(131, 89, 72, 0.05)',
-                        'primary-xl': '0 20px 25px -5px rgba(131, 89, 72, 0.1), 0 10px 10px -5px rgba(131, 89, 72, 0.04)',
                     }
                 }
             }
@@ -114,8 +88,162 @@
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     {% block head %}{% endblock %}
+    
+    <style>
+        /* 廣告輪播組件樣式 */
+        .banner-carousel {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .banner-slide {
+            transition: transform 0.5s ease-in-out;
+        }
+        
+        .banner-indicators {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+        
+        .banner-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .banner-indicator.active {
+            background: white;
+            transform: scale(1.2);
+        }
+        
+        .banner-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        
+        .banner-nav:hover {
+            background: rgba(0, 0, 0, 0.7);
+            transform: translateY(-50%) scale(1.1);
+        }
+        
+        .banner-nav.prev {
+            left: 1rem;
+        }
+        
+        .banner-nav.next {
+            right: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .banner-nav {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .banner-nav.prev {
+                left: 0.5rem;
+            }
+            
+            .banner-nav.next {
+                right: 0.5rem;
+            }
+        }
+    </style>
 </head>
 <body x-data="authApp()" x-init="initAuth()" class="bg-gray-50 text-gray-900 antialiased">
+    
+    <!-- 廣告輪播組件 Macro -->
+    {% macro banner_carousel(position, css_class='') %}
+        <div class="banner-carousel-container {{ css_class }}" x-data="bannerCarousel('{{ position }}')" x-init="init()">
+            <div x-show="banners.length > 0" class="banner-carousel">
+                <!-- 輪播內容 -->
+                <div class="relative w-full overflow-hidden">
+                    <div class="flex transition-transform duration-500 ease-in-out" 
+                         :style="'transform: translateX(-' + (currentIndex * 100) + '%)'">
+                        <template x-for="(banner, index) in banners" :key="banner.id">
+                            <div class="banner-slide w-full flex-shrink-0 relative">
+                                <!-- 桌面版圖片 -->
+                                <div class="hidden md:block relative">
+                                    <img :src="banner.desktop_image" 
+                                         :alt="banner.alt_text || banner.title"
+                                         class="w-full h-64 lg:h-80 object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                                </div>
+                                
+                                <!-- 手機版圖片 -->
+                                <div class="block md:hidden relative">
+                                    <img :src="banner.mobile_image" 
+                                         :alt="banner.alt_text || banner.title"
+                                         class="w-full h-48 object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                                </div>
+                                
+                                <!-- 廣告內容 -->
+                                <div class="absolute bottom-0 left-0 right-0 p-4 lg:p-6 text-white">
+                                    <h3 class="text-lg lg:text-2xl font-bold mb-2 line-clamp-2" x-text="banner.title"></h3>
+                                    <p class="text-sm lg:text-base opacity-90 mb-4 line-clamp-3" x-text="banner.description" x-show="banner.description"></p>
+                                    <a :href="banner.link_url" 
+                                       @click="trackClick(banner.id)"
+                                       class="inline-flex items-center bg-white text-gray-900 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors duration-200 transform hover:scale-105">
+                                        了解更多
+                                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                
+                <!-- 導航按鈕 -->
+                <button x-show="banners.length > 1" @click="prevSlide()" class="banner-nav prev">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                
+                <button x-show="banners.length > 1" @click="nextSlide()" class="banner-nav next">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
+                
+                <!-- 指示器 -->
+                <div x-show="banners.length > 1" class="banner-indicators">
+                    <template x-for="(banner, index) in banners" :key="'indicator-' + banner.id">
+                        <div class="banner-indicator" 
+                             :class="{ 'active': index === currentIndex }"
+                             @click="goToSlide(index)">
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    {% endmacro %}
     <!-- 導航列 -->
     <nav class="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -124,9 +252,9 @@
                 <div class="flex items-center space-x-4 lg:space-x-8">
                     <a href="/" class="flex items-center space-x-2 lg:space-x-3">
                         <img src="{{ settings.site_logo }}" alt="{{ settings.site_name }}" class="h-8 lg:h-10 w-auto">
-                        <!-- <span class="text-lg lg:text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent hidden sm:block">
+                        <span class="text-lg lg:text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent hidden sm:block">
                             {{ settings.site_name }}
-                        </span> -->
+                        </span>
                     </a>
                     
                     <!-- Desktop Navigation -->
@@ -146,7 +274,7 @@
                             }
                         }
                     }" x-init="loadFeatures()">
-                        <!-- <a href="/blog" x-show="features.blog_enabled !== false" class="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">部落格</a> -->
+                        <a href="/blog" x-show="features.blog_enabled !== false" class="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">部落格</a>
                         <!-- 標籤導航已移除 -->
                         <a href="/products" x-show="features.shop_enabled !== false" class="text-gray-600 hover:text-primary-600 transition-colors duration-200 font-medium">商品</a>
                     </div>
@@ -157,7 +285,9 @@
                     <div class="relative">
                         <a href="/cart" class="relative block p-2 text-gray-600 hover:text-primary-600 transition-colors duration-200 group">
                             <div class="relative">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"><!-- Icon from Material Symbols by Google - https://github.com/google/material-design-icons/blob/master/LICENSE --><path fill="currentColor" d="M7 22q-.825 0-1.412-.587T5 20t.588-1.412T7 18t1.413.588T9 20t-.587 1.413T7 22m10 0q-.825 0-1.412-.587T15 20t.588-1.412T17 18t1.413.588T19 20t-.587 1.413T17 22M5.2 4h14.75q.575 0 .875.513t.025 1.037l-3.55 6.4q-.275.5-.737.775T15.55 13H8.1L7 15h12v2H7q-1.125 0-1.7-.987t-.05-1.963L6.6 11.6L3 4H1V2h3.25z"/></svg>
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L5 3H3m4 10v6a1 1 0 001 1h10a1 1 0 001-1v-6M9 19a1 1 0 100 2 1 1 0 000-2zm8 0a1 1 0 100 2 1 1 0 000-2z"></path>
+                                </svg>
                                 <span x-show="cartCount > 0" 
                                       x-text="cartCount" 
                                       class="cart-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium z-20 min-w-[20px] transform group-hover:scale-110 transition-transform shadow-lg border-2 border-white"></span>
@@ -318,33 +448,14 @@
     </main>
 
     <!-- 頁腳 -->
-    <footer class="bg-gray-900 text-white">
-          <!-- Brand Story Section -->
-        <section class="py-16 bg-[#835948]">
-            <div class="max-w-5xl mx-auto px-8">
-                <div class="flex items-center gap-20">
-                    <!-- Brand Image -->
-                    <div class="flex-shrink-0">
-                        <div class="w-34 h-26 bg-gray-200 rounded-lg">
-                            <!-- 品牌形象圖片區域 -->
-                        </div>
-                    </div>
-                    
-                    <!-- Brand Text -->
-                    <div class="flex-1">
-                        <img src="../static/assets/home-footer-text.png" alt="我們是一群相信陪伴，是最好的愛的人。" class="mb-6">
-                    </div>
-                </div>
-            </div>
-        </section>
-
+    <footer class="bg-gray-900 text-white mt-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
                 <!-- 公司資訊 -->
                 <div class="lg:col-span-2">
                     <div class="flex items-center space-x-3 mb-6">
                         <img src="{{ settings.site_logo }}" alt="{{ settings.site_name }}" class="h-10 w-auto filter brightness-0 invert">
-                        <!-- <span class="text-2xl font-bold">{{ settings.site_name }}</span> -->
+                        <span class="text-2xl font-bold">{{ settings.site_name }}</span>
                     </div>
                     <p class="text-gray-300 leading-relaxed mb-6 max-w-md">{{ settings.site_description }}</p>
                     <div class="flex space-x-4">
@@ -390,13 +501,13 @@
                     <h3 class="text-lg font-semibold mb-6">客戶服務</h3>
                     <ul class="space-y-4">
                         <li><a href="/help" class="text-gray-300 hover:text-white transition-colors duration-200">常見問題</a></li>
-                        <li><a href="/shipping" class="text-gray-300 hover:text-white transition-colors duration-200">配送說明</a></li>
+        
                         <li><a href="/returns" class="text-gray-300 hover:text-white transition-colors duration-200">退換貨</a></li>
                         <li><a href="/privacy" class="text-gray-300 hover:text-white transition-colors duration-200">隱私政策</a></li>
                     </ul>
                     
                     <!-- 管理員登入連結 -->
-                    <div x-show="false" class="pt-6 mt-6 border-t border-gray-800">
+                    <div class="pt-6 mt-6 border-t border-gray-800">
                         <a href="/admin/login" class="text-xs text-gray-500 hover:text-gray-300 transition-colors duration-200">系統管理</a>
                     </div>
                 </div>
@@ -404,7 +515,7 @@
             
             <!-- 底部版權 -->
             <div class="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                <p class="text-gray-400 text-sm">© 2025 {{ settings.site_name }}. 版權所有。</p>
+                <p class="text-gray-400 text-sm">© 2024 {{ settings.site_name }}. 版權所有。</p>
                 <div class="flex space-x-6 text-sm">
                     <a href="/privacy" class="text-gray-400 hover:text-white transition-colors duration-200">隱私政策</a>
                     <a href="/terms" class="text-gray-400 hover:text-white transition-colors duration-200">服務條款</a>
@@ -651,11 +762,111 @@
                 return response;
             }
         };
+        
+        // 廣告輪播功能
+        window.bannerCarousel = function(position) {
+            return {
+                banners: [],
+                currentIndex: 0,
+                loading: false,
+                autoPlayInterval: null,
+                
+                async init() {
+                    await this.loadBanners();
+                    this.startAutoPlay();
+                },
+                
+                async loadBanners() {
+                    this.loading = true;
+                    try {
+                        const response = await fetch(`/api/banners/active/${position}`);
+                        if (response.ok) {
+                            const banners = await response.json();
+                            this.banners = banners.map(banner => ({
+                                ...banner,
+                                desktop_image: this.getImageUrl(banner.desktop_image),
+                                mobile_image: this.getImageUrl(banner.mobile_image)
+                            }));
+                        }
+                    } catch (error) {
+                        console.error('載入廣告失敗:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                getImageUrl(imagePath) {
+                    if (!imagePath) return '';
+                    
+                    // 如果已經是完整的 URL，直接返回
+                    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+                        return imagePath;
+                    }
+                    
+                    // 如果是相對路徑，加上 baseURL
+                    const baseURL = window.location.origin;
+                    return `${baseURL}${imagePath}`;
+                },
+                
+                nextSlide() {
+                    this.currentIndex = (this.currentIndex + 1) % this.banners.length;
+                    this.resetAutoPlay();
+                },
+                
+                prevSlide() {
+                    this.currentIndex = this.currentIndex === 0 ? this.banners.length - 1 : this.currentIndex - 1;
+                    this.resetAutoPlay();
+                },
+                
+                goToSlide(index) {
+                    this.currentIndex = index;
+                    this.resetAutoPlay();
+                },
+                
+                startAutoPlay() {
+                    if (this.banners.length > 1) {
+                        this.autoPlayInterval = setInterval(() => {
+                            this.nextSlide();
+                        }, 5000); // 每5秒切換一次
+                    }
+                },
+                
+                resetAutoPlay() {
+                    if (this.autoPlayInterval) {
+                        clearInterval(this.autoPlayInterval);
+                        this.startAutoPlay();
+                    }
+                },
+                
+                stopAutoPlay() {
+                    if (this.autoPlayInterval) {
+                        clearInterval(this.autoPlayInterval);
+                        this.autoPlayInterval = null;
+                    }
+                },
+                
+                async trackClick(bannerId) {
+                    try {
+                        await fetch(`/api/banners/${bannerId}/click`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                    } catch (error) {
+                        console.error('追蹤廣告點擊失敗:', error);
+                    }
+                },
+                
+                // 組件銷毀時清理定時器
+                destroy() {
+                    this.stopAutoPlay();
+                }
+            }
+        };
     </script>
 
     {% block scripts %}{% endblock %}
     
-    <!-- 流量統計系統 -->
-    <script src="{{ url_for('static', path='/js/analytics.js') }}"></script>
 </body>
 </html> 

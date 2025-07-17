@@ -145,7 +145,7 @@
             </template>
 
             <template v-if="column.key === 'items_count'">
-              <a-tag>{{ record.items?.length || 0 }} 件商品</a-tag>
+              <a-tag>{{ record.items_count || 0 }} 件商品</a-tag>
             </template>
 
             <template v-if="column.key === 'created_at'">
@@ -245,7 +245,7 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'product'">
               <div class="flex items-center space-x-3">
-                <img :src="record.product?.featured_image || '/static/images/placeholder-product.jpg'" class="w-12 h-12 object-cover rounded" />
+                <img :src="record.product?.featured_image || '/static/images/default-product.svg'" class="w-12 h-12 object-cover rounded" />
                 <div>
                   <div class="font-medium">{{ record.product_name || record.product?.name }}</div>
                   <div class="text-gray-500 text-sm">SKU: {{ record.product?.sku || 'N/A' }}</div>
@@ -450,17 +450,17 @@ const fetchOrders = async () => {
       params.append('end_date', dayjs(searchForm.dateRange[1]).format('YYYY-MM-DD'))
     }
 
-    const response = await fetch(`/api/admin/orders?${params}`, {
+    const ordersResponse = await fetch(`/api/orders?${params}`, {
       headers: {
         'Authorization': `Bearer ${authStore.token}`
       }
     })
 
-    if (!response.ok) {
+    if (!ordersResponse.ok) {
       throw new Error('獲取訂單列表失敗')
     }
 
-    const data = await response.json()
+    const data = await ordersResponse.json()
     orders.value = data.items || data
     pagination.total = data.total || data.length
 
@@ -473,22 +473,141 @@ const fetchOrders = async () => {
 
 const fetchStats = async () => {
   try {
-    const response = await fetch('/api/orders/stats/overview', {
+    const statsResponse = await fetch('/api/orders/stats/overview', {
       headers: {
         'Authorization': `Bearer ${authStore.token}`
       }
     })
 
-    if (!response.ok) {
-      throw new Error('獲取統計資料失敗')
+    if (!statsResponse.ok) {
+      return // 如果沒有統計 API，則跳過
     }
 
-    const data = await response.json()
+    const data = await statsResponse.json()
     stats.value = data
 
   } catch (error) {
-    console.error('獲取統計資料失敗:', error)
+    // 靜默處理，如果沒有統計 API
+    console.log('統計資料 API 尚未實現')
   }
+}
+
+const viewOrderDetail = async (order) => {
+  try {
+    const detailResponse = await fetch(`/api/orders/${order.id}`, {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+
+    if (!detailResponse.ok) {
+      throw new Error('獲取訂單詳情失敗')
+    }
+
+    selectedOrder.value = await detailResponse.json()
+    paymentForm.method = selectedOrder.value.payment_method || ''
+    paymentForm.status = selectedOrder.value.payment_status || ''
+    updateStatus.value = selectedOrder.value.status || ''
+    detailModalVisible.value = true
+  } catch (error) {
+    message.error(error.message || '獲取訂單詳情失敗')
+  }
+}
+
+const handleStatusChange = async (e, order) => {
+  try {
+    const statusResponse = await fetch(`/api/orders/${order.id}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({ status: e.key })
+    })
+
+    if (!statusResponse.ok) {
+      throw new Error('更新訂單狀態失敗')
+    }
+
+    message.success('訂單狀態已更新')
+    fetchOrders()
+  } catch (error) {
+    message.error(error.message || '更新訂單狀態失敗')
+  }
+}
+
+const savePaymentStatus = async () => {
+  savingPayment.value = true
+  try {
+    const paymentStatusResponse = await fetch(`/api/orders/${selectedOrder.value.id}/payment`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        payment_method: paymentForm.method,
+        payment_status: paymentForm.status
+      })
+    })
+
+    if (!paymentStatusResponse.ok) {
+      throw new Error('更新付款狀態失敗')
+    }
+
+    message.success('付款狀態已儲存')
+    fetchOrders()
+    viewOrderDetail(selectedOrder.value) // 重新載入詳情以更新顯示
+  } catch (error) {
+    message.error(error.message || '更新付款狀態失敗')
+  } finally {
+    savingPayment.value = false
+  }
+}
+
+const updateOrderStatus = async () => {
+  updateLoading.value = true
+  try {
+    const updateOrderResponse = await fetch(`/api/orders/${selectedOrder.value.id}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({ status: updateStatus.value })
+    })
+
+    if (!updateOrderResponse.ok) {
+      throw new Error('更新訂單狀態失敗')
+    }
+
+    message.success('訂單狀態已更新')
+    fetchOrders()
+    viewOrderDetail(selectedOrder.value) // 重新載入詳情以更新顯示
+  } catch (error) {
+    message.error(error.message || '更新訂單狀態失敗')
+  } finally {
+    updateLoading.value = false
+  }
+}
+
+const updatePaymentMethod = (value) => {
+  paymentForm.method = value
+}
+
+const updatePaymentStatus = (value) => {
+  paymentForm.status = value
+}
+
+const handleTableChange = (pag) => {
+  pagination.current = pag.current
+  pagination.pageSize = pag.pageSize
+  fetchOrders()
+}
+
+const refreshOrders = () => {
+  fetchOrders()
+  fetchStats()
 }
 
 const handleSearch = () => {
@@ -502,150 +621,6 @@ const resetSearch = () => {
   searchForm.dateRange = []
   pagination.current = 1
   fetchOrders()
-}
-
-const handleTableChange = (pag, filters, sorter) => {
-  pagination.current = pag.current
-  pagination.pageSize = pag.pageSize
-  fetchOrders()
-}
-
-const refreshOrders = () => {
-  fetchOrders()
-  fetchStats()
-}
-
-const viewOrderDetail = async (order) => {
-  try {
-    const response = await fetch(`/api/admin/orders/${order.id}`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error('獲取訂單詳情失敗')
-    }
-
-    const data = await response.json()
-    selectedOrder.value = data
-    updateStatus.value = data.status
-    
-    // 初始化付款表單
-    paymentForm.method = data.payment_method || ''
-    paymentForm.status = data.payment_status || 'unpaid'
-    
-    detailModalVisible.value = true
-
-  } catch (error) {
-    message.error(error.message || '獲取訂單詳情失敗')
-  }
-}
-
-const updateOrderStatus = async () => {
-  if (!updateStatus.value) {
-    message.warning('請選擇狀態')
-    return
-  }
-
-  updateLoading.value = true
-  try {
-    const response = await fetch(`/api/admin/orders/${selectedOrder.value.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify({
-        status: updateStatus.value
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error('更新訂單狀態失敗')
-    }
-
-    message.success('訂單狀態已更新')
-    selectedOrder.value.status = updateStatus.value
-    detailModalVisible.value = false
-    refreshOrders()
-
-  } catch (error) {
-    message.error(error.message || '更新訂單狀態失敗')
-  } finally {
-    updateLoading.value = false
-  }
-}
-
-const handleStatusChange = async ({ key }, order) => {
-  try {
-    const response = await fetch(`/api/admin/orders/${order.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify({
-        status: key
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error('更新訂單狀態失敗')
-    }
-
-    message.success('訂單狀態已更新')
-    refreshOrders()
-
-  } catch (error) {
-    message.error(error.message || '更新訂單狀態失敗')
-  }
-}
-
-// 付款狀態管理方法
-const updatePaymentMethod = () => {
-  // 付款方式變更時的處理
-}
-
-const updatePaymentStatus = () => {
-  // 付款狀態變更時的處理
-}
-
-const savePaymentStatus = async () => {
-  if (!selectedOrder.value) return
-  
-  savingPayment.value = true
-  try {
-    const response = await fetch(`/api/orders/${selectedOrder.value.id}/payment`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify({
-        payment_method: paymentForm.method,
-        payment_status: paymentForm.status,
-        payment_updated_at: new Date().toISOString()
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error('更新付款狀態失敗')
-    }
-
-    const data = await response.json()
-    selectedOrder.value.payment_method = data.payment_method
-    selectedOrder.value.payment_status = data.payment_status
-    selectedOrder.value.payment_updated_at = data.payment_updated_at
-    
-    message.success('付款狀態已更新')
-    refreshOrders()
-
-  } catch (error) {
-    message.error(error.message || '更新付款狀態失敗')
-  } finally {
-    savingPayment.value = false
-  }
 }
 
 // 輔助函數

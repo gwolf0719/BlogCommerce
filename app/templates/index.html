@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}伴獸家 - 打造幸福日常{% endblock %}
+{% block title %}{{ settings.site_name }}{% if settings.site_description %} - {{ settings.site_description }}{% endif %}{% endblock %}
 
 {% block description %}{{ settings.site_description }}{% endblock %}
 
@@ -22,15 +22,15 @@
 
 {% block content %}
 <div x-data="homeApp()" x-init="loadContent()">
-    <!-- Hero Section -->
-    <!-- Banner Section -->
-    <section
-        class="relative bg-cover bg-center"
-        style="background-image: url('../static/assets/banner.png'); height: 400px"
-    >
-        <!-- <div class="absolute inset-0 bg-black bg-opacity-40"></div> -->
+    <!-- 首頁廣告輪播 -->
+    <section class="py-8 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {{ banner_carousel('HOME', 'mb-8') }}
+        </div>
     </section>
-    <section x-show="false" class="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
+    
+    <!-- Hero Section -->
+    <section class="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 overflow-hidden">
         <!-- 背景裝飾 -->
         <div class="absolute inset-0">
             <div class="absolute top-0 -left-4 w-72 h-72 bg-primary-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
@@ -78,47 +78,59 @@
             </svg>
         </div>
     </section>
-  <!-- Features Section -->
-  <section class="bg-white py-32">
-    <div class="mx-auto max-w-7xl px-8">
-      <div class="grid grid-cols-1 gap-20 md:grid-cols-3">
-        <!-- Feature 1 -->
-        <div class="flex flex-col items-center text-center">
-          <div class="mb-3 h-16 w-16">
-            <img src="../static/assets/home-feature1.svg" alt="共享幸福時光" />
-          </div>
-          <h3 class="mb-4 text-xl font-bold text-[#121212]">共享幸福時光</h3>
-          <p class="text-base leading-relaxed text-[#121212]">我們設計的不只是產品，而是你和毛孩的生活風景。</p>
-        </div>
 
-        <!-- Feature 2 -->
-        <div class="flex flex-col items-center text-center">
-          <div class="mb-3 h-16 w-16">
-            <img src="../static/assets/home-feature2.svg" alt="" />
-          </div>
-          <h3 class="mb-4 text-xl font-bold text-[#121212]">貼近生活的友善選擇</h3>
-          <p class="text-base leading-relaxed text-[#121212]">減少過度包裝、使用輕柔不傷環境的材質，讓愛從日常開始。</p>
+    <!-- Features Section -->
+    <section class="py-16 lg:py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">為什麼選擇我們？</h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto">我們致力於提供最優質的產品與服務體驗</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 特色 1 -->
+                <div class="bg-gradient-to-br from-primary-50 to-primary-100 rounded-3xl p-8 text-center group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">快速配送</h3>
+                    <p class="text-gray-600 leading-relaxed">24小時內快速出貨，讓您最快時間收到心愛的商品</p>
+                </div>
+                
+                <!-- 特色 2 -->
+                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-3xl p-8 text-center group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">品質保證</h3>
+                    <p class="text-gray-600 leading-relaxed">嚴格的品質控管，確保每個商品都符合最高標準</p>
+                </div>
+                
+                <!-- 特色 3 -->
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl p-8 text-center group hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-4">專業服務</h3>
+                    <p class="text-gray-600 leading-relaxed">專業客服團隊，提供即時且貼心的購物諮詢服務</p>
+                </div>
+            </div>
         </div>
-
-        <!-- Feature 3 -->
-        <div class="flex flex-col items-center text-center">
-          <div class="mb-3 h-16 w-16">
-            <img src="../static/assets/home-feature3.svg" alt="用心製作每一件小事" />
-          </div>
-          <h3 class="mb-4 text-xl font-bold text-[#121212]">用心製作每一件小事</h3>
-          <p class="text-base leading-relaxed text-[#121212]">從出貨到包裝，傳遞我們對毛孩的愛與細節的堅持。</p>
-        </div>
-      </div>
-    </div>
-  </section>
+    </section>
 
     <!-- Featured Products -->
     <section class="py-16 lg:py-24 bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
-                <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">全站商品</h2>
-                <!-- <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-8">發現我們精心挑選的熱門商品</p> -->
-                <!-- <div class="w-24 h-1 bg-gradient-to-r from-primary-500 to-primary-600 mx-auto rounded-full"></div> -->
+                <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">精選商品</h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-8">發現我們精心挑選的熱門商品</p>
+                <div class="w-24 h-1 bg-gradient-to-r from-primary-500 to-primary-600 mx-auto rounded-full"></div>
             </div>
             
             <!-- Loading State -->
@@ -154,9 +166,9 @@
                             <!-- 快速加入購物車 -->
                             <button @click="addToCart(product.id, 1)" 
                                     class="absolute bottom-4 right-4 w-12 h-12 bg-primary-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-primary-700 transform hover:scale-110">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 9M7 13h10"></path>
-                                </svg>
+                                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L5 3H3m4 10v6a1 1 0 001 1h10a1 1 0 001-1v-6M9 19a1 1 0 100 2 1 1 0 000-2zm8 0a1 1 0 100 2 1 1 0 000-2z"></path>
+                                    </svg>
                             </button>
                         </div>
                         
@@ -197,7 +209,7 @@
     </section>
 
     <!-- Latest Blog Posts -->
-    <section x-show="false" class="py-16 lg:py-24 bg-white">
+    <section class="py-16 lg:py-24 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">最新文章</h2>
@@ -288,7 +300,7 @@
     </section>
 
     <!-- Newsletter Section -->
-    <section  x-show="false" class="py-16 lg:py-24 bg-gradient-to-br from-primary-600 to-primary-800">
+    <section class="py-16 lg:py-24 bg-gradient-to-br from-primary-600 to-primary-800">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 class="text-3xl lg:text-4xl font-bold text-white mb-4">訂閱我們的最新消息</h2>
             <p class="text-xl text-primary-100 mb-10 max-w-2xl mx-auto">獲得第一手的產品資訊與優惠活動通知</p>
@@ -310,6 +322,7 @@
     </section>
 </div>
 
+<script src="/static/js/errorHandler.js"></script>
 <script>
 function homeApp() {
     return {
@@ -423,15 +436,16 @@ function homeApp() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: this.email })
                 });
-                if (!response.ok) {
-                    const data = await response.json();
-                    throw new Error(data.detail || '訂閱失敗');
+                
+                if (response.ok) {
+                    this.email = '';
+                    window.ErrorHandler.showNotification('感謝您的訂閱！', 'success');
+                } else {
+                    await window.ErrorHandler.handleApiError(response, '訂閱失敗');
                 }
-                this.email = '';
-                this.showNotification('感謝您的訂閱！', 'success');
             } catch (error) {
                 console.error('訂閱錯誤:', error);
-                this.showNotification(error.message || '訂閱失敗', 'error');
+                window.ErrorHandler.showNotification(error.message || '訂閱失敗', 'error');
             }
         }
     }

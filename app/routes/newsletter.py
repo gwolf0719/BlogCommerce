@@ -17,7 +17,7 @@ from app.schemas.newsletter import (
 )
 from app.auth import get_current_admin_user
 
-router = APIRouter(prefix="/api/newsletter", tags=["電子報"])
+router = APIRouter(prefix="/newsletter", tags=["電子報"])
 
 
 def check_newsletter_enabled():
@@ -28,6 +28,7 @@ def check_newsletter_enabled():
 
 
 @router.get("/", response_model=List[NewsletterSubscriberResponse])
+@router.get("", response_model=List[NewsletterSubscriberResponse])  # 添加不帶尾隨斜線的路由別名
 async def get_subscribers(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -53,6 +54,7 @@ async def get_subscribers(
 
 
 @router.post("/", response_model=NewsletterSubscriberResponse)
+@router.post("", response_model=NewsletterSubscriberResponse)  # 添加不帶尾隨斜線的路由別名
 async def create_subscriber(
     subscriber_data: NewsletterSubscriberCreate,
     db: Session = Depends(get_db),

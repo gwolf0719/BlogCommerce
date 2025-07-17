@@ -231,7 +231,7 @@ function postDetailApp() {
                     this.post = await response.json();
                     
                     // 更新頁面標題和元標籤
-                    document.title = `${this.post.title} - ${this.settings.site_name || '伴獸家'}`;
+                    document.title = `${this.post.title} - ${this.settings.site_name || 'BlogCommerce'}`;
                     this.updateMetaTags();
                     
                     // 載入相關文章
@@ -259,7 +259,7 @@ function postDetailApp() {
                 console.error('載入設定失敗:', error);
                 // 使用預設值
                 this.settings = {
-                    site_name: '伴獸家',
+                    site_name: 'BlogCommerce',
                     site_description: '部落格與電商整合平台'
                 };
             }

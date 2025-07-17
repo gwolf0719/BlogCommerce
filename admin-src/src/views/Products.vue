@@ -131,7 +131,7 @@
             <template v-if="column.key === 'image'">
               <div class="product-image">
                 <a-image
-                  :src="record.featured_image || '/static/images/default-product.jpg'"
+                  :src="getImageUrl(record.featured_image)"
                   :alt="record.name"
                   width="60"
                   height="60"
@@ -244,7 +244,7 @@
         :label-col="{ span: 4 }"
         :wrapper-col="{ span: 20 }"
         ref="formRef"
-        layout="horizontal"
+        layout="vertical"
       >
         <!-- 基本信息 -->
         <a-card title="基本信息" size="small" class="form-card">
@@ -270,13 +270,7 @@
           </a-row>
 
           <a-form-item label="商品描述" name="description">
-            <a-textarea 
-              v-model:value="form.description" 
-              :rows="4" 
-              placeholder="詳細商品描述"
-              show-count
-              :maxlength="1000"
-            />
+            <MarkdownEditor v-model="form.description" upload-image />
           </a-form-item>
 
           <a-form-item label="簡短描述" name="short_description">
@@ -337,16 +331,18 @@
           </a-form-item>
 
           <a-form-item label="相冊圖片" name="gallery_images">
-            <a-textarea
-              v-model:value="form.gallery_images"
-              placeholder='多個圖片URL，JSON格式：["url1", "url2"]'
-              :rows="2"
-            />
-            <div class="form-help-text">
-              <small class="text-gray-500">請輸入JSON格式的圖片URL陣列</small>
+            <div class="form-help-text" style="margin-bottom: 16px;">
+              <small class="text-gray-500">可上傳多張圖片，拖曳排序，或手動輸入圖片URL</small>
             </div>
           </a-form-item>
         </a-card>
+
+        <!-- 圖片設定區塊下方，顯示相冊圖片預覽 -->
+        <a-row v-if="form.gallery_images && form.gallery_images.length" :gutter="8" style="margin-bottom: 16px;">
+          <a-col v-for="(img, idx) in form.gallery_images" :key="idx" :span="3">
+            <a-image :src="getImageUrl(img)" width="80" height="80" :alt="`相冊圖片${idx+1}`" style="border-radius: 4px;" />
+          </a-col>
+        </a-row>
 
         <!-- 商品設定 -->
         <a-card title="商品設定" size="small" class="form-card">
@@ -430,6 +426,9 @@ import {
 } from '@ant-design/icons-vue'
 import axios from '../utils/axios'
 import UploadImage from '../components/UploadImage.vue'
+import { formatDate } from '../utils/dateUtils'
+// 1. 匯入 MarkdownEditor
+import MarkdownEditor from '../components/MarkdownEditor.vue'
 
 // 響應式數據
 const products = ref([])
@@ -484,6 +483,14 @@ const getStockColor = (quantity) => {
   if (quantity < 10) return 'orange'
   if (quantity < 50) return 'blue'
   return 'green'
+}
+
+// 圖片 URL 處理
+const getImageUrl = (url) => {
+  if (!url) return '/static/images/default-product.jpg'
+  if (url.startsWith('http')) return url
+  // 自動補上 host
+  return `http://localhost:8002${url}`
 }
 
 // 表格欄位
@@ -552,7 +559,7 @@ const form = reactive({
   stock_quantity: 0,
   sku: '',
   featured_image: '',
-  gallery_images: '',
+  gallery_images: [], // Changed to array
   is_active: true,
   is_featured: false,
   meta_title: '',
@@ -595,9 +602,17 @@ const loadProducts = async () => {
     params.append('limit', pagination.pageSize.toString())
     
     const response = await axios.get(`/api/products?${params}`)
-    products.value = response.data
-    // 注意：實際應用中可能需要從響應頭或其他方式獲取總數
-    // pagination.total = response.headers['x-total-count'] || products.value.length
+    const data = response.data
+    if (Array.isArray(data.items)) {
+      products.value = data.items
+      pagination.total = data.total || 0
+    } else if (Array.isArray(data)) {
+      products.value = data
+      pagination.total = data.length
+    } else {
+      products.value = []
+      pagination.total = 0
+    }
   } catch (error) {
     console.error('載入商品列表錯誤:', error)
     message.error('載入商品列表失敗')
@@ -658,7 +673,7 @@ const editProduct = async (product) => {
       stock_quantity: fullProductData.stock_quantity || 0,
       sku: fullProductData.sku || '',
       featured_image: fullProductData.featured_image || '',
-      gallery_images: fullProductData.gallery_images || '',
+      gallery_images: fullProductData.gallery_images || [], // Ensure it's an array
       is_active: fullProductData.is_active !== undefined ? fullProductData.is_active : true,
       is_featured: fullProductData.is_featured !== undefined ? fullProductData.is_featured : false,
       meta_title: fullProductData.meta_title || '',
@@ -678,7 +693,7 @@ const editProduct = async (product) => {
 const resetForm = () => {
   Object.assign(form, {
     name: '', description: '', short_description: '', price: null, sale_price: null,
-    stock_quantity: 0, sku: '', featured_image: '', gallery_images: '', is_active: true, is_featured: false, meta_title: '', meta_description: '', meta_keywords: ''
+    stock_quantity: 0, sku: '', featured_image: '', gallery_images: [], is_active: true, is_featured: false, meta_title: '', meta_description: '', meta_keywords: ''
   })
 }
 
@@ -689,12 +704,12 @@ const handleSubmit = async () => {
     await formRef.value.validate()
     
     const data = { ...form }
-    
+
     if (isEditing.value) {
       await axios.put(`/api/products/${form.id}`, data)
       message.success('商品更新成功')
     } else {
-      await axios.post('/api/products/', data)
+      await axios.post('/api/products', data)
       message.success('商品新增成功')
     }
     

@@ -6,11 +6,12 @@ from .product import Product
 from .order import Order, OrderItem, OrderStatus, PaymentMethod, PaymentStatus
 from .settings import SystemSettings
 from .newsletter import NewsletterSubscriber, NewsletterCampaign
-from .analytics import PageView, DailyStats, PopularContent, UserSession
 from .favorite import Favorite
 from .view_log import ViewLog
-from .coupon import Coupon, CouponUsage, CouponDistribution, CouponType, DiscountType
-from .campaign import MarketingCampaign, CampaignStatus
+from .banner import Banner, BannerPosition
+from .shipping_tier import ShippingTier
+from .discount_code import PromoCode, PromoType, DiscountCode, DiscountType
+from .discount_usage import PromoUsage, DiscountUsage
 
 __all__ = [
     "BaseModel",
@@ -20,9 +21,10 @@ __all__ = [
     "Order", "OrderItem", "OrderStatus", "PaymentMethod", "PaymentStatus",
     "SystemSettings",
     "NewsletterSubscriber", "NewsletterCampaign",
-    "PageView", "DailyStats", "PopularContent", "UserSession",
     "Favorite",
     "ViewLog",
-    "Coupon", "CouponUsage", "CouponDistribution", "CouponType", "DiscountType",
-    "MarketingCampaign", "CampaignStatus"
-] 
+    "Banner", "BannerPosition",
+    "ShippingTier",
+    "PromoCode", "PromoType", "PromoUsage",
+    "DiscountCode", "DiscountType", "DiscountUsage"  # 向後相容的別名
+]

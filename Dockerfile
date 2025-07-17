@@ -31,8 +31,9 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # 安裝 Python 依賴
-COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+COPY pyproject.toml .
+COPY uv.lock .
+RUN pip install uv && uv pip install --system --requirements pyproject.toml
 
 # Stage 3: Production image
 FROM python:3.10-slim
@@ -46,10 +47,13 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -r appuser && useradd -r -g appuser appuser
+RUN pip install uv
+COPY pyproject.toml .
+COPY uv.lock .
+RUN uv pip install --system --requirements pyproject.toml
 
 # 複製 Python 依賴
-COPY --from=backend-builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+# (已用 uv --system 安裝到全域，無需複製 /root/.local)
 
 # 複製應用程式代碼到新的工作目錄
 COPY app/ ./app/
@@ -71,4 +75,4 @@ ENV ENV=production
 EXPOSE 8080
 
 # 啟動應用程式
-CMD exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --workers 1
+CMD exec uv run -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --workers 1

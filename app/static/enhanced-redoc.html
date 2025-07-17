@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlogCommerce API 文檔 - ReDoc</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo i {
+            margin-right: 0.5rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        .nav-btn.active {
+            background: white;
+            color: #667eea;
+            border-color: white;
+        }
+
+        .mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .mode-toggle:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            position: relative;
+            height: calc(100vh - 80px);
+        }
+
+        .tab-content {
+            display: none;
+            height: 100%;
+            width: 100%;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        #redoc-container {
+            height: 100%;
+            width: 100%;
+        }
+
+        #swagger-container {
+            height: 100%;
+            width: 100%;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2rem;
+            color: #667eea;
+        }
+
+        .loading::after {
+            content: '';
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { content: '載入中'; }
+            33% { content: '載入中.'; }
+            66% { content: '載入中..'; }
+            100% { content: '載入中...'; }
+        }
+
+        /* 自定義 ReDoc 樣式 */
+        .redoc-wrap {
+            background: white;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-buttons {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .mode-toggle {
+                position: static;
+                margin: 1rem auto;
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-code"></i>
+                BlogCommerce API 文檔
+            </div>
+            <div class="nav-buttons">
+                <a href="#" class="nav-btn active" data-tab="redoc">
+                    <i class="fas fa-book"></i>
+                    文檔瀏覽
+                </a>
+                <a href="#" class="nav-btn" data-tab="swagger">
+                    <i class="fas fa-play"></i>
+                    互動測試
+                </a>
+                <a href="/openapi.json" class="nav-btn" target="_blank">
+                    <i class="fas fa-download"></i>
+                    OpenAPI JSON
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- ReDoc 文檔展示 -->
+        <div id="redoc-tab" class="tab-content active">
+            <div id="redoc-container"></div>
+        </div>
+
+        <!-- Swagger UI 互動測試 -->
+        <div id="swagger-tab" class="tab-content">
+            <div id="swagger-container"></div>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">載入中</div>
+
+    <!-- ReDoc 腳本 -->
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+    
+    <!-- Swagger UI 腳本 -->
+    <script src="https://unpkg.com/swagger-ui-dist@4.18.2/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@4.18.2/swagger-ui-standalone-preset.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@4.18.2/swagger-ui.css">
+
+    <script>
+        // 標籤切換功能
+        function switchTab(tabName) {
+            // 隱藏所有標籤內容
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 移除所有按鈕的活動狀態
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 顯示選中的標籤
+            document.getElementById(tabName + '-tab').classList.add('active');
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            // 如果是 Swagger 標籤且尚未初始化，則進行初始化
+            if (tabName === 'swagger' && !window.swaggerInitialized) {
+                initSwaggerUI();
+            }
+        }
+
+        // 初始化 ReDoc
+        function initReDoc() {
+            Redoc.init('/openapi.json', {
+                theme: {
+                    colors: {
+                        primary: {
+                            main: '#667eea'
+                        }
+                    },
+                    typography: {
+                        fontSize: '14px',
+                        lineHeight: '1.5em',
+                        code: {
+                            fontSize: '13px',
+                            fontFamily: 'Consolas, monospace'
+                        },
+                        headings: {
+                            fontFamily: 'Arial, sans-serif',
+                            fontWeight: '600'
+                        }
+                    },
+                    sidebar: {
+                        backgroundColor: '#fafafa',
+                        width: '260px'
+                    }
+                },
+                scrollYOffset: 0,
+                hideDownloadButton: false,
+                disableSearch: false,
+                expandDefaultServerVariables: true,
+                expandResponses: '200,201',
+                hideHostname: false,
+                nativeScrollbars: false,
+                pathInMiddlePanel: false,
+                requiredPropsFirst: true,
+                sortPropsAlphabetically: true,
+                showExtensions: true,
+                hideSchemaPattern: false
+            }, document.getElementById('redoc-container'))
+            .then(() => {
+                document.getElementById('loading').style.display = 'none';
+            })
+            .catch(err => {
+                console.error('ReDoc 初始化失敗:', err);
+                document.getElementById('loading').innerHTML = '載入失敗，請重新整理頁面';
+            });
+        }
+
+        // 初始化 Swagger UI
+        function initSwaggerUI() {
+            if (window.swaggerInitialized) return;
+            
+            const ui = SwaggerUIBundle({
+                url: '/openapi.json',
+                dom_id: '#swagger-container',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                docExpansion: "none",
+                filter: true,
+                showExtensions: true,
+                showCommonExtensions: true,
+                tryItOutEnabled: true,
+                persistAuthorization: true,
+                displayOperationId: false,
+                displayRequestDuration: true,
+                defaultModelRendering: 'example',
+                showMutatedRequest: true,
+                supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'],
+                validatorUrl: null,
+                requestInterceptor: (request) => {
+                    // 添加請求攔截器，可以在這裡添加認證 token
+                    const token = localStorage.getItem('authToken');
+                    if (token) {
+                        request.headers.Authorization = `Bearer ${token}`;
+                    }
+                    return request;
+                },
+                responseInterceptor: (response) => {
+                    // 添加響應攔截器，可以在這裡處理響應
+                    return response;
+                },
+                onComplete: () => {
+                    // 添加自定義樣式
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        .swagger-ui .topbar { display: none; }
+                        .swagger-ui .info { margin: 20px 0; }
+                        .swagger-ui .scheme-container { margin: 20px 0; }
+                        .swagger-ui .opblock.opblock-post { border-color: #49cc90; }
+                        .swagger-ui .opblock.opblock-get { border-color: #61affe; }
+                        .swagger-ui .opblock.opblock-put { border-color: #fca130; }
+                        .swagger-ui .opblock.opblock-delete { border-color: #f93e3e; }
+                    `;
+                    document.head.appendChild(style);
+                },
+                onFailure: (err) => {
+                    console.error('Swagger UI 初始化失敗:', err);
+                }
+            });
+            
+            window.swaggerInitialized = true;
+        }
+
+        // 添加事件監聽器
+        document.addEventListener('DOMContentLoaded', function() {
+            // 標籤切換事件
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const tabName = this.getAttribute('data-tab');
+                    switchTab(tabName);
+                });
+            });
+
+            // 鍵盤快捷鍵
+            document.addEventListener('keydown', function(e) {
+                if (e.altKey) {
+                    if (e.key === '1') {
+                        switchTab('redoc');
+                    } else if (e.key === '2') {
+                        switchTab('swagger');
+                    }
+                }
+            });
+
+            // 初始化 ReDoc
+            initReDoc();
+        });
+
+        // 工具函數：設置認證 token
+        function setAuthToken(token) {
+            localStorage.setItem('authToken', token);
+            // 如果 Swagger UI 已初始化，刷新它
+            if (window.swaggerInitialized) {
+                location.reload();
+            }
+        }
+
+        // 工具函數：清除認證 token
+        function clearAuthToken() {
+            localStorage.removeItem('authToken');
+            if (window.swaggerInitialized) {
+                location.reload();
+            }
+        }
+
+        // 全局暴露工具函數
+        window.BlogCommerceAPI = {
+            setAuthToken: setAuthToken,
+            clearAuthToken: clearAuthToken,
+            switchTab: switchTab
+        };
+    </script>
+</body>
+</html> 

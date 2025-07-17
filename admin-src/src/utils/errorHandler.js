@@ -1,4 +1,5 @@
 import api from './axios'
+import { message } from 'ant-design-vue'
 
 /**
  * 前端錯誤處理器
@@ -53,31 +54,37 @@ class ErrorHandler {
       error_type: 'JavaScriptError',
       error_message: event.message || '未知錯誤',
       stack_trace: event.error?.stack || null,
-      url: event.filename || window.location.href,
-      line_number: event.lineno,
-      column_number: event.colno,
-      severity: 'high',
+      url: window.location.href,
+      severity: 'medium',
       browser_info: this.getBrowserInfo(),
       device_info: this.getDeviceInfo(),
-      tags: ['javascript', 'runtime']
+      tags: ['javascript', 'runtime'],
+      additional_info: {
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+      }
     }
     
     this.logError(error)
   }
 
   /**
-   * 處理未處理的 Promise 拒絕
+   * 處理 Promise 拒絕
    */
   handlePromiseRejection(event) {
     const error = {
-      error_type: 'UnhandledPromiseRejection',
-      error_message: event.reason?.message || event.reason || '未處理的 Promise 拒絕',
+      error_type: 'PromiseRejection',
+      error_message: event.reason?.message || event.reason || 'Promise 被拒絕',
       stack_trace: event.reason?.stack || null,
       url: window.location.href,
-      severity: 'high',
+      severity: 'medium',
       browser_info: this.getBrowserInfo(),
       device_info: this.getDeviceInfo(),
-      tags: ['promise', 'async']
+      tags: ['promise', 'async'],
+      additional_info: {
+        reason: event.reason
+      }
     }
     
     this.logError(error)
@@ -159,9 +166,7 @@ class ErrorHandler {
    * 處理網路錯誤
    */
   handleNetworkError(type, method, url, status, responseText = '') {
-    // 避免記錄錯誤日誌 API 本身的錯誤，防止無限循環
-    if (url?.includes('/api/error-logs/')) return
-    
+    // 僅記錄到控制台，不發送到後端
     const error = {
       error_type: 'NetworkError',
       error_message: `${type} 請求失敗: ${method} ${url} (${status})`,
@@ -179,7 +184,7 @@ class ErrorHandler {
       }
     }
     
-    this.logError(error)
+    console.warn('網路錯誤:', error)
   }
 
   /**
@@ -198,126 +203,181 @@ class ErrorHandler {
       ...additionalData
     }
     
-    this.logError(error)
+    console.warn('手動記錄錯誤:', error)
   }
 
   /**
    * 記錄錯誤到後端
    */
-  async logError(errorData) {
-    // 如果離線，將錯誤加入佇列
+  async logError(error) {
     if (!this.isOnline) {
-      this.errorQueue.push(errorData)
+      this.errorQueue.push(error)
       return
     }
 
     try {
-      await api.post('/api/error-logs/log/frontend', {
-        error_type: errorData.error_type,
-        error_message: errorData.error_message,
-        stack_trace: errorData.stack_trace,
-        url: errorData.url,
-        browser_info: errorData.browser_info,
-        device_info: errorData.device_info,
-        severity: errorData.severity,
-        tags: errorData.tags
-      })
-      
-      console.log('錯誤已記錄到伺服器:', errorData.error_type)
-    } catch (error) {
-      // 記錄錯誤失敗，加入佇列稍後重試
-      this.errorQueue.push(errorData)
-      console.warn('錯誤記錄失敗，已加入佇列:', error)
+      await api.post('/api/errors/log', error)
+    } catch (logError) {
+      console.error('記錄錯誤失敗:', logError)
+      this.errorQueue.push(error)
     }
   }
 
   /**
-   * 清空錯誤佇列
+   * 發送錯誤隊列
    */
   async flushErrorQueue() {
     if (this.errorQueue.length === 0) return
-    
-    const errors = [...this.errorQueue]
+
+    const errorsToSend = [...this.errorQueue]
     this.errorQueue = []
-    
-    for (const error of errors) {
+
+    for (const error of errorsToSend) {
       try {
-        await this.logError(error)
-        await new Promise(resolve => setTimeout(resolve, 100)) // 避免過於頻繁的請求
-      } catch (e) {
-        console.warn('清空錯誤佇列失敗:', e)
-        break
+        await api.post('/api/errors/log', error)
+      } catch (logError) {
+        console.error('發送錯誤隊列失敗:', logError)
+        this.errorQueue.push(error)
       }
     }
   }
 
   /**
-   * 取得瀏覽器資訊
+   * 獲取瀏覽器信息
    */
   getBrowserInfo() {
-    const navigator = window.navigator
     return {
       userAgent: navigator.userAgent,
       language: navigator.language,
-      languages: navigator.languages,
       platform: navigator.platform,
       cookieEnabled: navigator.cookieEnabled,
-      onLine: navigator.onLine,
-      doNotTrack: navigator.doNotTrack
+      onLine: navigator.onLine
     }
   }
 
   /**
-   * 取得設備資訊
+   * 獲取設備信息
    */
   getDeviceInfo() {
     return {
-      screen: {
-        width: window.screen.width,
-        height: window.screen.height,
-        colorDepth: window.screen.colorDepth
-      },
-      window: {
-        width: window.innerWidth,
-        height: window.innerHeight
-      },
-      devicePixelRatio: window.devicePixelRatio,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      timestamp: new Date().toISOString()
+      screenWidth: screen.width,
+      screenHeight: screen.height,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      colorDepth: screen.colorDepth,
+      pixelDepth: screen.pixelDepth
     }
-  }
-
-  /**
-   * 取得當前用戶資訊（如果已登入）
-   */
-  getCurrentUser() {
-    try {
-      const token = localStorage.getItem('admin_token')
-      if (token) {
-        // 解碼 JWT token 來取得用戶資訊（簡化版本）
-        const payload = JSON.parse(atob(token.split('.')[1]))
-        return payload.sub // 用戶 ID
-      }
-    } catch (e) {
-      // 忽略錯誤
-    }
-    return null
   }
 }
 
-// 建立全域實例
+// 創建全局實例
 const errorHandler = new ErrorHandler()
 
-// 自動初始化
-document.addEventListener('DOMContentLoaded', () => {
-  errorHandler.init()
-})
+/**
+ * 統一的API錯誤處理函數
+ * 用於處理所有API請求的錯誤響應
+ */
+export const handleApiError = async (response, defaultMessage = '操作失敗') => {
+  let errorMessage = defaultMessage
+  
+  try {
+    const errorData = await response.json()
+    
+    // 處理 FastAPI 驗證錯誤格式
+    if (errorData.detail && Array.isArray(errorData.detail)) {
+      const errors = errorData.detail.map(err => err.msg || err.message || '未知錯誤')
+      errorMessage = errors.join(', ')
+    } else if (errorData.detail && typeof errorData.detail === 'string') {
+      errorMessage = errorData.detail
+    } else if (errorData.message) {
+      errorMessage = errorData.message
+    } else if (errorData.msg) {
+      errorMessage = errorData.msg
+    }
+  } catch (parseError) {
+    console.error('解析錯誤響應失敗:', parseError)
+    // 如果無法解析JSON，使用HTTP狀態碼的默認訊息
+    switch (response.status) {
+      case 400:
+        errorMessage = '請求格式錯誤'
+        break
+      case 401:
+        errorMessage = '未授權，請重新登入'
+        break
+      case 403:
+        errorMessage = '權限不足'
+        break
+      case 404:
+        errorMessage = '資源不存在'
+        break
+      case 422:
+        errorMessage = '資料驗證失敗'
+        break
+      case 500:
+        errorMessage = '伺服器內部錯誤'
+        break
+      default:
+        errorMessage = `請求失敗 (${response.status})`
+    }
+  }
+  
+  // 顯示錯誤訊息
+  message.error(errorMessage)
+  
+  // 記錄錯誤
+  errorHandler.logManualError('ApiError', errorMessage, {
+    status: response.status,
+    url: response.url,
+    severity: response.status >= 500 ? 'critical' : 'medium',
+    tags: ['api', 'http']
+  })
+  
+  return new Error(errorMessage)
+}
 
-// 如果 DOM 已經載入完成，立即初始化
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => errorHandler.init())
-} else {
-  errorHandler.init()
+/**
+ * 統一的API請求包裝函數
+ * 自動處理錯誤並顯示提示
+ */
+export const apiRequest = async (requestFn, successMessage = null) => {
+  try {
+    const response = await requestFn()
+    
+    if (!response.ok) {
+      throw await handleApiError(response)
+    }
+    
+    const data = await response.json()
+    
+    if (successMessage) {
+      message.success(successMessage)
+    }
+    
+    return data
+  } catch (error) {
+    // 錯誤已經在 handleApiError 中處理過了
+    throw error
+  }
+}
+
+/**
+ * 統一的fetch請求包裝函數
+ * 自動添加認證頭和錯誤處理
+ */
+export const authenticatedFetch = async (url, options = {}) => {
+  const token = localStorage.getItem('admin_token')
+  
+  const defaultOptions = {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers
+    }
+  }
+  
+  const finalOptions = { ...defaultOptions, ...options }
+  
+  return fetch(url, finalOptions)
 }
 
 export default errorHandler 

@@ -26,35 +26,32 @@
     <div class="content-section">
       <a-row :gutter="24">
         <!-- 左側選單 -->
-        <a-col :span="6">
+        <a-col :xs="24" :sm="24" :md="6" style="margin-bottom: 24px;">
           <a-card>
             <a-menu v-model:selected-keys="selectedKeys" mode="vertical" @click="handleMenuClick">
               <a-menu-item key="general">
-                <template #icon><SettingOutlined /></template>
+                <template #icon>⚙️</template>
                 基本設定
               </a-menu-item>
               <a-menu-item key="features">
-                <template #icon><AppstoreOutlined /></template>
+                <template #icon>🎛️</template>
                 功能開關
               </a-menu-item>
               <a-menu-item key="email">
-                <template #icon><MailOutlined /></template>
+                <template #icon>📧</template>
                 郵件設定
               </a-menu-item>
-              <a-menu-item key="analytics">
-                <template #icon><BarChartOutlined /></template>
-                數據分析
-              </a-menu-item>
+              <!-- 移除: 數據分析選單項目 -->
               <a-menu-item key="ai">
-                <template #icon><RobotOutlined /></template>
+                <template #icon>🤖</template>
                 AI 設定
               </a-menu-item>
               <a-menu-item key="security">
-                <template #icon><SafetyOutlined /></template>
+                <template #icon>🔐</template>
                 安全設定
               </a-menu-item>
               <a-menu-item key="payment">
-                <template #icon><CreditCardOutlined /></template>
+                <template #icon>💳</template>
                 金流設定
               </a-menu-item>
             </a-menu>
@@ -62,7 +59,7 @@
         </a-col>
 
         <!-- 右側內容 -->
-        <a-col :span="18">
+        <a-col :xs="24" :sm="24" :md="18">
           <!-- 基本設定 -->
           <a-card v-if="activeTab === 'general'" title="基本設定" :loading="loading">
             <a-form layout="vertical">
@@ -139,21 +136,15 @@
                   </a-form-item>
                 </a-col>
                 <a-col :span="12">
-                  <a-form-item label="數據分析">
-                    <a-switch v-model:checked="settings.analytics_enabled" checked-children="開啟" un-checked-children="關閉" />
-                    <div class="text-gray-500 text-sm mt-1">啟用/停用訪客統計</div>
-                  </a-form-item>
-                </a-col>
-              </a-row>
-
-              <a-row :gutter="24">
-                <a-col :span="12">
                   <a-form-item label="電子報">
                     <a-switch v-model:checked="settings.newsletter_enabled" checked-children="開啟" un-checked-children="關閉" />
                     <div class="text-gray-500 text-sm mt-1">啟用/停用電子報功能</div>
                   </a-form-item>
                 </a-col>
-                <a-col :span="12">
+              </a-row>
+
+              <a-row :gutter="24">
+                 <a-col :span="12">
                   <a-form-item label="維護模式">
                     <a-switch v-model:checked="settings.maintenance_mode" checked-children="開啟" un-checked-children="關閉" />
                     <div class="text-gray-500 text-sm mt-1">網站維護模式</div>
@@ -226,36 +217,6 @@
 
               <a-form-item>
                 <a-button @click="testEmail" :loading="testingEmail">測試郵件</a-button>
-              </a-form-item>
-            </a-form>
-          </a-card>
-
-          <!-- 數據分析設定 -->
-          <a-card v-if="activeTab === 'analytics'" title="數據分析設定" :loading="loading">
-            <a-form layout="vertical">
-              <a-form-item label="Google Analytics">
-                <a-input v-model:value="settings.google_analytics_id" placeholder="G-XXXXXXXXXX" />
-                <div class="text-gray-500 text-sm mt-1">輸入 Google Analytics 追蹤 ID</div>
-              </a-form-item>
-
-              <a-form-item label="Google Tag Manager">
-                <a-input v-model:value="settings.google_tag_manager_id" placeholder="GTM-XXXXXXX" />
-                <div class="text-gray-500 text-sm mt-1">輸入 Google Tag Manager 容器 ID</div>
-              </a-form-item>
-
-              <a-form-item label="Facebook Pixel">
-                <a-input v-model:value="settings.facebook_pixel_id" placeholder="123456789012345" />
-                <div class="text-gray-500 text-sm mt-1">輸入 Facebook Pixel ID</div>
-              </a-form-item>
-
-              <a-form-item label="數據保留期限">
-                <a-select v-model:value="settings.analytics_retention_days">
-                  <a-select-option :value="30">30 天</a-select-option>
-                  <a-select-option :value="90">90 天</a-select-option>
-                  <a-select-option :value="365">365 天</a-select-option>
-                  <a-select-option :value="0">永久保留</a-select-option>
-                </a-select>
-                <div class="text-gray-500 text-sm mt-1">超過期限的數據將自動刪除</div>
               </a-form-item>
             </a-form>
           </a-card>
@@ -367,78 +328,6 @@
 
           <!-- 金流設定 -->
           <div v-if="activeTab === 'payment'" class="payment-settings">
-            <!-- 運費設定區塊 -->
-            <a-card class="shipping-settings-card" title="運費設定">
-              <template #extra>
-                <a-tag color="orange">
-                  <CarOutlined />
-                  運費配置
-                </a-tag>
-              </template>
-              
-              <a-form layout="vertical">
-                <a-row :gutter="24">
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <MoneyCollectOutlined />
-                          運費金額 (NT$)
-                        </span>
-                      </template>
-                      <a-input-number 
-                        v-model:value="shippingSettings.fee" 
-                        :min="0"
-                        :precision="0"
-                        style="width: 100%"
-                        placeholder="運費金額"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <GiftOutlined />
-                          免運門檻 (NT$)
-                        </span>
-                      </template>
-                      <a-input-number 
-                        v-model:value="shippingSettings.freeThreshold" 
-                        :min="0"
-                        :precision="0"
-                        style="width: 100%"
-                        placeholder="免運門檻"
-                        size="large"
-                      />
-                    </a-form-item>
-                  </a-col>
-                  <a-col :span="8">
-                    <a-form-item>
-                      <template #label>
-                        <span class="form-label">
-                          <SettingOutlined />
-                          操作
-                        </span>
-                      </template>
-                      <a-button type="primary" @click="saveShippingSettings" :loading="savingShipping" size="large">
-                        儲存運費設定
-                      </a-button>
-                    </a-form-item>
-                  </a-col>
-                </a-row>
-                
-                <a-alert
-                  message="運費設定說明"
-                  description="設定基本運費金額和免運門檻。當消費者購買金額達到免運門檻時，將自動享受免運費優惠。"
-                  type="info"
-                  show-icon
-                  style="margin-top: 16px;"
-                />
-              </a-form>
-            </a-card>
-
             <!-- 金流方式選擇區塊 -->
             <a-card class="payment-methods-card" title="金流方式設定">
               <template #extra>
@@ -802,12 +691,6 @@ import { message } from 'ant-design-vue'
 import { 
   SaveOutlined, 
   ReloadOutlined, 
-  SettingOutlined, 
-  AppstoreOutlined, 
-  MailOutlined, 
-  BarChartOutlined, 
-  RobotOutlined, 
-  SafetyOutlined,
   CreditCardOutlined,
   BankOutlined,
   MessageOutlined,
@@ -822,12 +705,10 @@ import {
   EnvironmentOutlined,
   ExperimentOutlined,
   RocketOutlined,
-  CarOutlined,
-  MoneyCollectOutlined,
-  GiftOutlined
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '../stores/auth'
 import UploadImage from '../components/UploadImage.vue'
+import api from '../utils/axios'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -852,7 +733,6 @@ const settings = reactive({
   user_registration: true,
   comment_enabled: true,
   search_enabled: true,
-  analytics_enabled: true,
   newsletter_enabled: false,
   maintenance_mode: false,
 
@@ -865,12 +745,6 @@ const settings = reactive({
   smtp_encryption: 'tls',
   email_from_name: '',
   email_from_address: '',
-
-  // 數據分析
-  google_analytics_id: '',
-  google_tag_manager_id: '',
-  facebook_pixel_id: '',
-  analytics_retention_days: 365,
 
   // AI 設定
   openai_api_key: '',
@@ -898,13 +772,6 @@ const payment = reactive({
   paypal: { client_id: '', client_secret: '', environment: 'sandbox' }
 })
 const savingPayment = ref(false)
-
-// 運費設定
-const shippingSettings = reactive({
-  fee: 60,
-  freeThreshold: 1000
-})
-const savingShipping = ref(false)
 
 // 金流方式配置
 const paymentMethods = [
@@ -947,28 +814,20 @@ const handleMenuClick = ({ key }) => {
 const loadSettings = async () => {
   loading.value = true
   try {
-    const response = await fetch('/api/admin/settings', {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error('載入設定失敗')
+    const response = await api.get('/api/settings')
+    const data = response.data
+    
+    // 修正: 增加防呆處理，確保 data 存在
+    if (data) {
+      Object.keys(settings).forEach(key => {
+        if (data[key] !== undefined) {
+          settings[key] = data[key]
+        }
+      })
     }
 
-    const data = await response.json()
-    
-    // 更新設定值
-    Object.keys(settings).forEach(key => {
-      if (data[key] !== undefined) {
-        settings[key] = data[key]
-      }
-    })
-
   } catch (error) {
-    console.log('設定 API 尚未實現，使用預設值')
-    // 使用預設值
+    console.log('一般設定 API 尚未實現或載入失敗，使用預設值')
   } finally {
     loading.value = false
   }
@@ -977,23 +836,12 @@ const loadSettings = async () => {
 const saveAllSettings = async () => {
   saving.value = true
   try {
-    const response = await fetch('/api/admin/settings', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify(settings)
-    })
-
-    if (!response.ok) {
-      throw new Error('儲存設定失敗')
-    }
-
+    await api.post('/api/settings/bulk-update', { settings: settings })
     message.success('設定已儲存')
 
   } catch (error) {
-    message.error(error.message || '儲存設定失敗')
+    const errorMessage = error.response?.data?.detail || '儲存設定失敗'
+    message.error(errorMessage)
   } finally {
     saving.value = false
   }
@@ -1001,32 +849,29 @@ const saveAllSettings = async () => {
 
 const refreshSettings = () => {
   loadSettings()
+  loadPaymentSettings()
 }
 
 const testEmail = async () => {
   testingEmail.value = true
   try {
-    const response = await fetch('/api/admin/test-email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify({
-        to: settings.admin_email,
-        subject: '郵件設定測試',
-        content: '這是一封測試郵件，如果您收到這封郵件，表示郵件設定正確。'
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error('發送測試郵件失敗')
+    // 假設 authStore 中有管理員信箱
+    const adminEmail = authStore.user?.email 
+    if (!adminEmail) {
+        message.error('找不到管理員信箱')
+        return
     }
+    await api.post('/api/auth/test-email', {
+      to: adminEmail,
+      subject: '郵件設定測試',
+      content: '這是一封來自 BlogCommerce 的測試郵件，如果您收到這封郵件，表示郵件設定正確。'
+    })
 
     message.success('測試郵件已發送，請檢查您的信箱')
 
   } catch (error) {
-    message.error(error.message || '發送測試郵件失敗')
+    const errorMessage = error.response?.data?.detail || '發送測試郵件失敗'
+    message.error(errorMessage)
   } finally {
     testingEmail.value = false
   }
@@ -1034,25 +879,18 @@ const testEmail = async () => {
 
 // 金流相關方法
 const togglePaymentMethod = (methodKey, checked) => {
-  if (checked === undefined) {
-    // 點擊卡片切換
-    const index = payment.enabledMethods.indexOf(methodKey)
+  const index = payment.enabledMethods.indexOf(methodKey)
+  if (checked === undefined) { // 點擊卡片
     if (index > -1) {
       payment.enabledMethods.splice(index, 1)
     } else {
       payment.enabledMethods.push(methodKey)
     }
-  } else {
-    // Switch 切換
+  } else { // Switch change
     if (checked) {
-      if (!payment.enabledMethods.includes(methodKey)) {
-        payment.enabledMethods.push(methodKey)
-      }
+      if (index === -1) payment.enabledMethods.push(methodKey)
     } else {
-      const index = payment.enabledMethods.indexOf(methodKey)
-      if (index > -1) {
-        payment.enabledMethods.splice(index, 1)
-      }
+      if (index > -1) payment.enabledMethods.splice(index, 1)
     }
   }
 }
@@ -1064,43 +902,19 @@ const testPaymentConnection = async () => {
 const loadPaymentSettings = async () => {
   loading.value = true
   try {
-    // 使用統一的金流設定端點
-    const response = await fetch('/api/settings/payment/settings', {
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
-    })
-    
-    if (response.ok) {
-      const settings = await response.json()
-      payment.enabledMethods = []
-      
-      // 檢查轉帳設定
-      if (settings.transfer && settings.transfer.enabled) {
-        payment.enabledMethods.push('transfer')
-        payment.transfer = { bank: '台灣銀行', account: '123-456-789', name: 'BlogCommerce' }
-      }
-      
-      // 檢查 LinePay 設定
-      if (settings.linepay && settings.linepay.enabled) {
-        payment.enabledMethods.push('linepay')
-        payment.linepay = { channel_id: '', channel_secret: '', store_name: '' }
-      }
-      
-      // 檢查綠界設定
-      if (settings.ecpay && settings.ecpay.enabled) {
-        payment.enabledMethods.push('ecpay')
-        payment.ecpay = { merchant_id: '', api_url: '', hash_key: '', hash_iv: '' }
-      }
-      
-      // 檢查 PayPal 設定
-      if (settings.paypal && settings.paypal.enabled) {
-        payment.enabledMethods.push('paypal')
-        payment.paypal = { client_id: '', client_secret: '', environment: 'sandbox' }
-      }
+    const paymentSettingsResponse = await api.get('/api/admin/payment/settings')
+    const data = paymentSettingsResponse.data
+    // 修正: 增加防呆處理，確保 data 存在
+    if (data) {
+      payment.enabledMethods = data.enabledMethods || []
+      payment.transfer = data.transfer || { bank: '', account: '', name: '' }
+      payment.linepay = data.linepay || { channel_id: '', channel_secret: '', store_name: '' }
+      payment.ecpay = data.ecpay || { merchant_id: '', hash_key: '', hash_iv: '', api_url: '' }
+      payment.paypal = data.paypal || { client_id: '', client_secret: '', environment: 'sandbox' }
     }
-    
   } catch (error) {
     console.error('載入金流設定失敗:', error)
-    message.error('載入金流設定失敗')
+    message.error('載入金流設定失敗，請檢查後端服務是否正常。')
   } finally {
     loading.value = false
   }
@@ -1109,117 +923,14 @@ const loadPaymentSettings = async () => {
 const savePaymentSettings = async () => {
   savingPayment.value = true
   try {
-    // 使用正確的API端點更新金流啟用狀態
-    const reqs = [
-      fetch('/api/settings/payment_transfer_enabled', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ 
-          value: payment.enabledMethods.includes('transfer') ? 'true' : 'false', 
-          category: 'payment', 
-          data_type: 'boolean' 
-        })
-      }),
-      fetch('/api/settings/payment_linepay_enabled', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ 
-          value: payment.enabledMethods.includes('linepay') ? 'true' : 'false', 
-          category: 'payment', 
-          data_type: 'boolean' 
-        })
-      }),
-      fetch('/api/settings/payment_ecpay_enabled', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ 
-          value: payment.enabledMethods.includes('ecpay') ? 'true' : 'false', 
-          category: 'payment', 
-          data_type: 'boolean' 
-        })
-      }),
-      fetch('/api/settings/payment_paypal_enabled', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authStore.token}` },
-        body: JSON.stringify({ 
-          value: payment.enabledMethods.includes('paypal') ? 'true' : 'false', 
-          category: 'payment', 
-          data_type: 'boolean' 
-        })
-      })
-    ]
-    
-    await Promise.all(reqs)
-    message.success('金流設定已儲存')
+    await api.put('/api/admin/payment/settings', payment)
+    message.success('金流設定已成功儲存')
   } catch (error) {
     console.error('儲存金流設定失敗:', error)
-    message.error('儲存金流設定失敗')
+    const errorMessage = error.response?.data?.detail || '儲存金流設定失敗'
+    message.error(errorMessage)
   } finally {
     savingPayment.value = false
-  }
-}
-
-// 運費設定相關方法
-const loadShippingSettings = async () => {
-  try {
-    const feeResponse = await fetch('/api/settings/shipping_fee', {
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
-    })
-    const thresholdResponse = await fetch('/api/settings/free_shipping_threshold', {
-      headers: { 'Authorization': `Bearer ${authStore.token}` }
-    })
-
-    if (feeResponse.ok) {
-      const feeData = await feeResponse.json()
-      shippingSettings.fee = feeData.value || 60
-    }
-
-    if (thresholdResponse.ok) {
-      const thresholdData = await thresholdResponse.json()
-      shippingSettings.freeThreshold = thresholdData.value || 1000
-    }
-  } catch (error) {
-    message.error('載入運費設定失敗')
-  }
-}
-
-const saveShippingSettings = async () => {
-  savingShipping.value = true
-  try {
-    // 同時更新運費和免運門檻設定
-    const reqs = [
-      fetch('/api/settings/shipping_fee', {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${authStore.token}` 
-        },
-        body: JSON.stringify({ 
-          value: shippingSettings.fee, 
-          category: 'shipping', 
-          data_type: 'integer' 
-        })
-      }),
-      fetch('/api/settings/free_shipping_threshold', {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${authStore.token}` 
-        },
-        body: JSON.stringify({ 
-          value: shippingSettings.freeThreshold, 
-          category: 'shipping', 
-          data_type: 'integer' 
-        })
-      })
-    ]
-
-    await Promise.all(reqs)
-    message.success('運費設定已儲存')
-  } catch (error) {
-    message.error('儲存運費設定失敗')
-  } finally {
-    savingShipping.value = false
   }
 }
 
@@ -1227,11 +938,47 @@ const saveShippingSettings = async () => {
 onMounted(() => {
   loadSettings()
   loadPaymentSettings()
-  loadShippingSettings()
 })
 </script>
 
 <style scoped>
+.admin-page {
+  padding: 24px;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #262626;
+}
+
+.page-description {
+  color: #8c8c8c;
+  margin: 0;
+  font-size: 14px;
+}
+
+.content-section {
+  margin-bottom: 24px;
+}
+
+/* 卡片樣式統一 */
+:deep(.ant-card) {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+}
+
 .ant-menu-vertical {
   border-right: none;
 }
@@ -1467,4 +1214,4 @@ onMounted(() => {
   border-color: #1890ff;
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
-</style> 
+</style>

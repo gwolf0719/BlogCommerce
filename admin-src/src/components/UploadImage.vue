@@ -38,20 +38,22 @@
     </div>
 
     <!-- 手動輸入URL -->
-    <div class="manual-input">
-      <a-input
-        v-model:value="manualUrl"
-        placeholder="或直接輸入圖片URL"
-        @blur="handleManualUrl"
-        @pressEnter="handleManualUrl"
-      >
-        <template #suffix>
-          <a-button type="text" size="small" @click="handleManualUrl" :disabled="!manualUrl">
-            確定
-          </a-button>
-        </template>
-      </a-input>
-    </div>
+    <a-form-item-rest>
+      <div class="manual-input">
+        <a-input
+          v-model:value="manualUrl"
+          placeholder="或直接輸入圖片URL"
+          @blur="handleManualUrl"
+          @pressEnter="handleManualUrl"
+        >
+          <template #suffix>
+            <a-button type="text" size="small" @click="handleManualUrl" :disabled="!manualUrl">
+              確定
+            </a-button>
+          </template>
+        </a-input>
+      </div>
+    </a-form-item-rest>
 
     <!-- 圖片預覽彈窗 -->
     <a-modal
@@ -79,7 +81,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'change'])
 
 const authStore = useAuthStore()
 const uploading = ref(false)
@@ -89,12 +91,19 @@ const imageUrl = ref(props.modelValue)
 
 // 監聽 modelValue 變化
 watch(() => props.modelValue, (newValue) => {
-  imageUrl.value = newValue
-})
+  // 修正: 只有在新舊值不同時才更新，避免無限循環
+  if (newValue !== imageUrl.value) {
+    imageUrl.value = newValue;
+  }
+  if (newValue && !manualUrl.value) {
+    manualUrl.value = newValue
+  }
+}, { immediate: true })
 
 // 監聽 imageUrl 變化，向父組件發射更新
 watch(imageUrl, (newValue) => {
   emit('update:modelValue', newValue)
+  emit('change', newValue)
 })
 
 // 上傳前檢查
@@ -131,7 +140,12 @@ const handleUpload = async ({ file, onProgress, onSuccess, onError }) => {
     })
 
     if (!response.ok) {
-      throw new Error('上傳失敗')
+      let errorMessage = '上傳失敗'
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.detail || errorMessage
+      } catch (e) { /* ignore */ }
+      throw new Error(errorMessage)
     }
 
     const data = await response.json()

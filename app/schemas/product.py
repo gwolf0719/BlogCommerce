@@ -1,90 +1,97 @@
-from typing import Optional, List
+import json
+from typing import Optional, List, Type, Any
 from decimal import Decimal
-from pydantic import validator
-from app.schemas.base import BaseSchema, BaseResponseSchema, SlugSchema
+from pydantic import field_validator, GetCoreSchemaHandler
+from pydantic_core import CoreSchema, PydanticCustomError, core_schema
 
+from app.schemas.base import BaseSchema, BaseResponseSchema
+
+class JsonList(List[str]):
+    """
+    自定義 Pydantic 類型，用於將列表序列化為 JSON 字串並反序列化。
+    """
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        def validate_from_json_string(value: str) -> List[str]:
+            try:
+                list_value = json.loads(value)
+                if not isinstance(list_value, list):
+                    raise PydanticCustomError(
+                        'json_list_type', 'Input is not a valid JSON list'
+                    )
+                return [str(item) for item in list_value]
+            except json.JSONDecodeError:
+                raise PydanticCustomError(
+                    'json_list_decode', 'Input is not a valid JSON string'
+                )
+
+        def serialize_to_json_string(value: List[str]) -> str:
+            return json.dumps(value)
+
+        s = core_schema.json_or_python_schema(
+            json_schema=core_schema.no_info_after_validator_function(
+                validate_from_json_string, core_schema.str_schema()
+            ),
+            python_schema=core_schema.union_schema([
+                core_schema.is_instance_schema(list),
+                core_schema.no_info_after_validator_function(
+                    validate_from_json_string, core_schema.str_schema()
+                )
+            ]),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                serialize_to_json_string,
+                info_arg=False,
+                return_schema=core_schema.str_schema()
+            )
+        )
+        return s
 
 class ProductBase(BaseSchema):
     name: str
-    description: str
+    description: Optional[str] = None
     short_description: Optional[str] = None
     price: Decimal
     sale_price: Optional[Decimal] = None
-    stock_quantity: int = 0
     sku: Optional[str] = None
-    featured_image: Optional[str] = None
-    gallery_images: Optional[str] = None
+    stock_quantity: int = 0
     is_active: bool = True
     is_featured: bool = False
+    featured_image: Optional[str] = None
+    gallery_images: Optional[JsonList] = [] # 使用新的 JsonList 類型
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
     meta_keywords: Optional[str] = None
+    slug: Optional[str] = None
 
+    # 移除 convert_gallery_images_to_json_string 驗證器
 
 class ProductCreate(ProductBase):
     pass
-    
-    @validator('name')
-    def name_must_not_be_empty(cls, v):
-        if not v or not v.strip():
-            raise ValueError('商品名稱不能為空')
-        return v.strip()
-    
-    @validator('description')
-    def description_must_not_be_empty(cls, v):
-        if not v or not v.strip():
-            raise ValueError('商品描述不能為空')
-        return v.strip()
-    
-    @validator('price')
-    def price_must_be_positive(cls, v):
-        if v <= 0:
-            raise ValueError('價格必須大於 0')
-        return v
-    
-    @validator('sale_price')
-    def sale_price_validation(cls, v, values):
-        if v is not None:
-            if v <= 0:
-                raise ValueError('特價必須大於 0')
-            if 'price' in values and v >= values['price']:
-                raise ValueError('特價必須小於原價')
-        return v
 
-
-class ProductUpdate(BaseSchema):
+class ProductUpdate(ProductBase):
     name: Optional[str] = None
-    description: Optional[str] = None
-    short_description: Optional[str] = None
     price: Optional[Decimal] = None
-    sale_price: Optional[Decimal] = None
     stock_quantity: Optional[int] = None
-    sku: Optional[str] = None
-    featured_image: Optional[str] = None
-    gallery_images: Optional[str] = None
-    is_active: Optional[bool] = None
-    is_featured: Optional[bool] = None
-    meta_title: Optional[str] = None
-    meta_description: Optional[str] = None
-    meta_keywords: Optional[str] = None
 
-
-class ProductResponse(ProductBase, BaseResponseSchema, SlugSchema):
+class ProductResponse(ProductBase, BaseResponseSchema):
+    id: int
     view_count: int = 0
-    current_price: Decimal
-    is_on_sale: bool
 
+    # 【核心修正點】: 為特色圖片加上路徑前綴
+    @field_validator('featured_image', mode='before')
+    @classmethod
+    def add_featured_image_prefix(cls, v: Optional[str]) -> Optional[str]:
+        if v and not v.startswith('/static/'):
+            return f"/static/images/{v}"
+        return v
 
-class ProductListResponse(BaseResponseSchema, SlugSchema):
-    """商品列表回應（簡化版）"""
-    name: str
-    short_description: Optional[str] = None
-    price: Decimal
-    sale_price: Optional[Decimal] = None
-    featured_image: Optional[str] = None
-    stock_quantity: int
-    is_active: bool
-    is_featured: bool
-    view_count: int = 0
-    current_price: Decimal
-    is_on_sale: bool 
+    # 移除 add_gallery_image_prefix 驗證器，因為 JsonList 會處理
+
+    class Config:
+        from_attributes = True
+
+class ProductListResponse(BaseSchema):
+    items: List[ProductResponse]
+    total: int

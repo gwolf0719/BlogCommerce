@@ -111,12 +111,56 @@
           </a-card>
         </a-col>
       </a-row>
+
+      <!-- 折扣碼統計 -->
+      <a-row :gutter="24" class="stats-row">
+        <a-col :span="6">
+          <a-card>
+            <a-statistic 
+              title="推薦碼總數" 
+              :value="stats.totalDiscountCodes" 
+              :loading="loading"
+              :value-style="{ color: '#f5222d' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic 
+              title="啟用推薦碼" 
+              :value="stats.activeDiscountCodes" 
+              :loading="loading"
+              :value-style="{ color: '#52c41a' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic 
+              title="推薦碼使用次數" 
+              :value="stats.discountCodeUsage" 
+              :loading="loading"
+              :value-style="{ color: '#1890ff' }"
+            />
+          </a-card>
+        </a-col>
+        <a-col :span="6">
+          <a-card>
+            <a-statistic 
+              title="今日推薦碼使用" 
+              :value="stats.todayDiscountCodeUsage" 
+              :loading="loading"
+              :value-style="{ color: '#fa8c16' }"
+            />
+          </a-card>
+        </a-col>
+      </a-row>
     </div>
 
     <!-- 數據更新時間 -->
     <div v-if="stats.calculatedAt" class="update-time">
       <a-typography-text type="secondary" style="font-size: 12px;">
-        數據更新時間: {{ new Date(stats.calculatedAt).toLocaleString('zh-TW') }}
+        數據更新時間: {{ formatDate(stats.calculatedAt) }}
       </a-typography-text>
     </div>
   </div>
@@ -127,6 +171,7 @@ import { ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import { formatDate } from '../utils/dateUtils'
 
 const authStore = useAuthStore()
 const loading = ref(true)
@@ -142,6 +187,11 @@ const stats = ref({
   todayOrders: 0,
   todayRevenue: 0,
   activeUsers: 0,
+  discountCodes: 0,
+  activeDiscountCodes: 0,
+  discountUsage: 0,
+  totalDiscountAmount: 0,
+  todayDiscountUsage: 0,
   calculatedAt: null
 })
 
@@ -169,6 +219,11 @@ const loadDashboardStats = async () => {
         todayOrders: statsData.today_orders || 0,
         todayRevenue: statsData.today_revenue || 0,
         activeUsers: statsData.active_sessions || 0,
+        discountCodes: statsData.total_discount_codes || 0,
+        activeDiscountCodes: statsData.active_discount_codes || 0,
+        discountUsage: statsData.total_discount_usage || 0,
+        totalDiscountAmount: statsData.total_discount_amount || 0,
+        todayDiscountUsage: statsData.today_discount_usage || 0,
         calculatedAt: statsData.calculated_at
       }
     } else {
@@ -191,7 +246,12 @@ const loadDashboardStats = async () => {
       totalSales: 0,
       todayOrders: 0,
       todayRevenue: 0,
-      activeUsers: 0
+      activeUsers: 0,
+      discountCodes: 0,
+      activeDiscountCodes: 0,
+      discountUsage: 0,
+      totalDiscountAmount: 0,
+      todayDiscountUsage: 0
     }
   } finally {
     loading.value = false
