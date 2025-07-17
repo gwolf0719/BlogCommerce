@@ -319,7 +319,7 @@
         <a-form-item label="連結網址" name="link_url">
           <a-input
             v-model:value="form.link_url"
-            placeholder="請輸入連結網址 (可選)"
+            placeholder="請輸入連結網址"
             type="url"
           />
         </a-form-item>
@@ -480,6 +480,7 @@ const rules = {
   position: [ { required: true, message: '請選擇顯示位置' } ],
   mobile_image: [ { required: true, message: '請上傳手機版圖片' } ],
   desktop_image: [ { required: true, message: '請上傳電腦版圖片' } ],
+  link_url: [ { required: true, message: '請輸入連結網址' } ],
   start_date: [ { required: true, message: '請選擇開始時間' } ],
   end_date: [ { required: true, message: '請選擇結束時間' } ],
   alt_text: [ { required: true, message: '請輸入替代文字' } ],
