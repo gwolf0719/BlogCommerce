@@ -238,7 +238,9 @@ function productsApp() {
                 
                 const response = await fetch(url);
                 if (response.ok) {
-                    const newProducts = await response.json();
+                    const data = await response.json();
+                    const newProducts = data.items || data;
+                    console.log('載入商品:', newProducts.length, '個');
                     
                     // 為每個商品添加動畫狀態
                     newProducts.forEach(product => {

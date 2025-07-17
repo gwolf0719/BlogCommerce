@@ -160,7 +160,7 @@ function blogApp() {
             this.loading = true;
             
             try {
-                let url = `/api/posts?skip=${(this.currentPage - 1) * 12}&limit=12&published_only=true`;
+                let url = `/api/posts?skip=${(this.currentPage - 1) * 12}&limit=12`;
                 
                 if (this.searchTerm) {
                     url += `&search=${encodeURIComponent(this.searchTerm)}`;
@@ -168,7 +168,9 @@ function blogApp() {
                 
                 const response = await fetch(url);
                 if (response.ok) {
-                    const newPosts = await response.json();
+                    const data = await response.json();
+                    const newPosts = data.items || data;
+                    console.log('載入文章:', newPosts.length, '篇');
                     
                     if (reset) {
                         this.posts = newPosts;
