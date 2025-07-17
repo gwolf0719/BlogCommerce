@@ -74,3 +74,59 @@ class SystemSettingsGroup(BaseModel):
     general: GeneralSettings
     seo: SeoSettings
     ecommerce: EcommerceSettings 
+
+# 金流設定相關 Schema
+class PaymentTransferSettings(BaseModel):
+    bank_name: str = Field(..., description="銀行名稱")
+    account_number: str = Field(..., description="銀行帳號")
+    account_name: str = Field(..., description="戶名")
+
+class PaymentLinePaySettings(BaseModel):
+    channel_id: str = Field(..., description="Channel ID")
+    channel_secret: str = Field(..., description="Channel Secret")
+    
+class PaymentECPaySettings(BaseModel):
+    merchant_id: str = Field(..., description="商店代號")
+    hash_key: str = Field(..., description="HashKey")
+    hash_iv: str = Field(..., description="HashIV")
+
+class PaymentPayPalSettings(BaseModel):
+    client_id: str = Field(..., description="Client ID")
+    client_secret: str = Field(..., description="Client Secret")
+    environment: str = Field("sandbox", description="環境 (sandbox/live)")
+
+# 用於後端 API 的新 Schema
+class PaymentTransferDetails(BaseModel):
+    bank: str = ""
+    account: str = ""
+    name: str = ""
+
+class PaymentLinePayDetails(BaseModel):
+    channel_id: str = ""
+    channel_secret: str = ""
+    store_name: str = ""
+
+class PaymentECPayDetails(BaseModel):
+    merchant_id: str = ""
+    hash_key: str = ""
+    hash_iv: str = ""
+    api_url: str = ""
+
+class PaymentPayPalDetails(BaseModel):
+    client_id: str = ""
+    client_secret: str = ""
+    environment: str = "sandbox"
+
+class AllPaymentSettingsResponse(BaseModel):
+    enabledMethods: List[str]
+    transfer: PaymentTransferDetails
+    linepay: PaymentLinePayDetails
+    ecpay: PaymentECPayDetails
+    paypal: PaymentPayPalDetails
+
+class AllPaymentSettingsUpdate(BaseModel):
+    enabledMethods: List[str]
+    transfer: PaymentTransferDetails
+    linepay: PaymentLinePayDetails
+    ecpay: PaymentECPayDetails
+    paypal: PaymentPayPalDetails 

@@ -9,7 +9,8 @@ from typing import Optional, List, Dict
 from urllib.parse import urlparse, parse_qs
 
 
-router = APIRouter(prefix="/api/views", tags=["view_tracking"])
+router = APIRouter(prefix="/view-tracking", tags=["瀏覽追蹤"])
+
 
 
 class ViewTrackingRequest(BaseModel):

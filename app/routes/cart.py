@@ -7,8 +7,9 @@ from pydantic import BaseModel, Field
 from app.database import get_db
 from app.models.product import Product
 from app.models.discount_code import PromoCode, PromoType
+from app.schemas.product import ProductResponse
 
-router = APIRouter(prefix="/api/cart", tags=["購物車"])
+router = APIRouter(prefix="/cart", tags=["購物車"])
 
 
 class CartItem(BaseModel):
@@ -23,7 +24,7 @@ class PromoCodeRequest(BaseModel):
 class CartItemResponse(BaseModel):
     product_id: int
     quantity: int
-    product: Dict[str, Any]
+    product: ProductResponse
     subtotal: float
 
 
@@ -51,15 +52,7 @@ def get_cart(request: Request, db: Session = Depends(get_db)):
         product = db.query(Product).filter(Product.id == product_id).first()
         
         if product and product.is_active:
-            product_data = {
-                "id": product.id,
-                "name": product.name,
-                "price": float(product.current_price),
-                "current_price": float(product.current_price),
-                "featured_image": product.featured_image,
-                "stock_quantity": product.stock_quantity,
-                "is_active": product.is_active
-            }
+            product_data = ProductResponse.from_orm(product)
             
             item_subtotal = float(product.current_price) * quantity
             

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, File, UploadFile, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import desc, or_
 from typing import List, Optional
 import os
 import uuid
@@ -18,97 +19,53 @@ from app.auth import get_current_admin_user, get_current_user_optional
 from app.models.user import User
 
 
-router = APIRouter(
-    prefix="/api/banners",
-    tags=["輪播廣告"],
-    responses={
-        404: {"description": "廣告不存在"},
-        400: {"description": "請求參數錯誤"},
-        403: {"description": "權限不足"},
-        500: {"description": "伺服器內部錯誤"}
-    }
-)
+router = APIRouter(prefix="/banners", tags=["廣告橫幅"])
 
 
-@router.get(
-    "",
-    response_model=List[BannerListResponse],
-    summary="📋 取得廣告列表",
-    description="""
-    ## 🎯 功能描述
-    取得輪播廣告列表，支援多種篩選條件和分頁查詢。
-    
-    ## 📋 功能特點
-    - 🔍 支援版位篩選
-    - 📊 支援啟用狀態篩選
-    - 🎯 支援可顯示狀態篩選
-    - 📄 支援分頁查詢
-    - 📈 按排序權重和建立時間排序
-    
-    ## 🔍 查詢參數
-    - **position**: 版位篩選（home/blog_list/product_list）
-    - **is_active**: 啟用狀態篩選
-    - **is_displayable**: 可顯示狀態篩選（同時檢查啟用狀態和時間範圍）
-    - **skip**: 跳過的項目數（分頁）
-    - **limit**: 每頁項目數限制
-    
-    ## 📊 排序規則
-    按排序權重降序，然後按建立時間降序排列。
-    
-    ## 🎯 使用場景
-    - 管理後台廣告管理
-    - 前端廣告顯示
-    - 廣告狀態監控
-    """,
-    responses={
-        200: {
-            "description": "成功取得廣告列表",
-            "content": {
-                "application/json": {
-                    "example": [
-                        {
-                            "id": 1,
-                            "title": "春季促銷活動",
-                            "position": "home",
-                            "start_date": "2024-01-01T00:00:00Z",
-                            "end_date": "2024-01-31T23:59:59Z",
-                            "is_active": True,
-                            "sort_order": 10,
-                            "click_count": 256,
-                            "is_valid_period": True,
-                            "is_displayable": True,
-                            "created_at": "2024-01-01T00:00:00Z",
-                            "updated_at": "2024-01-02T12:00:00Z"
-                        }
-                    ]
-                }
-            }
-        }
-    }
-)
+# 修正: 移除對 BannerService 的依賴，改為直接查詢資料庫以修復 AttributeError
+@router.get("", response_model=BannerListResponse, summary="📋 取得廣告列表")
 async def get_banners(
+    request: Request,
+    db: Session = Depends(get_db),
     skip: int = Query(0, ge=0, description="跳過的項目數"),
-    limit: int = Query(100, ge=1, le=100, description="每頁項目數限制"),
-    position: Optional[BannerPosition] = Query(None, description="版位篩選"),
-    is_active: Optional[bool] = Query(None, description="啟用狀態篩選"),
-    is_displayable: Optional[bool] = Query(None, description="可顯示狀態篩選"),
-    db: Session = Depends(get_db)
+    limit: int = Query(10, ge=1, le=100, description="每頁項目數限制"),
 ):
     """
-    取得廣告列表
-    
-    支援多種篩選條件的廣告列表查詢。
+    取得廣告列表，支援多種篩選條件和分頁查詢。
     """
-    banner_service = BannerService(db)
-    banners = banner_service.get_banners(
-        skip=skip,
-        limit=limit,
-        position=position,
-        is_active=is_active,
-        is_displayable=is_displayable
-    )
+    params = request.query_params
+    position = params.get("position")
+    is_active_str = params.get("is_active")
+    search = params.get("search")
+
+    query = db.query(Banner)
+
+    if position:
+        try:
+            position_enum = BannerPosition[position.lower()]
+            query = query.filter(Banner.position == position_enum)
+        except KeyError:
+            pass # 如果 position 值無效，則忽略此篩選條件
+
+    if is_active_str is not None:
+        is_active = is_active_str.lower() in ['true', '1']
+        query = query.filter(Banner.is_active == is_active)
+
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                Banner.title.ilike(search_term),
+                Banner.description.ilike(search_term)
+            )
+        )
+
+    total = query.count()
     
-    return [BannerListResponse.model_validate(banner) for banner in banners]
+    banners = query.order_by(desc(Banner.sort_order), desc(Banner.created_at)).offset(skip).limit(limit).all()
+    
+    return BannerListResponse(items=banners, total=total)
+
 
 
 @router.get(

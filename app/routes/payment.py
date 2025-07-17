@@ -16,7 +16,7 @@ from ..models.order import Order, PaymentStatus
 from ..services.payment_service import PaymentService
 from ..auth import get_current_user, get_current_admin_user
 
-router = APIRouter(prefix="/api/payment", tags=["金流處理"])
+router = APIRouter(prefix="/payment", tags=["金流處理"])
 
 
 @router.post("/create")

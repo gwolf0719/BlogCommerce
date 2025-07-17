@@ -30,6 +30,7 @@ class UserCreate(UserBase):
     """
     password: str = Field(..., description="用戶密碼", min_length=6)
     confirm_password: str = Field(..., description="確認密碼")
+    role: Optional[UserRole] = Field(UserRole.user, description="用戶角色")
     
     @validator('username')
     def username_validation(cls, v):
@@ -72,6 +73,8 @@ class UserUpdate(BaseSchema):
     full_name: Optional[str] = Field(None, description="用戶全名", max_length=100)
     phone: Optional[str] = Field(None, description="用戶電話號碼", max_length=20)
     address: Optional[str] = Field(None, description="用戶地址", max_length=500)
+    is_active: Optional[bool] = Field(None, description="用戶是否啟用")
+    role: Optional[UserRole] = Field(None, description="用戶角色")
 
 
 class UserChangePassword(BaseSchema):
@@ -125,4 +128,10 @@ class TokenData(BaseSchema):
     
     用於解析 JWT 令牌中的用戶資訊。
     """
-    username: Optional[str] = Field(None, description="用戶名稱") 
+    username: Optional[str] = Field(None, description="用戶名稱")
+
+
+class UserListResponse(BaseSchema):
+    """使用者列表的分頁回應"""
+    items: list[UserResponse]
+    total: int 

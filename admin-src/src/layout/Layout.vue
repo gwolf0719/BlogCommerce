@@ -51,10 +51,7 @@
           <span>推薦碼管理</span>
         </a-menu-item>
         
-        <a-menu-item key="analytics" @click="$router.push('/analytics')">
-          <bar-chart-outlined />
-          <span>數據分析</span>
-        </a-menu-item>
+        <!-- 移除: 數據分析選單項目 -->
         
         <a-menu-item key="settings" @click="$router.push('/settings')">
           <setting-outlined />
@@ -108,11 +105,9 @@ import {
   ShoppingOutlined,
   ShoppingCartOutlined,
   UserOutlined,
-  BarChartOutlined,
   SettingOutlined,
   LogoutOutlined,
   DownOutlined,
-  TagOutlined,
   PictureOutlined,
   CarOutlined,
   GiftOutlined
@@ -137,7 +132,7 @@ const pageTitle = {
   banners: '廣告管理',
   'shipping-tiers': '運費級距',
   'promo-codes': '推薦碼管理',
-  analytics: '數據分析',
+  // 移除: analytics: '數據分析',
   settings: '系統設定'
 }
 
@@ -151,9 +146,6 @@ const handleLogout = () => {
   message.success('已登出')
   router.push('/login')
 }
-
-// 移除自動認證檢查，現在由路由守衛處理
-// onMounted 不再需要檢查認證狀態
 </script>
 
 <style scoped>

@@ -8,7 +8,7 @@
           <p class="page-description">管理系統中的所有用戶帳號和權限</p>
         </div>
         <div class="action-section">
-          <a-button type="primary" @click="showCreateModal">
+          <a-button type="primary" @click="handleCreate">
             <template #icon><UserAddOutlined /></template>
             新增用戶
           </a-button>
@@ -19,41 +19,41 @@
     <!-- 2. 統計卡片區 -->
     <div class="stats-section">
       <a-row :gutter="24" class="stats-row">
-        <a-col :span="6">
+        <a-col :xs="24" :sm="12" :md="6" style="margin-bottom: 16px;">
           <a-card>
             <a-statistic
               title="總用戶數"
-              :value="users.length"
+              :value="stats.total_users"
               prefix="👥"
               :value-style="{ color: '#1890ff' }"
             />
           </a-card>
         </a-col>
-        <a-col :span="6">
+        <a-col :xs="24" :sm="12" :md="6" style="margin-bottom: 16px;">
           <a-card>
             <a-statistic
               title="活躍用戶"
-              :value="activeUsersCount"
+              :value="stats.active_users"
               prefix="🟢"
               :value-style="{ color: '#52c41a' }"
             />
           </a-card>
         </a-col>
-        <a-col :span="6">
+        <a-col :xs="24" :sm="12" :md="6" style="margin-bottom: 16px;">
           <a-card>
             <a-statistic
               title="管理員"
-              :value="adminCount"
+              :value="stats.admin_users"
               prefix="👑"
               :value-style="{ color: '#722ed1' }"
             />
           </a-card>
         </a-col>
-        <a-col :span="6">
+        <a-col :xs="24" :sm="12" :md="6" style="margin-bottom: 16px;">
           <a-card>
             <a-statistic
               title="今日新註冊"
-              :value="todayRegistrations"
+              :value="stats.today_new_users"
               prefix="📅"
               :value-style="{ color: '#fa541c' }"
             />
@@ -65,44 +65,54 @@
     <!-- 3. 搜尋篩選區 -->
     <div class="filter-section">
       <a-card class="filter-card">
-        <a-row :gutter="24">
-          <a-col :span="8">
-            <a-input
-              v-model:value="searchText"
-              placeholder="搜尋用戶名稱或郵箱"
-              allow-clear
-              @pressEnter="handleSearch"
-            >
-              <template #prefix><SearchOutlined /></template>
-            </a-input>
+        <a-row :gutter="24" align="bottom">
+          <a-col :xs="24" :sm="12" :md="8">
+            <a-form-item label="搜尋用戶">
+              <a-input
+                v-model:value="searchForm.search"
+                placeholder="搜尋用戶名稱或郵箱"
+                allow-clear
+                @pressEnter="handleSearch"
+              >
+                <template #prefix><SearchOutlined /></template>
+              </a-input>
+            </a-form-item>
           </a-col>
-          <a-col :span="4">
-            <a-select
-              v-model:value="roleFilter"
-              placeholder="角色篩選"
-              allow-clear
-              @change="handleSearch"
-            >
-              <a-select-option value="admin">管理員</a-select-option>
-              <a-select-option value="user">一般用戶</a-select-option>
-            </a-select>
+          <a-col :xs="12" :sm="6" :md="4">
+            <a-form-item label="角色">
+              <a-select
+                v-model:value="searchForm.role"
+                placeholder="角色篩選"
+                allow-clear
+                style="width: 100%;"
+                @change="handleSearch"
+              >
+                <a-select-option value="admin">管理員</a-select-option>
+                <a-select-option value="user">一般用戶</a-select-option>
+              </a-select>
+            </a-form-item>
           </a-col>
-          <a-col :span="4">
-            <a-select
-              v-model:value="statusFilter"
-              placeholder="狀態篩選"
-              allow-clear
-              @change="handleSearch"
-            >
-              <a-select-option value="active">啟用</a-select-option>
-              <a-select-option value="inactive">停用</a-select-option>
-            </a-select>
+          <a-col :xs="12" :sm="6" :md="4">
+             <a-form-item label="狀態">
+              <a-select
+                v-model:value="searchForm.is_active"
+                placeholder="狀態篩選"
+                allow-clear
+                style="width: 100%;"
+                @change="handleSearch"
+              >
+                <a-select-option :value="true">啟用</a-select-option>
+                <a-select-option :value="false">停用</a-select-option>
+              </a-select>
+            </a-form-item>
           </a-col>
-          <a-col :span="4">
-            <a-button @click="resetFilters">重置篩選</a-button>
-          </a-col>
-          <a-col :span="4">
-            <a-button type="primary" @click="handleSearch">搜尋</a-button>
+          <a-col :xs="24" :sm="12" :md="8">
+            <a-form-item>
+              <a-space>
+                <a-button type="primary" @click="handleSearch">搜尋</a-button>
+                <a-button @click="resetSearch">重置篩選</a-button>
+              </a-space>
+            </a-form-item>
           </a-col>
         </a-row>
       </a-card>
@@ -113,10 +123,12 @@
       <a-card class="content-card">
         <a-table
           :columns="columns"
-          :data-source="filteredUsers"
+          :data-source="users"
           :loading="loading"
           row-key="id"
           :pagination="paginationConfig"
+          @change="handleTableChange"
+          :scroll="{ x: 800 }"
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'user_info'">
@@ -169,7 +181,7 @@
                   ok-text="確定" 
                   cancel-text="取消" 
                   @confirm="handleDelete(record.id)"
-                  v-if="record.role !== 'admin' || record.id !== authStore.user?.id"
+                  v-if="record.id !== authStore.user?.id"
                 >
                   <a-button type="link" danger size="small">
                     <DeleteOutlined />
@@ -248,20 +260,14 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { 
-  PlusOutlined, 
   SearchOutlined, 
-  ReloadOutlined, 
   EditOutlined, 
   DeleteOutlined,
-  UserOutlined,
-  CheckCircleOutlined,
-  CalendarOutlined,
-  CrownOutlined,
   UserAddOutlined
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '../stores/auth'
-import dayjs from 'dayjs'
 import { formatDate } from '../utils/dateUtils'
+import api from '../utils/axios'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -282,9 +288,8 @@ const stats = ref({
 // 搜尋表單
 const searchForm = reactive({
   search: '',
-  role: '',
-  is_active: null,
-  dateRange: []
+  role: undefined,
+  is_active: undefined,
 })
 
 // 表單
@@ -319,359 +324,175 @@ const paginationConfig = computed(() => ({
 
 // 表格列定義
 const columns = [
-  {
-    title: '會員資訊',
-    key: 'user_info',
-    width: 250
-  },
-  {
-    title: '角色',
-    key: 'role',
-    dataIndex: 'role',
-    width: 100
-  },
-  {
-    title: '狀態',
-    key: 'is_active',
-    dataIndex: 'is_active',
-    width: 100
-  },
-  {
-    title: '註冊時間',
-    key: 'created_at',
-    dataIndex: 'created_at',
-    width: 150,
-    sorter: true
-  },
-  {
-    title: '最後登入',
-    key: 'last_login',
-    dataIndex: 'last_login',
-    width: 150
-  },
-  {
-    title: '操作',
-    key: 'action',
-    width: 150,
-    fixed: 'right'
-  }
+  { title: '會員資訊', key: 'user_info', width: 250 },
+  { title: '角色', key: 'role', dataIndex: 'role', width: 100 },
+  { title: '狀態', key: 'is_active', dataIndex: 'is_active', width: 100 },
+  { title: '註冊時間', key: 'created_at', dataIndex: 'created_at', width: 150, sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at) },
+  { title: '最後登入', key: 'last_login', dataIndex: 'last_login', width: 150 },
+  { title: '操作', key: 'action', width: 150, fixed: 'right' }
 ]
 
 // 表單驗證規則
 const rules = {
-  username: [
-    { required: true, message: '請輸入用戶名', trigger: 'blur' },
-    { min: 3, max: 20, message: '用戶名長度為 3-20 字元', trigger: 'blur' }
-  ],
-  email: [
-    { required: true, message: '請輸入信箱', trigger: 'blur' },
-    { type: 'email', message: '請輸入正確的信箱格式', trigger: 'blur' }
-  ],
-  password: [
-    { 
-      validator: (rule, value) => {
-        if (!isEdit.value && !value) {
-          return Promise.reject('請輸入密碼')
-        }
-        if (value && value.length < 6) {
-          return Promise.reject('密碼長度至少 6 字元')
-        }
-        return Promise.resolve()
-      }, 
-      trigger: 'blur' 
-    }
-  ],
-  confirmPassword: [
-    { 
-      validator: (rule, value) => {
-        if (form.password && form.password !== value) {
-          return Promise.reject('兩次輸入的密碼不一致')
-        }
-        return Promise.resolve()
-      }, 
-      trigger: 'blur' 
-    }
-  ],
-  role: [
-    { required: true, message: '請選擇角色', trigger: 'change' }
-  ]
+  username: [{ required: true, message: '請輸入用戶名', trigger: 'blur' }],
+  email: [{ required: true, message: '請輸入信箱', trigger: 'blur' }, { type: 'email', message: '請輸入正確的信箱格式', trigger: 'blur' }],
+  password: [{ validator: (rule, value) => {
+    if (!isEdit.value && !value) return Promise.reject('請輸入密碼');
+    if (value && value.length < 6) return Promise.reject('密碼長度至少 6 字元');
+    return Promise.resolve();
+  }, trigger: 'blur' }],
+  confirmPassword: [{ validator: (rule, value) => {
+    if (form.password && form.password !== value) return Promise.reject('兩次輸入的密碼不一致');
+    return Promise.resolve();
+  }, trigger: 'blur' }],
+  role: [{ required: true, message: '請選擇角色', trigger: 'change' }]
 }
 
 // 方法
 const fetchUsers = async () => {
   loading.value = true
   try {
-    const params = new URLSearchParams({
-      skip: ((pagination.current - 1) * pagination.pageSize).toString(),
-      limit: pagination.pageSize.toString()
-    })
+    const params = {
+      skip: (pagination.current - 1) * pagination.pageSize,
+      limit: pagination.pageSize,
+      search: searchForm.search || undefined,
+      role: searchForm.role || undefined,
+      is_active: searchForm.is_active,
+    };
+    
+    // 清理 undefined 的參數
+    Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
 
-    if (searchForm.search) {
-      params.append('search', searchForm.search)
-    }
-    if (searchForm.role) {
-      params.append('role', searchForm.role)
-    }
-    if (searchForm.is_active !== null) {
-      params.append('is_active', searchForm.is_active.toString())
-    }
-    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
-      params.append('start_date', dayjs(searchForm.dateRange[0]).format('YYYY-MM-DD'))
-      params.append('end_date', dayjs(searchForm.dateRange[1]).format('YYYY-MM-DD'))
-    }
-
-    const response = await fetch(`/api/admin/users?${params}`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error('獲取會員列表失敗')
-    }
-
-    const data = await response.json()
-    users.value = data.items || data
-    pagination.total = data.total || data.length
-
+    const response = await api.get('/api/admin/users', { params });
+    users.value = response.data.items || [];
+    pagination.total = response.data.total || 0;
   } catch (error) {
-    message.error(error.message || '獲取會員列表失敗')
+    message.error(error.response?.data?.detail || '獲取會員列表失敗');
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 const fetchStats = async () => {
   try {
-    const response = await fetch('/api/admin/users/stats', {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (!response.ok) {
-      return // 如果沒有統計 API，則跳過
-    }
-
-    const data = await response.json()
-    stats.value = data
-
+    const response = await api.get('/api/admin/users/stats');
+    stats.value = response.data;
   } catch (error) {
-    // 靜默處理，如果沒有統計 API
-    console.log('統計資料 API 尚未實現')
+    console.log('統計資料 API 尚未實現或載入失敗');
   }
 }
 
 const handleSearch = () => {
-  pagination.current = 1
-  fetchUsers()
+  pagination.current = 1;
+  fetchUsers();
 }
 
 const resetSearch = () => {
-  searchForm.search = ''
-  searchForm.role = ''
-  searchForm.is_active = null
-  searchForm.dateRange = []
-  pagination.current = 1
-  fetchUsers()
+  searchForm.search = '';
+  searchForm.role = undefined;
+  searchForm.is_active = undefined;
+  handleSearch();
 }
 
-const handleTableChange = (pag, filters, sorter) => {
-  pagination.current = pag.current
-  pagination.pageSize = pag.pageSize
-  fetchUsers()
+const handleTableChange = (pag) => {
+  pagination.current = pag.current;
+  pagination.pageSize = pag.pageSize;
+  fetchUsers();
 }
 
 const refreshUsers = () => {
-  fetchUsers()
-  fetchStats()
+  fetchUsers();
+  fetchStats();
 }
 
 const handleCreate = () => {
-  isEdit.value = false
-  resetForm()
-  modalVisible.value = true
+  isEdit.value = false;
+  resetForm();
+  modalVisible.value = true;
 }
 
 const handleEdit = (user) => {
-  isEdit.value = true
-  form.id = user.id
-  form.username = user.username
-  form.email = user.email
-  form.password = ''
-  form.confirmPassword = ''
-  form.role = user.role
-  form.is_active = user.is_active
-  modalVisible.value = true
+  isEdit.value = true;
+  Object.assign(form, { ...user, password: '', confirmPassword: '' });
+  modalVisible.value = true;
 }
 
 const resetForm = () => {
-  form.id = null
-  form.username = ''
-  form.email = ''
-  form.password = ''
-  form.confirmPassword = ''
-  form.role = 'user'
-  form.is_active = true
+  Object.assign(form, {
+    id: null, username: '', email: '', password: '', confirmPassword: '', role: 'user', is_active: true
+  });
 }
 
 const handleCancel = () => {
-  modalVisible.value = false
-  resetForm()
-  formRef.value?.resetFields()
+  modalVisible.value = false;
+  formRef.value?.resetFields();
 }
 
 const handleSubmit = async () => {
   try {
-    await formRef.value.validate()
-    
-    submitLoading.value = true
+    await formRef.value.validate();
+    submitLoading.value = true;
     
     const submitData = {
       username: form.username,
       email: form.email,
       role: form.role,
       is_active: form.is_active
-    }
-    
-    // 只有當有輸入密碼時才包含密碼
+    };
     if (form.password) {
-      submitData.password = form.password
+      submitData.password = form.password;
     }
 
-    const url = isEdit.value ? `/api/admin/users/${form.id}` : '/api/admin/users'
-    const method = isEdit.value ? 'PUT' : 'POST'
+    const request = isEdit.value 
+      ? api.put(`/api/admin/users/${form.id}`, submitData)
+      : api.post('/api/admin/users', submitData);
 
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify(submitData)
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.detail || `${isEdit.value ? '更新' : '新增'}會員失敗`)
-    }
-
-    message.success(`會員${isEdit.value ? '更新' : '新增'}成功`)
-    modalVisible.value = false
-    resetForm()
-    refreshUsers()
-
+    await request;
+    message.success(`會員${isEdit.value ? '更新' : '新增'}成功`);
+    modalVisible.value = false;
+    refreshUsers();
   } catch (error) {
-    if (error.errorFields) {
-      // 表單驗證錯誤
-      return
+    if (!error.response) { // 表單驗證錯誤
+      return;
     }
-    message.error(error.message || `${isEdit.value ? '更新' : '新增'}會員失敗`)
+    message.error(error.response?.data?.detail || `${isEdit.value ? '更新' : '新增'}會員失敗`);
   } finally {
-    submitLoading.value = false
+    submitLoading.value = false;
   }
 }
 
 const toggleUserStatus = async (user) => {
   try {
-    const response = await fetch(`/api/admin/users/${user.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify({
-        is_active: !user.is_active
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error('更新會員狀態失敗')
-    }
-
-    message.success(`會員已${user.is_active ? '停用' : '啟用'}`)
-    refreshUsers()
-
+    await api.put(`/api/admin/users/${user.id}`, { is_active: !user.is_active });
+    message.success(`會員已${user.is_active ? '停用' : '啟用'}`);
+    refreshUsers();
   } catch (error) {
-    message.error(error.message || '更新會員狀態失敗')
+    message.error(error.response?.data?.detail || '更新會員狀態失敗');
   }
 }
 
 const handleDelete = async (userId) => {
   try {
-    const response = await fetch(`/api/admin/users/${userId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error('刪除會員失敗')
-    }
-
-    message.success('會員已刪除')
-    refreshUsers()
-
+    await api.delete(`/api/admin/users/${userId}`);
+    message.success('會員已刪除');
+    refreshUsers();
   } catch (error) {
-    message.error(error.message || '刪除會員失敗')
+    message.error(error.response?.data?.detail || '刪除會員失敗');
   }
 }
 
-// 輔助函數（已移至 utils/dateUtils.js）
-
-// 初始化
 onMounted(() => {
-  fetchUsers()
-  fetchStats()
+  refreshUsers();
 })
 </script>
 
 <style scoped>
-.admin-page {
-  padding: 24px;
-}
-
-.page-header {
-  margin-bottom: 24px;
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-  color: #262626;
-}
-
-.page-description {
-  color: #8c8c8c;
-  margin: 0;
-  font-size: 14px;
-}
-
-.stats-section {
-  margin-bottom: 24px;
-}
-
-.stats-row {
-  margin-bottom: 24px;
-}
-
-.filter-section {
-  margin-bottom: 24px;
-}
-
-.content-section {
-  margin-bottom: 24px;
-}
-
-.ant-statistic-content {
-  font-size: 16px;
-}
-</style> 
+.admin-page { padding: 24px; }
+.page-header { margin-bottom: 24px; }
+.header-content { display: flex; justify-content: space-between; align-items: flex-start; }
+.page-title { font-size: 24px; font-weight: 600; margin: 0 0 8px 0; color: #262626; }
+.page-description { color: #8c8c8c; margin: 0; font-size: 14px; }
+.stats-section { margin-bottom: 24px; }
+.filter-section { margin-bottom: 24px; }
+.content-section { margin-bottom: 24px; }
+</style>

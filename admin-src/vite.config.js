@@ -5,27 +5,29 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [vue()],
   root: '.',
-  base: '/',
+  base: '/admin/', 
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src')
     }
   },
   server: {
+    // 1. 監聽所有 IP
+    host: '0.0.0.0',
     port: 3000,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8002',
         changeOrigin: true
       },
-      '/static': {
+      '/static/uploads': {
         target: 'http://127.0.0.1:8002',
         changeOrigin: true
       }
     }
   },
   build: {
-    outDir: '../admin',
+    outDir: 'dist', 
     emptyOutDir: true,
     rollupOptions: {
       input: resolve(__dirname, 'index.html'),

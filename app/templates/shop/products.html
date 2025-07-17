@@ -215,6 +215,7 @@ function productsApp() {
         searchTerm: '',
         sortBy: 'newest',
         currentPage: 1,
+        totalProducts: 0,
         hasMore: true,
         loading: false,
         
@@ -229,22 +230,26 @@ function productsApp() {
                 this.hasMore = true;
             }
             
+            if (this.loading) return;
             this.loading = true;
             
             try {
-                let url = `/api/products?skip=${(this.currentPage - 1) * 12}&limit=12&active=true`;
+                let url = `/api/products?skip=${(this.currentPage - 1) * 12}&limit=12&status=active`;
                 
                 if (this.searchTerm) {
                     url += `&search=${encodeURIComponent(this.searchTerm)}`;
                 }
                 
+                // 注意：後端目前未實現 sort_by，但保留前端邏輯
                 if (this.sortBy) {
                     url += `&sort_by=${this.sortBy}`;
                 }
                 
                 const response = await fetch(url);
                 if (response.ok) {
-                    const newProducts = await response.json();
+                    const data = await response.json();
+                    const newProducts = data.items || [];
+                    this.totalProducts = data.total || 0;
                     
                     // 為每個商品添加動畫狀態
                     newProducts.forEach(product => {
@@ -257,24 +262,29 @@ function productsApp() {
                         this.products = [...this.products, ...newProducts];
                     }
                     
-                    this.hasMore = newProducts.length === 12;
+                    this.hasMore = this.products.length < this.totalProducts;
+                } else {
+                    console.error('API 請求失敗:', response.statusText);
+                    this.hasMore = false;
                 }
             } catch (error) {
                 console.error('載入商品失敗:', error);
+                this.hasMore = false;
             } finally {
                 this.loading = false;
             }
         },
         
         loadMore() {
-            this.currentPage++;
-            this.loadProducts(false);
+            if (this.hasMore && !this.loading) {
+                this.currentPage++;
+                this.loadProducts(false);
+            }
         },
         
         async addToCart(product) {
             if (product.stock_quantity <= 0) return;
             
-            // 設置動畫狀態
             product.addingToCart = true;
             
             try {
@@ -290,12 +300,9 @@ function productsApp() {
                 });
                 
                 if (response.ok) {
-                    // 更新購物車計數器
                     if (window.updateCartCount) {
                         window.updateCartCount();
                     }
-                    
-                    // 顯示成功訊息
                     this.showToast(`已將 ${product.name} 加入購物車！`, 'success');
                 } else {
                     const error = await response.json();
@@ -305,7 +312,6 @@ function productsApp() {
                 console.error('加入購物車失敗:', error);
                 this.showToast('加入購物車失敗，請稍後再試', 'error');
             } finally {
-                // 重置動畫狀態
                 setTimeout(() => {
                     product.addingToCart = false;
                 }, 1500);
@@ -313,7 +319,6 @@ function productsApp() {
         },
         
         showToast(message, type = 'info') {
-            // 創建通知元素
             const toast = document.createElement('div');
             toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 ${
                 type === 'success' ? 'bg-green-500 text-white' : 
@@ -321,16 +326,13 @@ function productsApp() {
             }`;
             toast.textContent = message;
             
-            // 初始位置在右側外面
             toast.style.transform = 'translateX(100%)';
             document.body.appendChild(toast);
             
-            // 動畫進入
             setTimeout(() => {
                 toast.style.transform = 'translateX(0)';
             }, 100);
             
-            // 3秒後移除
             setTimeout(() => {
                 toast.style.transform = 'translateX(100%)';
                 setTimeout(() => {

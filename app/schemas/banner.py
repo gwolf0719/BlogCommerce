@@ -101,6 +101,7 @@ class BannerResponse(BannerBase):
     """
     id: int = Field(..., description="廣告 ID")
     click_count: int = Field(0, description="點擊次數")
+    view_count: int = Field(0, description="瀏覽次數")
     is_valid_period: bool = Field(..., description="是否在有效期間內")
     is_displayable: bool = Field(..., description="是否可以顯示")
     created_at: datetime = Field(..., description="建立時間")
@@ -108,34 +109,18 @@ class BannerResponse(BannerBase):
     
     class Config:
         from_attributes = True
+
+
+class BannerSummary(BannerResponse):
+    """廣告列表項目摘要"""
+    pass
 
 
 class BannerListResponse(BaseModel):
-    """
-    廣告列表回應 Schema
-    
-    用於廣告列表 API 回應時的資料格式。
-    """
-    id: int = Field(..., description="廣告 ID")
-    title: str = Field(..., description="廣告標題")
-    description: Optional[str] = Field(None, description="廣告描述")
-    link_url: str = Field(..., description="點擊導向連結")
-    mobile_image: str = Field(..., description="手機版圖片路徑")
-    desktop_image: str = Field(..., description="電腦版圖片路徑")
-    alt_text: Optional[str] = Field(None, description="圖片替代文字")
-    position: BannerPosition = Field(..., description="顯示版位")
-    start_date: datetime = Field(..., description="刊登開始時間")
-    end_date: datetime = Field(..., description="刊登結束時間")
-    is_active: bool = Field(..., description="是否啟用")
-    sort_order: int = Field(..., description="排序權重")
-    click_count: int = Field(..., description="點擊次數")
-    is_valid_period: bool = Field(..., description="是否在有效期間內")
-    is_displayable: bool = Field(..., description="是否可以顯示")
-    created_at: datetime = Field(..., description="建立時間")
-    updated_at: Optional[datetime] = Field(None, description="更新時間")
-    
-    class Config:
-        from_attributes = True
+    """廣告列表的分頁回應"""
+    items: List[BannerSummary]
+    total: int
+
 
 
 class BannerStatusToggle(BaseModel):

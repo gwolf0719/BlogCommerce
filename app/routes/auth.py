@@ -12,18 +12,7 @@ from app.auth import (
 )
 from app.config import settings
 
-router = APIRouter(
-    prefix="/api/auth",
-    tags=["認證"],
-    responses={
-        400: {"description": "請求參數錯誤"},
-        401: {"description": "認證失敗"},
-        403: {"description": "權限不足"},
-        404: {"description": "資源不存在"},
-        500: {"description": "伺服器內部錯誤"}
-    }
-)
-
+router = APIRouter(prefix="/auth", tags=["認證"])
 
 @router.post(
     "/register", 

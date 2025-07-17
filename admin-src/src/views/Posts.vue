@@ -141,7 +141,7 @@
             <template v-if="column.key === 'created_at'">
               <div class="date-cell">
                 <div>{{ formatDate(record.created_at) }}</div>
-                <small class="text-gray-500">{{ formatTime(record.created_at) }}</small>
+                <small class="text-gray-500">{{ formatTimeOnly(record.created_at) }}</small>
               </div>
             </template>
 
@@ -318,9 +318,6 @@ import MarkdownEditor from '../components/MarkdownEditor.vue'
 import UploadImage from '../components/UploadImage.vue'
 import { formatDate, formatTimeOnly } from '../utils/dateUtils'
 
-// 為了向後兼容，建立 formatTime 別名
-const formatTime = formatTimeOnly
-
 // 響應式數據
 const posts = ref([])
 const loading = ref(false)
@@ -444,9 +441,17 @@ const loadPosts = async () => {
     params.append('limit', pagination.pageSize.toString())
     
     const response = await axios.get(`/api/posts?${params}`)
-    posts.value = response.data
-    // 注意：實際應用中可能需要從響應頭或其他方式獲取總數
-    // pagination.total = response.headers['x-total-count'] || posts.value.length
+    const data = response.data
+    if (Array.isArray(data.items)) {
+      posts.value = data.items
+      pagination.total = data.total || 0
+    } else if (Array.isArray(data)) {
+      posts.value = data
+      pagination.total = data.length
+    } else {
+      posts.value = []
+      pagination.total = 0
+    }
   } catch (error) {
     console.error('載入文章列表錯誤:', error)
     message.error('載入文章列表失敗')

@@ -8,105 +8,60 @@ from app.services.view_tracking_service import ViewTrackingService
 from app.auth import get_current_admin_user, get_current_user_optional
 from app.models.user import User
 
-router = APIRouter(
-    prefix="/api/products",
-    tags=["商品"],
-    responses={
-        404: {"description": "商品不存在"},
-        400: {"description": "請求參數錯誤"},
-        403: {"description": "權限不足"},
-        500: {"description": "伺服器內部錯誤"}
-    }
-)
+router = APIRouter(prefix="/products", tags=["商品"])
 
 
-@router.get(
-    "",
-    response_model=List[ProductListResponse],
-    summary="取得商品列表",
-    description="""
-    取得商品列表，支援多種篩選和搜尋選項。
-    
-    ## 功能特色
-    - 🔍 支援商品名稱和描述的模糊搜尋
-    - 💰 支援價格範圍篩選
-    - ⭐ 支援篩選推薦商品
-    - 📖 支援分頁查詢
-    - 🎯 支援啟用/停用商品篩選
-    
-    ## 使用方式
-    - 預設只顯示啟用的商品
-    - 可透過 `active_only=false` 查看所有商品
-    - 可透過 `featured_only=true` 只查看推薦商品
-    - 價格篩選支援設定最低價和最高價
-    - 搜尋功能會同時搜尋商品名稱和描述
-    
-    ## 注意事項
-    - 回應結果按商品創建時間倒序排列
-    - 限制每次最多查詢 100 筆商品
-    - 搜尋功能支援部分關鍵字匹配
-    """,
-    responses={
-        200: {
-            "description": "成功取得商品列表",
-            "content": {
-                "application/json": {
-                    "example": [
-                        {
-                            "id": 1,
-                            "name": "精選商品",
-                            "short_description": "高品質商品",
-                            "price": 100.0,
-                            "sale_price": 80.0,
-                            "featured_image": "/static/images/product1.jpg",
-                            "stock_quantity": 50,
-                            "is_active": True,
-                            "is_featured": True,
-                            "view_count": 125,
-                            "current_price": 80.0,
-                            "is_on_sale": True,
-                            "slug": "selected-product",
-                            "created_at": "2024-01-01T00:00:00",
-                            "updated_at": "2024-01-01T12:00:00"
-                        }
-                    ]
-                }
-            }
-        }
-    }
-)
+
+@router.get("", response_model=ProductListResponse, summary="取得商品列表")
 def get_products(
-    active_only: bool = Query(True, description="僅顯示啟用的商品"),
-    featured_only: bool = Query(False, description="僅顯示推薦商品"),
-    search: Optional[str] = Query(None, description="搜尋商品名稱或描述"),
-    min_price: Optional[float] = Query(None, description="最低價格"),
-    max_price: Optional[float] = Query(None, description="最高價格"),
+    request: Request,
+    db: Session = Depends(get_db),
     skip: int = Query(0, ge=0, description="跳過的項目數"),
     limit: int = Query(20, ge=1, le=100, description="限制項目數"),
-    db: Session = Depends(get_db)
 ):
+    """
+    取得商品列表，支援多種篩選和搜尋選項。
+    此端點會從查詢參數中讀取篩選條件。
+    """
     query = db.query(Product)
     
-    if active_only:
-        query = query.filter(Product.is_active == True)
-    
-    if featured_only:
-        query = query.filter(Product.is_featured == True)
-    
+    # 從請求的查詢參數中獲取篩選條件
+    params = request.query_params
+    search = params.get("search")
+    status = params.get("status")
+    featured = params.get("featured")
+    min_price = params.get("min_price")
+    max_price = params.get("max_price")
+
     if search:
         query = query.filter(
             Product.name.contains(search) | 
             Product.description.contains(search)
         )
-    
+        
+    if status:
+        if status == 'active':
+            query = query.filter(Product.is_active == True)
+        elif status == 'inactive':
+            query = query.filter(Product.is_active == False)
+
+    if featured is not None:
+        if str(featured).lower() in ['true', '1']:
+            query = query.filter(Product.is_featured == True)
+        elif str(featured).lower() in ['false', '0']:
+            query = query.filter(Product.is_featured == False)
+
     if min_price is not None:
-        query = query.filter(Product.price >= min_price)
+        query = query.filter(Product.price >= float(min_price))
     
     if max_price is not None:
-        query = query.filter(Product.price <= max_price)
+        query = query.filter(Product.price <= float(max_price))
     
+    total = query.count()
     products = query.order_by(Product.created_at.desc()).offset(skip).limit(limit).all()
-    return products
+    
+    return ProductListResponse(items=products, total=total)
+
 
 
 @router.get(
@@ -219,6 +174,7 @@ def create_product(
     
     # 建立商品
     product_data = product.model_dump()
+    
     db_product = Product(**product_data)
     db_product.slug = db_product.generate_slug(product.name)
     
@@ -289,7 +245,9 @@ def delete_product(
         raise HTTPException(status_code=404, detail="商品不存在")
     
     # 檢查是否有相關訂單
-    if product.order_items:
+    from app.models.order import OrderItem
+    order_item_exists = db.query(OrderItem).filter(OrderItem.product_id == product_id).first()
+    if order_item_exists:
         raise HTTPException(
             status_code=400,
             detail="無法刪除：此商品已有相關訂單"
@@ -300,7 +258,7 @@ def delete_product(
     return {"message": "商品已刪除"}
 
 
-@router.get("/{product_id}/related", response_model=List[ProductListResponse])
+@router.get("/{product_id}/related", response_model=List[ProductResponse])
 def get_related_products(
     product_id: int,
     limit: int = Query(4, ge=1, le=20, description="限制項目數"),

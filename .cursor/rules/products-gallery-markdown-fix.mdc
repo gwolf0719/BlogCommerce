@@ -1,0 +1,6 @@
+---
+description: "get the summary of previous step: 修正商品管理頁面表單，讓相冊圖片可上傳多張圖並正確送出，商品描述支援 markdown 與圖片上傳，並優化表單排版。"
+globs:
+alwaysApply: false
+---
+修正商品管理頁面：1. 相冊圖片欄位改用 UploadGallery，可上傳多張圖片並自動轉為陣列，送出時轉為 JSON 字串。2. 商品描述欄位已支援 markdown 與圖片上傳。3. 表單排版優化。

@@ -19,17 +19,17 @@
     <!-- 2. 統計卡片區 -->
     <div class="stats-section">
       <a-row :gutter="24" class="stats-row">
-        <a-col :span="6">
+        <a-col :xs="24" :sm="12" :md="6" style="margin-bottom: 16px;">
           <a-card>
             <a-statistic
               title="總廣告數"
-              :value="banners.length"
+              :value="pagination.total"
               prefix="🎯"
               :value-style="{ color: '#1890ff' }"
             />
           </a-card>
         </a-col>
-        <a-col :span="6">
+        <a-col :xs="24" :sm="12" :md="6" style="margin-bottom: 16px;">
           <a-card>
             <a-statistic
               title="啟用廣告"
@@ -39,7 +39,7 @@
             />
           </a-card>
         </a-col>
-        <a-col :span="6">
+        <a-col :xs="24" :sm="12" :md="6" style="margin-bottom: 16px;">
           <a-card>
             <a-statistic
               title="總點擊數"
@@ -49,7 +49,7 @@
             />
           </a-card>
         </a-col>
-        <a-col :span="6">
+        <a-col :xs="24" :sm="12" :md="6" style="margin-bottom: 16px;">
           <a-card>
             <a-statistic
               title="點擊率"
@@ -65,7 +65,7 @@
     </div>
 
     <!-- 3. 搜尋篩選區 -->
-    <div class="search-section">
+    <div class="filter-section">
       <a-card>
         <a-row :gutter="24">
           <a-col :span="6">
@@ -73,7 +73,7 @@
               v-model:value="searchForm.search"
               placeholder="搜尋廣告標題"
               allow-clear
-              @change="handleSearch"
+              @pressEnter="handleSearch"
             >
               <template #prefix>
                 <search-outlined />
@@ -86,6 +86,7 @@
               placeholder="選擇位置"
               allow-clear
               @change="handleSearch"
+              style="width: 100%"
             >
               <a-select-option value="HOME">首頁</a-select-option>
               <a-select-option value="BLOG_LIST">文章列表</a-select-option>
@@ -98,6 +99,7 @@
               placeholder="選擇狀態"
               allow-clear
               @change="handleSearch"
+              style="width: 100%"
             >
               <a-select-option :value="true">啟用</a-select-option>
               <a-select-option :value="false">停用</a-select-option>
@@ -108,6 +110,7 @@
               v-model:value="searchForm.dateRange"
               :placeholder="['開始時間', '結束時間']"
               @change="handleSearch"
+              style="width: 100%"
             />
           </a-col>
           <a-col :span="4">
@@ -126,7 +129,7 @@
     </div>
 
     <!-- 4. 表格區 -->
-    <div class="table-section">
+    <div class="content-section">
       <a-card>
         <a-table
           :columns="columns"
@@ -144,14 +147,14 @@
                   <img
                     v-if="record.desktop_image"
                     :src="getImageUrl(record.desktop_image)"
-                    :alt="record.title"
+                    :alt="record.alt_text || record.title"
                     class="banner-thumbnail desktop-img"
                     title="桌面版"
                   />
                   <img
                     v-if="record.mobile_image"
                     :src="getImageUrl(record.mobile_image)"
-                    :alt="record.title"
+                    :alt="record.alt_text || record.title"
                     class="banner-thumbnail mobile-img"
                     title="手機版"
                   />
@@ -281,6 +284,15 @@
           />
         </a-form-item>
 
+        <a-form-item label="替代文字 (Alt Text)" name="alt_text">
+          <a-input
+            v-model:value="form.alt_text"
+            placeholder="描述圖片內容，用於SEO和無障礙瀏覽"
+            :maxlength="150"
+            show-count
+          />
+        </a-form-item>
+
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="電腦版圖片" name="desktop_image">
@@ -377,7 +389,8 @@ import {
 } from '@ant-design/icons-vue'
 import { useAuthStore } from '../stores/auth'
 import UploadImage from '../components/UploadImage.vue'
-import dayjs from 'dayjs'
+import { formatDate, isInPeriod } from '../utils/dateUtils'
+import api from '../utils/axios'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -407,6 +420,7 @@ const form = reactive({
   id: null,
   title: '',
   description: '',
+  alt_text: '',
   mobile_image: '',
   desktop_image: '',
   link_url: '',
@@ -452,123 +466,57 @@ const paginationConfig = computed(() => ({
 
 // 表格列定義
 const columns = [
-  {
-    title: '廣告圖片',
-    key: 'image',
-    width: 80
-  },
-  {
-    title: '廣告信息',
-    key: 'title',
-    width: 250
-  },
-  {
-    title: '點擊統計',
-    key: 'clicks',
-    width: 120,
-    sorter: true
-  },
-  {
-    title: '狀態',
-    key: 'status',
-    width: 120,
-    filters: [
-      { text: '啟用', value: true },
-      { text: '停用', value: false }
-    ]
-  },
-  {
-    title: '操作',
-    key: 'actions',
-    width: 150,
-    fixed: 'right'
-  }
+  { title: '廣告圖片', dataIndex: 'desktop_image', key: 'image', width: 80 },
+  { title: '廣告信息', dataIndex: 'title', key: 'title', width: 250 },
+  { title: '點擊統計', dataIndex: 'click_count', key: 'clicks', width: 120, sorter: (a, b) => (a.click_count || 0) - (b.click_count || 0) },
+  { title: '狀態', dataIndex: 'is_active', key: 'status', width: 120, filters: [ { text: '啟用', value: true }, { text: '停用', value: false } ] },
+  { title: '操作', key: 'actions', width: 150, fixed: 'right' }
 ]
 
 // 表單驗證規則
 const rules = {
-  title: [
-    { required: true, message: '請輸入廣告標題' },
-    { min: 2, max: 100, message: '標題長度應在2-100字符之間' }
-  ],
-  position: [
-    { required: true, message: '請選擇顯示位置' }
-  ],
-  mobile_image: [
-    { required: true, message: '請上傳手機版圖片' }
-  ],
-  desktop_image: [
-    { required: true, message: '請上傳電腦版圖片' }
-  ],
-  start_date: [
-    { required: true, message: '請選擇開始時間' }
-  ],
-  end_date: [
-    { required: true, message: '請選擇結束時間' }
-  ]
+  title: [ { required: true, message: '請輸入廣告標題' }, { min: 2, max: 100, message: '標題長度應在2-100字符之間' } ],
+  position: [ { required: true, message: '請選擇顯示位置' } ],
+  mobile_image: [ { required: true, message: '請上傳手機版圖片' } ],
+  desktop_image: [ { required: true, message: '請上傳電腦版圖片' } ],
+  start_date: [ { required: true, message: '請選擇開始時間' } ],
+  end_date: [ { required: true, message: '請選擇結束時間' } ],
+  alt_text: [ { required: true, message: '請輸入替代文字' } ],
 }
 
 // 載入廣告列表
 const loadBanners = async () => {
   loading.value = true
   try {
-    const params = new URLSearchParams()
-    
-    if (searchForm.search) {
-      params.append('search', searchForm.search)
+    const params = {
+      search: searchForm.search || undefined,
+      position: searchForm.position || undefined,
+      is_active: searchForm.is_active,
+      start_date: searchForm.dateRange?.[0]?.format('YYYY-MM-DD'),
+      end_date: searchForm.dateRange?.[1]?.format('YYYY-MM-DD'),
+      page: pagination.current,
+      size: pagination.pageSize,
     }
-    if (searchForm.position) {
-      params.append('position', searchForm.position)
+    Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
+
+    const response = await api.get('/api/banners', { params })
+    const data = response.data;
+
+    if (data && Array.isArray(data.items)) {
+      banners.value = data.items;
+      pagination.total = data.total || 0;
+    } else if (Array.isArray(data)) {
+      banners.value = data;
+      pagination.total = data.length; 
+      console.warn("API /api/banners 應回傳 { items: [], total: X } 格式以支援正確分頁。");
+    } else {
+      banners.value = [];
+      pagination.total = 0;
+      console.warn("從 /api/banners 收到的資料格式不符預期:", data);
     }
-    if (searchForm.is_active !== undefined) {
-      params.append('is_active', searchForm.is_active)
-    }
-    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
-      params.append('start_date', searchForm.dateRange[0].format('YYYY-MM-DD'))
-      params.append('end_date', searchForm.dateRange[1].format('YYYY-MM-DD'))
-    }
-
-    params.append('page', pagination.current)
-    params.append('size', pagination.pageSize)
-
-    const response = await fetch(`/api/banners?${params}`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (!response.ok) {
-      // 嘗試解析API錯誤響應
-      let errorMessage = '載入廣告失敗'
-      
-      try {
-        const errorData = await response.json()
-        
-        // 處理 FastAPI 驗證錯誤格式
-        if (errorData.detail && Array.isArray(errorData.detail)) {
-          const errors = errorData.detail.map(err => err.msg || err.message || '未知錯誤')
-          errorMessage = errors.join(', ')
-        } else if (errorData.detail && typeof errorData.detail === 'string') {
-          errorMessage = errorData.detail
-        } else if (errorData.message) {
-          errorMessage = errorData.message
-        } else if (errorData.msg) {
-          errorMessage = errorData.msg
-        }
-      } catch (parseError) {
-        console.error('解析錯誤響應失敗:', parseError)
-      }
-      
-      throw new Error(errorMessage)
-    }
-
-    const data = await response.json()
-    banners.value = data.items || data
-    pagination.total = data.total || data.length
-
   } catch (error) {
     console.error('載入廣告失敗:', error)
-    message.error(error.message)
+    message.error(error.response?.data?.detail || '載入廣告失敗')
   } finally {
     loading.value = false
   }
@@ -582,17 +530,14 @@ const handleSearch = () => {
 
 // 重置搜尋
 const resetSearch = () => {
-  searchForm.search = ''
-  searchForm.position = undefined
-  searchForm.is_active = undefined
-  searchForm.dateRange = []
+  Object.assign(searchForm, { search: '', position: undefined, is_active: undefined, dateRange: [] })
   handleSearch()
 }
 
 // 表格變更處理
-const handleTableChange = (paginationInfo, filters, sorter) => {
-  pagination.current = paginationInfo.current
-  pagination.pageSize = paginationInfo.pageSize
+const handleTableChange = (pag, filters, sorter) => {
+  pagination.current = pag.current
+  pagination.pageSize = pag.pageSize
   loadBanners()
 }
 
@@ -608,113 +553,50 @@ const editBanner = (record) => {
   resetForm()
   isEditing.value = true
   form.id = record.id
-  form.title = record.title
-  form.description = record.description || ''
-  form.mobile_image = record.mobile_image || ''
-  form.desktop_image = record.desktop_image || ''
-  form.link_url = record.link_url || ''
-  form.position = record.position
-  form.start_date = record.start_date ? dayjs(record.start_date) : null
-  form.end_date = record.end_date ? dayjs(record.end_date) : null
-  form.sort_order = record.sort_order || 0
-  form.is_active = record.is_active
+  Object.assign(form, record, {
+    start_date: record.start_date ? dayjs(record.start_date) : null,
+    end_date: record.end_date ? dayjs(record.end_date) : null
+  })
   modalVisible.value = true
 }
 
 // 重置表單
 const resetForm = () => {
-  form.id = null
-  form.title = ''
-  form.description = ''
-  form.mobile_image = ''
-  form.desktop_image = ''
-  form.link_url = ''
-  form.position = 'HOME'
-  form.start_date = null
-  form.end_date = null
-  form.sort_order = 0
-  form.is_active = true
+  Object.assign(form, {
+    id: null, title: '', description: '', alt_text: '', mobile_image: '', desktop_image: '', link_url: '',
+    position: 'HOME', start_date: null, end_date: null, sort_order: 0, is_active: true
+  })
 }
 
 // 監聽圖片字段變化，自動處理驗證
-watch(() => form.desktop_image, (newValue) => {
-  if (newValue) {
-    // 有圖片時清除驗證錯誤
-    formRef.value?.clearValidate('desktop_image')
-  }
-})
-
-watch(() => form.mobile_image, (newValue) => {
-  if (newValue) {
-    // 有圖片時清除驗證錯誤
-    formRef.value?.clearValidate('mobile_image')
-  }
-})
+watch(() => form.desktop_image, (newValue) => { if (newValue) formRef.value?.clearValidate('desktop_image') })
+watch(() => form.mobile_image, (newValue) => { if (newValue) formRef.value?.clearValidate('mobile_image') })
 
 // 提交表單
 const handleSubmit = async () => {
   try {
     await formRef.value.validate()
-    
     submitting.value = true
     
     const submitData = {
-      title: form.title,
-      description: form.description,
-      mobile_image: form.mobile_image,
-      desktop_image: form.desktop_image,
-      link_url: form.link_url,
-      position: form.position,
-      start_date: form.start_date ? form.start_date.format('YYYY-MM-DD HH:mm:ss') : null,
-      end_date: form.end_date ? form.end_date.format('YYYY-MM-DD HH:mm:ss') : null,
-      sort_order: form.sort_order,
-      is_active: form.is_active
+      ...form,
+      start_date: form.start_date?.format('YYYY-MM-DD HH:mm:ss'),
+      end_date: form.end_date?.format('YYYY-MM-DD HH:mm:ss'),
     }
-
-    const url = isEditing.value ? `/api/banners/${form.id}` : '/api/banners'
-    const method = isEditing.value ? 'PUT' : 'POST'
-
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify(submitData)
-    })
-
-    if (!response.ok) {
-      // 嘗試解析API錯誤響應
-      let errorMessage = isEditing.value ? '更新廣告失敗' : '新增廣告失敗'
-      
-      try {
-        const errorData = await response.json()
-        
-        // 處理 FastAPI 驗證錯誤格式
-        if (errorData.detail && Array.isArray(errorData.detail)) {
-          const errors = errorData.detail.map(err => err.msg || err.message || '未知錯誤')
-          errorMessage = errors.join(', ')
-        } else if (errorData.detail && typeof errorData.detail === 'string') {
-          errorMessage = errorData.detail
-        } else if (errorData.message) {
-          errorMessage = errorData.message
-        } else if (errorData.msg) {
-          errorMessage = errorData.msg
-        }
-      } catch (parseError) {
-        console.error('解析錯誤響應失敗:', parseError)
-      }
-      
-      throw new Error(errorMessage)
-    }
-
+    const request = isEditing.value ? api.put(`/api/banners/${form.id}`, submitData) : api.post('/api/banners', submitData)
+    await request
     message.success(isEditing.value ? '廣告已更新' : '廣告已新增')
     modalVisible.value = false
     loadBanners()
-
   } catch (error) {
     console.error('提交失敗:', error)
-    message.error(error.message)
+    const errorDetail = error.response?.data?.detail;
+    if (Array.isArray(errorDetail)) {
+      const errorMsg = errorDetail.map(e => `${e.loc.join('.')} - ${e.msg}`).join('; ');
+      message.error(`提交失敗: ${errorMsg}`);
+    } else {
+      message.error(errorDetail || '操作失敗');
+    }
   } finally {
     submitting.value = false
   }
@@ -723,53 +605,19 @@ const handleSubmit = async () => {
 // 取消編輯
 const handleCancel = () => {
   modalVisible.value = false
-  resetForm()
 }
 
 // 切換狀態
 const toggleStatus = async (record) => {
   record.updating = true
   try {
-    const response = await fetch(`/api/banners/${record.id}/toggle`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (!response.ok) {
-      // 嘗試解析API錯誤響應
-      let errorMessage = '狀態切換失敗'
-      
-      try {
-        const errorData = await response.json()
-        
-        // 處理 FastAPI 驗證錯誤格式
-        if (errorData.detail && Array.isArray(errorData.detail)) {
-          const errors = errorData.detail.map(err => err.msg || err.message || '未知錯誤')
-          errorMessage = errors.join(', ')
-        } else if (errorData.detail && typeof errorData.detail === 'string') {
-          errorMessage = errorData.detail
-        } else if (errorData.message) {
-          errorMessage = errorData.message
-        } else if (errorData.msg) {
-          errorMessage = errorData.msg
-        }
-      } catch (parseError) {
-        console.error('解析錯誤響應失敗:', parseError)
-      }
-      
-      throw new Error(errorMessage)
-    }
-
+    await api.post(`/api/banners/${record.id}/toggle`)
     message.success('狀態已更新')
-    loadBanners()
-
+    const banner = banners.value.find(b => b.id === record.id)
+    if(banner) banner.is_active = !banner.is_active
   } catch (error) {
     console.error('狀態切換失敗:', error)
-    message.error(error.message)
-    // 恢復原狀態
-    record.is_active = !record.is_active
+    message.error(error.response?.data?.detail || '狀態切換失敗')
   } finally {
     record.updating = false
   }
@@ -778,89 +626,25 @@ const toggleStatus = async (record) => {
 // 刪除廣告
 const deleteBanner = async (id) => {
   try {
-    const response = await fetch(`/api/banners/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-
-    if (!response.ok) {
-      // 嘗試解析API錯誤響應
-      let errorMessage = '刪除廣告失敗'
-      
-      try {
-        const errorData = await response.json()
-        
-        // 處理 FastAPI 驗證錯誤格式
-        if (errorData.detail && Array.isArray(errorData.detail)) {
-          const errors = errorData.detail.map(err => err.msg || err.message || '未知錯誤')
-          errorMessage = errors.join(', ')
-        } else if (errorData.detail && typeof errorData.detail === 'string') {
-          errorMessage = errorData.detail
-        } else if (errorData.message) {
-          errorMessage = errorData.message
-        } else if (errorData.msg) {
-          errorMessage = errorData.msg
-        }
-      } catch (parseError) {
-        console.error('解析錯誤響應失敗:', parseError)
-      }
-      
-      throw new Error(errorMessage)
-    }
-
+    await api.delete(`/api/banners/${id}`)
     message.success('廣告已刪除')
     loadBanners()
-
   } catch (error) {
     console.error('刪除廣告失敗:', error)
-    message.error(error.message)
+    message.error(error.response?.data?.detail || '刪除廣告失敗')
   }
 }
 
 // 工具函數
 const getImageUrl = (imagePath) => {
   if (!imagePath) return ''
-  
-  // 如果已經是完整的 URL，直接返回
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    return imagePath
-  }
-  
-  // 如果是相對路徑，加上 baseURL
-  const baseURL = 'http://localhost:8002'
-  return `${baseURL}${imagePath}`
+  if (imagePath.startsWith('http')) return imagePath
+  return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8002'}${imagePath}`
 }
 
-const getPositionColor = (position) => {
-  const colors = {
-    'HOME': 'blue',
-    'BLOG_LIST': 'green',
-    'PRODUCT_LIST': 'orange'
-  }
-  return colors[position] || 'default'
-}
-
-const getPositionText = (position) => {
-  const texts = {
-    'HOME': '首頁',
-    'BLOG_LIST': '文章列表',
-    'PRODUCT_LIST': '商品列表'
-  }
-  return texts[position] || position
-}
-
-const formatDate = (date) => {
-  return date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-'
-}
-
-const isValidPeriod = (record) => {
-  const now = dayjs()
-  const start = dayjs(record.start_date)
-  const end = dayjs(record.end_date)
-  return now.isAfter(start) && now.isBefore(end)
-}
+const getPositionColor = (position) => ({ 'HOME': 'blue', 'BLOG_LIST': 'green', 'PRODUCT_LIST': 'orange' }[position] || 'default')
+const getPositionText = (position) => ({ 'HOME': '首頁', 'BLOG_LIST': '文章列表', 'PRODUCT_LIST': '商品列表' }[position] || position)
+const isValidPeriod = (record) => isInPeriod(record.start_date, record.end_date)
 
 // 生命週期
 onMounted(() => {
@@ -870,7 +654,7 @@ onMounted(() => {
 
 <style scoped>
 .admin-page {
-  padding: 0;
+  padding: 24px;
 }
 
 .page-header {
@@ -894,15 +678,7 @@ onMounted(() => {
   color: #666;
 }
 
-.stats-section {
-  margin-bottom: 24px;
-}
-
-.search-section {
-  margin-bottom: 24px;
-}
-
-.table-section {
+.stats-section, .filter-section, .content-section {
   margin-bottom: 24px;
 }
 
@@ -993,4 +769,4 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
 }
-</style> 
+</style>

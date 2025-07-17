@@ -17,7 +17,7 @@ from app.schemas.newsletter import (
 )
 from app.auth import get_current_admin_user
 
-router = APIRouter(prefix="/api/newsletter", tags=["電子報"])
+router = APIRouter(prefix="/newsletter", tags=["電子報"])
 
 
 def check_newsletter_enabled():

@@ -174,14 +174,13 @@ function blogApp() {
                 const response = await fetch(url);
                 if (response.ok) {
                     const newPosts = await response.json();
-                    
+                    const items = newPosts.items || [];
                     if (reset) {
-                        this.posts = newPosts;
+                        this.posts = items;
                     } else {
-                        this.posts = [...this.posts, ...newPosts];
+                        this.posts = [...this.posts, ...items];
                     }
-                    
-                    this.hasMore = newPosts.length === 12;
+                    this.hasMore = items.length === 12;
                 }
             } catch (error) {
                 console.error('載入文章失敗:', error);

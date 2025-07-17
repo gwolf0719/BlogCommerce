@@ -9,7 +9,7 @@ from app.services.view_tracking_service import ViewTrackingService
 from app.auth import get_current_admin_user, get_current_user_optional
 from app.models.user import User
 
-router = APIRouter(prefix="/api/posts", tags=["文章"])
+router = APIRouter(prefix="/posts", tags=["文章"])
 
 
 def process_post_content(post: Post) -> dict:
@@ -44,57 +44,7 @@ def process_post_content(post: Post) -> dict:
     return post_dict
 
 
-@router.get(
-    "",
-    response_model=List[PostListResponse],
-    summary="📄 獲取文章列表",
-    description="""
-    ## 🎯 功能描述
-    獲取部落格文章列表，支援分頁、搜尋和發布狀態篩選。
-    
-    ## 📋 功能特點
-    - 📊 支援分頁查詢
-    - 🔍 標題與內容搜尋
-    - 📝 發布狀態篩選
-    - 🗂️ 時間順序排列
-    
-    ## 🔍 查詢參數
-    - **published_only**: 僅顯示已發布文章
-    - **search**: 搜尋標題或內容關鍵字
-    - **skip**: 跳過的項目數（分頁）
-    - **limit**: 每頁項目數限制
-    
-    ## 📊 排序規則
-    按創建時間降序排列，最新文章在前。
-    
-    ## 🎯 使用場景
-    - 部落格首頁文章列表
-    - 管理後台文章管理
-    - 搜尋結果展示
-    """,
-    responses={
-        200: {
-            "description": "成功獲取文章列表",
-            "content": {
-                "application/json": {
-                    "example": [
-                        {
-                            "id": 1,
-                            "title": "我的第一篇文章",
-                            "slug": "my-first-post",
-                            "excerpt": "這是文章的摘要...",
-                            "featured_image": "https://example.com/image.jpg",
-                            "is_published": True,
-                            "view_count": 123,
-                            "created_at": "2024-01-15T10:30:00",
-                            "updated_at": "2024-01-15T10:30:00"
-                        }
-                    ]
-                }
-            }
-        }
-    }
-)
+@router.get("", response_model=PostListResponse, summary="📄 獲取文章列表")
 def get_posts(
     published_only: Optional[bool] = Query(None, description="僅顯示已發布的文章"),
     search: Optional[str] = Query(None, description="搜尋標題或內容"),
@@ -103,9 +53,7 @@ def get_posts(
     db: Session = Depends(get_db)
 ):
     """
-    取得文章列表，預設顯示所有（不論發布狀態），除非有指定 published_only
-    
-    支援分頁、搜尋和發布狀態篩選功能。
+    取得文章列表，支援分頁、搜尋和發布狀態篩選功能。
     """
     query = db.query(Post)
     if published_only is not None:
@@ -115,8 +63,31 @@ def get_posts(
             Post.title.contains(search) |
             Post.content.contains(search)
         )
-    posts = query.order_by(Post.created_at.desc()).offset(skip).limit(limit).all()
-    return posts
+    
+    total = query.count()
+    db_posts = query.order_by(Post.created_at.desc()).offset(skip).limit(limit).all()
+    
+    # 修正：每篇文章都帶有 excerpt（若無則自動產生），並確保 content 欄位存在
+    items = []
+    for post in db_posts:
+        excerpt = post.excerpt or (markdown_service.extract_excerpt(post.content) if post.content else "")
+        items.append({
+            "id": post.id,
+            "title": post.title,
+            "excerpt": excerpt,
+            "content": post.content,
+            "featured_image": post.featured_image,
+            "is_published": post.is_published,
+            "meta_title": post.meta_title,
+            "meta_description": post.meta_description,
+            "meta_keywords": post.meta_keywords,
+            "slug": post.slug,
+            "view_count": post.view_count,
+            "created_at": post.created_at,
+            "updated_at": post.updated_at
+        })
+    return {"items": items, "total": total}
+
 
 
 @router.get(
