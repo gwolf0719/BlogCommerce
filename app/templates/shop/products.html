@@ -4,11 +4,6 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="productsApp()">
-    <!-- 商品列表廣告輪播 -->
-    <div class="mb-8">
-        {{ banner_carousel('PRODUCT_LIST', 'mb-8') }}
-    </div>
-    
     <div class="mb-8">
         <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">商品列表</h1>
         <p class="text-gray-600">探索我們精選的優質商品</p>
@@ -139,7 +134,7 @@
                     <div class="flex gap-3 mt-auto">
                         <!-- 查看詳情按鈕 -->
                         <a :href="'/product/' + product.slug" 
-                           class="flex-1 group relative overflow-hidden bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-4 rounded-xl font-medium text-center transition-all duration-300 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        class="flex-1 group relative overflow-hidden bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-4 rounded-xl font-medium flex items-center justify-center transition-all duration-300 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transform hover:scale-105 shadow-lg hover:shadow-xl">
                             <span class="relative z-10 flex items-center justify-center text-sm">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -148,15 +143,14 @@
                             </span>
                             <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                         </a>
+
                         
                         <!-- 加入購物車按鈕 -->
                         <button @click="addToCart(product)" 
                                 :disabled="product.stock_quantity <= 0"
-                                class="group relative overflow-hidden bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 py-3 rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transform hover:scale-105 shadow-lg hover:shadow-xl disabled:cursor-not-allowed disabled:transform-none disabled:shadow-md">
+                                class="group relative overflow-hidden bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 px-6 rounded-xl transition-all duration-300 shadow-primary-lg hover:shadow-primary-xl disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none font-medium">
                             <span class="relative z-10">
-                                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8L5 3H3m4 10v6a1 1 0 001 1h10a1 1 0 001-1v-6M9 19a1 1 0 100 2 1 1 0 000-2zm8 0a1 1 0 100 2 1 1 0 000-2z"></path>
-                                    </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"><!-- Icon from Material Symbols by Google - https://github.com/google/material-design-icons/blob/master/LICENSE --><path fill="currentColor" d="M7 22q-.825 0-1.412-.587T5 20t.588-1.412T7 18t1.413.588T9 20t-.587 1.413T7 22m10 0q-.825 0-1.412-.587T15 20t.588-1.412T17 18t1.413.588T19 20t-.587 1.413T17 22M5.2 4h14.75q.575 0 .875.513t.025 1.037l-3.55 6.4q-.275.5-.737.775T15.55 13H8.1L7 15h12v2H7q-1.125 0-1.7-.987t-.05-1.963L6.6 11.6L3 4H1V2h3.25z"/></svg>
                             </span>
                             <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                             
@@ -215,7 +209,6 @@ function productsApp() {
         searchTerm: '',
         sortBy: 'newest',
         currentPage: 1,
-        totalProducts: 0,
         hasMore: true,
         loading: false,
         
@@ -230,26 +223,22 @@ function productsApp() {
                 this.hasMore = true;
             }
             
-            if (this.loading) return;
             this.loading = true;
             
             try {
-                let url = `/api/products?skip=${(this.currentPage - 1) * 12}&limit=12&status=active`;
+                let url = `/api/products?skip=${(this.currentPage - 1) * 12}&limit=12&active=true`;
                 
                 if (this.searchTerm) {
                     url += `&search=${encodeURIComponent(this.searchTerm)}`;
                 }
                 
-                // 注意：後端目前未實現 sort_by，但保留前端邏輯
                 if (this.sortBy) {
                     url += `&sort_by=${this.sortBy}`;
                 }
                 
                 const response = await fetch(url);
                 if (response.ok) {
-                    const data = await response.json();
-                    const newProducts = data.items || [];
-                    this.totalProducts = data.total || 0;
+                    const newProducts = await response.json();
                     
                     // 為每個商品添加動畫狀態
                     newProducts.forEach(product => {
@@ -262,29 +251,24 @@ function productsApp() {
                         this.products = [...this.products, ...newProducts];
                     }
                     
-                    this.hasMore = this.products.length < this.totalProducts;
-                } else {
-                    console.error('API 請求失敗:', response.statusText);
-                    this.hasMore = false;
+                    this.hasMore = newProducts.length === 12;
                 }
             } catch (error) {
                 console.error('載入商品失敗:', error);
-                this.hasMore = false;
             } finally {
                 this.loading = false;
             }
         },
         
         loadMore() {
-            if (this.hasMore && !this.loading) {
-                this.currentPage++;
-                this.loadProducts(false);
-            }
+            this.currentPage++;
+            this.loadProducts(false);
         },
         
         async addToCart(product) {
             if (product.stock_quantity <= 0) return;
             
+            // 設置動畫狀態
             product.addingToCart = true;
             
             try {
@@ -300,9 +284,12 @@ function productsApp() {
                 });
                 
                 if (response.ok) {
+                    // 更新購物車計數器
                     if (window.updateCartCount) {
                         window.updateCartCount();
                     }
+                    
+                    // 顯示成功訊息
                     this.showToast(`已將 ${product.name} 加入購物車！`, 'success');
                 } else {
                     const error = await response.json();
@@ -312,6 +299,7 @@ function productsApp() {
                 console.error('加入購物車失敗:', error);
                 this.showToast('加入購物車失敗，請稍後再試', 'error');
             } finally {
+                // 重置動畫狀態
                 setTimeout(() => {
                     product.addingToCart = false;
                 }, 1500);
@@ -319,6 +307,7 @@ function productsApp() {
         },
         
         showToast(message, type = 'info') {
+            // 創建通知元素
             const toast = document.createElement('div');
             toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm transform transition-all duration-300 ${
                 type === 'success' ? 'bg-green-500 text-white' : 
@@ -326,13 +315,16 @@ function productsApp() {
             }`;
             toast.textContent = message;
             
+            // 初始位置在右側外面
             toast.style.transform = 'translateX(100%)';
             document.body.appendChild(toast);
             
+            // 動畫進入
             setTimeout(() => {
                 toast.style.transform = 'translateX(0)';
             }, 100);
             
+            // 3秒後移除
             setTimeout(() => {
                 toast.style.transform = 'translateX(100%)';
                 setTimeout(() => {
