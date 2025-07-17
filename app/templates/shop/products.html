@@ -23,11 +23,11 @@
                                 <!-- 桌面版圖片 -->
                                 <img :src="banner.desktop_image" 
                                      :alt="banner.alt_text || banner.title"
-                                     class="hidden md:block w-full h-96 lg:h-[500px] object-cover">
+                                     class="hidden md:block w-full h-auto object-contain">
                                 <!-- 手機版圖片 -->
                                 <img :src="banner.mobile_image" 
                                      :alt="banner.alt_text || banner.title"
-                                     class="md:hidden w-full h-64 object-cover">
+                                     class="md:hidden w-full h-auto object-contain">
                                 <!-- 移除標題覆蓋層 -->
                             </a>
                         </div>
@@ -214,7 +214,9 @@
                                 :disabled="product.stock_quantity <= 0"
                                 class="group relative overflow-hidden bg-gradient-to-r from-accent-500 to-accent-600 hover:from-accent-600 hover:to-accent-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 px-6 rounded-xl transition-all duration-300 shadow-primary-lg hover:shadow-primary-xl disabled:cursor-not-allowed transform hover:scale-105 disabled:transform-none font-medium">
                             <span class="relative z-10">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"><!-- Icon from Material Symbols by Google - https://github.com/google/material-design-icons/blob/master/LICENSE --><path fill="currentColor" d="M7 22q-.825 0-1.412-.587T5 20t.588-1.412T7 18t1.413.588T9 20t-.587 1.413T7 22m10 0q-.825 0-1.412-.587T15 20t.588-1.412T17 18t1.413.588T19 20t-.587 1.413T17 22M5.2 4h14.75q.575 0 .875.513t.025 1.037l-3.55 6.4q-.275.5-.737.775T15.55 13H8.1L7 15h12v2H7q-1.125 0-1.7-.987t-.05-1.963L6.6 11.6L3 4H1V2h3.25z"/></svg>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m0 0L17 21M7 18a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4z"></path>
+                                </svg>
                             </span>
                             <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
                             
@@ -437,7 +439,7 @@ function bannerCarousel() {
         startAutoPlay() {
             this.autoPlayInterval = setInterval(() => {
                 this.nextSlide();
-            }, 5000); // 5秒自動切換
+            }, 30000); // 30秒自動切換
         },
         
         stopAutoPlay() {

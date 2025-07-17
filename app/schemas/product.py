@@ -78,6 +78,7 @@ class ProductUpdate(ProductBase):
 class ProductResponse(ProductBase, BaseResponseSchema):
     id: int
     view_count: int = 0
+    description_html: Optional[str] = None  # 新增 Markdown 渲染後的 HTML
 
     # 【核心修正點】: 為特色圖片加上路徑前綴
     @field_validator('featured_image', mode='before')

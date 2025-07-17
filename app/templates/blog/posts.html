@@ -23,11 +23,11 @@
                                 <!-- 桌面版圖片 -->
                                 <img :src="banner.desktop_image" 
                                      :alt="banner.alt_text || banner.title"
-                                     class="hidden md:block w-full h-96 lg:h-[500px] object-cover">
+                                     class="hidden md:block w-full h-auto object-contain">
                                 <!-- 手機版圖片 -->
                                 <img :src="banner.mobile_image" 
                                      :alt="banner.alt_text || banner.title"
-                                     class="md:hidden w-full h-64 object-cover">
+                                     class="md:hidden w-full h-auto object-contain">
                                 <!-- 移除標題覆蓋層 -->
                             </a>
                         </div>
@@ -292,7 +292,7 @@ function bannerCarousel() {
         startAutoPlay() {
             this.autoPlayInterval = setInterval(() => {
                 this.nextSlide();
-            }, 5000); // 5秒自動切換
+            }, 30000); // 30秒自動切換
         },
         
         stopAutoPlay() {

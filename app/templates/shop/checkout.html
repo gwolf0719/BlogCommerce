@@ -117,16 +117,16 @@
                         </div>
                         
                         <div class="space-y-3">
-                            <label class="flex items-start p-3 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors" id="transfer-option" style="display: none;">
-                                <input type="radio" name="payment_method" value="transfer" class="mt-1 mr-3 text-primary-600 focus:ring-primary-500" required>
+                            <label class="flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors" id="transfer-option" style="display: none;">
+                                <input type="radio" name="payment_method" value="transfer" class="mr-3 text-primary-600 focus:ring-primary-500" required checked>
                                 <div class="flex-1">
                                     <div class="font-medium text-gray-900">銀行轉帳</div>
                                     <div class="text-sm text-gray-500 mt-1">完成訂單後將提供轉帳資訊</div>
                                 </div>
                             </label>
                             
-                            <label class="flex items-start p-3 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors" id="linepay-option" style="display: none;">
-                                <input type="radio" name="payment_method" value="linepay" class="mt-1 mr-3 text-primary-600 focus:ring-primary-500">
+                            <label class="flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors" id="linepay-option" style="display: none;">
+                                <input type="radio" name="payment_method" value="linepay" class="mr-3 text-primary-600 focus:ring-primary-500">
                                 <div class="flex-1">
                                     <div class="font-medium text-gray-900 flex items-center">
                                         <span>Line Pay</span>
@@ -136,16 +136,16 @@
                                 </div>
                             </label>
                             
-                            <label class="flex items-start p-3 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors" id="ecpay-option" style="display: none;">
-                                <input type="radio" name="payment_method" value="ecpay" class="mt-1 mr-3 text-primary-600 focus:ring-primary-500">
+                            <label class="flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors" id="ecpay-option" style="display: none;">
+                                <input type="radio" name="payment_method" value="ecpay" class="mr-3 text-primary-600 focus:ring-primary-500">
                                 <div class="flex-1">
                                     <div class="font-medium text-gray-900">綠界科技</div>
                                     <div class="text-sm text-gray-500 mt-1">信用卡、ATM、超商付款</div>
                                 </div>
                             </label>
                             
-                            <label class="flex items-start p-3 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors" id="paypal-option" style="display: none;">
-                                <input type="radio" name="payment_method" value="paypal" class="mt-1 mr-3 text-primary-600 focus:ring-primary-500">
+                            <label class="flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors" id="paypal-option" style="display: none;">
+                                <input type="radio" name="payment_method" value="paypal" class="mr-3 text-primary-600 focus:ring-primary-500">
                                 <div class="flex-1">
                                     <div class="font-medium text-gray-900">PayPal</div>
                                     <div class="text-sm text-gray-500 mt-1">使用 PayPal 線上付款</div>
@@ -581,7 +581,7 @@ async function handleSubmit(e) {
     
     try {
         // 建立訂單
-        const orderResponse = await fetch('/api/orders', {
+        const orderResponse = await fetch('/api/orders/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

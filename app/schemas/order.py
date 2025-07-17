@@ -3,6 +3,7 @@ from decimal import Decimal
 from datetime import datetime
 from pydantic import field_validator, computed_field
 from app.schemas.base import BaseSchema, BaseResponseSchema
+from app.schemas.product import ProductResponse
 from app.models.order import OrderStatus
 from enum import Enum
 
@@ -36,24 +37,8 @@ class OrderItemResponse(BaseResponseSchema):
     product_name: str
     product_price: Decimal
     quantity: int
+    product: Optional[ProductResponse] = None  # 使用 ProductResponse 而不是 Any
 
-    @computed_field
-    @property
-    def product_featured_image(self) -> Optional[str]:
-        """【核心修正點】: 為圖片檔名加上完整的靜態路徑前綴"""
-        if hasattr(self, 'product') and self.product and self.product.featured_image:
-            # 確保回傳的是一個完整的、前端可用的 URL 路徑
-            return f"/static/images/{self.product.featured_image}"
-        # 如果沒有圖片，回傳 None，讓前端可以使用預設圖片
-        return None
-
-    @computed_field
-    @property
-    def product_slug(self) -> Optional[str]:
-        if hasattr(self, 'product') and self.product:
-            return self.product.slug
-        return None
-    
     class Config:
         from_attributes = True
 

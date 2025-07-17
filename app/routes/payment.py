@@ -411,15 +411,7 @@ async def get_transfer_info(
     
     try:
         payment_service = PaymentService(db)
-        result = payment_service.create_transfer_order(
-            order_id=order.order_number,
-            amount=order.total_amount,
-            customer_info={
-                'name': order.customer_name,
-                'email': order.customer_email,
-                'phone': order.customer_phone
-            }
-        )
+        result = payment_service.create_transfer_order(order)
         return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

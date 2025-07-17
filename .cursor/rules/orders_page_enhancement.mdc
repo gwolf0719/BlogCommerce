@@ -1,0 +1,14 @@
+---
+description: "get the summary of previous step: orders_page_enhancement"
+globs:
+alwaysApply: false
+---
+用戶要求完善訂單頁面功能：
+1. 訂單頁面要顯示商品縮圖
+2. 需要參照 blogCommerce 的所有功能
+3. 確保訂單詳情完整顯示
+
+需要檢查：
+- 現有訂單頁面模板
+- 訂單 API 是否包含商品圖片資訊
+- 是否需要添加更多訂單管理功能
