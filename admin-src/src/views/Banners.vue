@@ -391,6 +391,7 @@ import { useAuthStore } from '../stores/auth'
 import UploadImage from '../components/UploadImage.vue'
 import { formatDate, isInPeriod } from '../utils/dateUtils'
 import api from '../utils/axios'
+import dayjs from 'dayjs'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -545,6 +546,11 @@ const handleTableChange = (pag, filters, sorter) => {
 const showCreateModal = () => {
   resetForm()
   isEditing.value = false
+  // 設定預設時間：現在到一個月後
+  const now = dayjs()
+  const oneMonthLater = now.add(1, 'month')
+  form.start_date = now
+  form.end_date = oneMonthLater
   modalVisible.value = true
 }
 
