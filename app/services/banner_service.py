@@ -130,7 +130,7 @@ class BannerService:
         Returns:
             List[Banner]: 啟用的廣告列表
         """
-        current_time = datetime.now(timezone.utc)
+        current_time = datetime.now()
         
         return self.db.query(Banner).filter(
             and_(

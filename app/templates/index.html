@@ -28,7 +28,7 @@
             <div x-data="bannerCarousel()" x-init="loadBanners('HOME')" class="mb-0">
                 <div x-show="banners.length > 0" class="relative">
                     <!-- 輪播容器 -->
-                    <div class="relative overflow-hidden shadow-lg">
+                    <div class="relative overflow-hidden">
                         <template x-for="(banner, index) in banners" :key="banner.id">
                             <div x-show="currentIndex === index" 
                                  x-transition:enter="transition ease-out duration-300"
@@ -47,11 +47,7 @@
                                     <img :src="banner.mobile_image" 
                                          :alt="banner.alt_text || banner.title"
                                          class="md:hidden w-full h-64 object-cover">
-                                    <!-- 標題覆蓋層 -->
-                                    <div x-show="banner.title" class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-6">
-                                        <h3 class="text-white text-xl font-bold mb-2" x-text="banner.title"></h3>
-                                        <p x-show="banner.description" class="text-white/90 text-sm" x-text="banner.description"></p>
-                                    </div>
+                                    <!-- 移除標題覆蓋層 -->
                                 </a>
                             </div>
                         </template>
