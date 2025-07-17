@@ -7,9 +7,20 @@ from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse, P
 from app.services.view_tracking_service import ViewTrackingService
 from app.auth import get_current_admin_user, get_current_user_optional
 from app.models.user import User
+from app.services.markdown_service import markdown_service
 
 router = APIRouter(prefix="/products", tags=["商品"])
 
+
+def process_product_content(product: Product):
+    """
+    處理商品內容，添加 Markdown 渲染結果，並確保回傳內容符合 ProductResponse schema。
+    """
+    from app.schemas.product import ProductResponse
+    data = ProductResponse.model_validate(product)
+    # 直接設置 description_html
+    data.description_html = markdown_service.render(product.description)
+    return data
 
 
 @router.get("", response_model=ProductListResponse, summary="取得商品列表")
@@ -104,7 +115,8 @@ def get_products(
                         "is_on_sale": True,
                         "slug": "selected-product",
                         "created_at": "2024-01-01T00:00:00",
-                        "updated_at": "2024-01-01T12:00:00"
+                        "updated_at": "2024-01-01T12:00:00",
+                        "description_html": "<p>這是一個高品質的商品</p>"
                     }
                 }
             }
@@ -132,7 +144,7 @@ def get_product(
         user_agent=request.headers.get("user-agent", "")
     )
     
-    return product
+    return process_product_content(product)
 
 
 @router.get("/slug/{slug}", response_model=ProductResponse)
@@ -157,7 +169,7 @@ def get_product_by_slug(
         user_agent=request.headers.get("user-agent", "")
     )
     
-    return product
+    return process_product_content(product)
 
 
 @router.post("/", response_model=ProductResponse)
