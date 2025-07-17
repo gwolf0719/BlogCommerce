@@ -22,13 +22,13 @@
 
 {% block content %}
 <div x-data="homeApp()" x-init="loadContent()">
-    <!-- 首頁廣告輪播 -->
-    <section class="py-8 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div x-data="bannerCarousel()" x-init="loadBanners('HOME')" class="mb-8">
+    <!-- 首頁廣告輪播 - 滿版設計 -->
+    <section class="bg-white">
+        <div class="w-full">
+            <div x-data="bannerCarousel()" x-init="loadBanners('HOME')" class="mb-0">
                 <div x-show="banners.length > 0" class="relative">
                     <!-- 輪播容器 -->
-                    <div class="relative overflow-hidden rounded-lg shadow-lg">
+                    <div class="relative overflow-hidden shadow-lg">
                         <template x-for="(banner, index) in banners" :key="banner.id">
                             <div x-show="currentIndex === index" 
                                  x-transition:enter="transition ease-out duration-300"
@@ -42,11 +42,11 @@
                                     <!-- 桌面版圖片 -->
                                     <img :src="banner.desktop_image" 
                                          :alt="banner.alt_text || banner.title"
-                                         class="hidden md:block w-full h-64 lg:h-80 object-cover">
+                                         class="hidden md:block w-full h-96 lg:h-[500px] object-cover">
                                     <!-- 手機版圖片 -->
                                     <img :src="banner.mobile_image" 
                                          :alt="banner.alt_text || banner.title"
-                                         class="md:hidden w-full h-48 object-cover">
+                                         class="md:hidden w-full h-64 object-cover">
                                     <!-- 標題覆蓋層 -->
                                     <div x-show="banner.title" class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-6">
                                         <h3 class="text-white text-xl font-bold mb-2" x-text="banner.title"></h3>
@@ -258,7 +258,7 @@
     </section>
 
     <!-- Latest Blog Posts -->
-    <section x-show="false" class="py-16 lg:py-24 bg-white">
+    <section class="py-16 lg:py-24 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">最新文章</h2>
@@ -389,9 +389,11 @@ function homeApp() {
         
         async loadFeaturedProducts() {
             try {
-                const response = await fetch('/api/products?limit=4&featured=true&active=true');
+                const response = await fetch('/api/products?limit=4&active=true');
                 if (response.ok) {
-                    this.featuredProducts = await response.json();
+                    const data = await response.json();
+                    this.featuredProducts = data.items || data;
+                    console.log('載入商品成功:', this.featuredProducts.length, '個商品');
                 }
             } catch (error) {
                 console.error('載入精選商品失敗:', error);
@@ -403,9 +405,13 @@ function homeApp() {
         async loadLatestPosts() {
             console.log('載入最新文章');
             try {
-                const response = await fetch('/api/posts?limit=3&published_only=true');
+                const response = await fetch('/api/posts?limit=3');
                 if (response.ok) {
-                    this.latestPosts = await response.json();
+                    const data = await response.json();
+                    this.latestPosts = data.items || data;
+                    console.log('載入文章成功:', this.latestPosts.length, '篇文章');
+                } else {
+                    console.error('文章 API 錯誤:', response.status, await response.text());
                 }
             } catch (error) {
                 console.error('載入最新文章失敗:', error);
@@ -506,12 +512,15 @@ function bannerCarousel() {
         
         async loadBanners(position) {
             try {
-                const response = await fetch(`/api/banners/active/${position.toLowerCase()}`);
+                const response = await fetch(`/api/banners/active/${position}`);
                 if (response.ok) {
                     this.banners = await response.json();
+                    console.log('載入廣告成功:', this.banners.length, '個廣告');
                     if (this.banners.length > 1) {
                         this.startAutoPlay();
                     }
+                } else {
+                    console.error('廣告 API 錯誤:', response.status, await response.text());
                 }
             } catch (error) {
                 console.error('載入廣告失敗:', error);

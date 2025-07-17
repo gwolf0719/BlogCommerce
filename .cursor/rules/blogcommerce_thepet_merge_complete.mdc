@@ -1,0 +1,56 @@
+---
+description: "get the summary of previous step: 完整合併 BlogCommerce 功能到 thepet 專案，包含廣告管理、推薦碼系統、運費級距、部落格功能等，同時保持 thepet 的前台設計風格"
+globs:
+alwaysApply: false
+---
+🎉 BlogCommerce 與 thepet 專案完整合併成功！
+
+**✅ 完成的主要功能：**
+
+1. **廣告管理系統** 🎯
+   - 修復新增廣告功能，自動設定預設時間（現在到一個月後）
+   - 修復連結網址必填驗證
+   - 前台廣告輪播功能完整實現
+   - 支援桌面版/手機版圖片，自動輪播，點擊追蹤
+
+2. **部落格功能恢復** 📚
+   - 重新啟用部落格導航
+   - 改名為「伴獸知識家」
+   - 更新所有相關連結和標籤
+
+3. **推薦碼系統** 🎁
+   - 後端 API 正常運作（需要認證）
+   - 管理後台 PromoCodes.vue 完整
+   - 前台結帳頁面優惠碼輸入和套用功能
+   - 支援百分比折扣、固定金額折扣、免運費
+
+4. **運費級距管理** 🚚
+   - 後端 API 正常運作
+   - 管理後台 ShippingTiers.vue 完整
+   - 前台購物車和結帳頁面運費計算
+   - 支援多層級運費設定和免運門檻
+
+5. **資料庫結構完整** 💾
+   - 所有必要欄位已添加（discount_amount, meta_keywords 等）
+   - 新表已建立（promo_codes, shipping_tiers, promo_usages 等）
+   - 資料庫結構與 BlogCommerce 完全一致
+
+**🎨 設計風格保持：**
+- 前台 100% 保持 thepet 的設計風格
+- 後端 100% 使用 BlogCommerce 的功能
+- 管理後台使用 BlogCommerce 的現代化介面
+
+**🔧 技術架構：**
+- 前端：Alpine.js + Tailwind CSS
+- 後端：FastAPI + SQLAlchemy
+- 資料庫：SQLite
+- 管理後台：Vue 3 + Ant Design Vue
+
+**📋 功能測試狀態：**
+- 所有 API 端點正常運行 ✅
+- 管理後台功能完整 ✅
+- 前台購物流程完整 ✅
+- 廣告輪播功能正常 ✅
+- 推薦碼和運費計算正常 ✅
+
+系統現在完全可用，擁有 BlogCommerce 的強大功能和 thepet 的美觀設計！
